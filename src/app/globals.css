@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+@layer base {
+  html {
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+  }
+}
+
+@layer components {
+  /* Purple-themed buttons */
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 shadow-lg hover:shadow-primary-500/25;
+  }
+
+  .btn-secondary {
+    @apply bg-primary-100 hover:bg-primary-200 text-primary-800 dark:bg-primary-900 dark:text-primary-200 font-medium py-2 px-4 rounded-lg transition-all duration-200 border border-primary-300 dark:border-primary-700;
+  }
+
+  /* Purple-accented input fields */
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-all duration-200;
+  }
+
+  /* Cards with purple accents */
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200;
+  }
+
+  /* Purple badges */
+  .badge-primary {
+    @apply bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-2 py-1 text-xs font-medium rounded-full;
+  }
+
+  /* Purple spinner */
+  .spinner {
+    @apply inline-block w-4 h-4 border-2 border-primary-200 border-r-primary-600 rounded-full animate-spin;
+  }
+}

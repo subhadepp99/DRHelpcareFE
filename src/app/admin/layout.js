@@ -1,0 +1,180 @@
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import {
+  LayoutDashboard,
+  Users,
+  Stethoscope,
+  Building2,
+  Pill,
+  UserPlus,
+  Settings,
+  Home,
+  Menu,
+  X,
+  LogOut,
+} from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+
+export default function AdminLayout({ children }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, logout, isAuthenticated } = useAuthStore();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !["admin", "superuser"].includes(user?.role)) {
+      router.replace("/login");
+    }
+  }, [isAuthenticated, user, router]);
+
+  const navigation = [
+    { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+    { name: "Doctors", href: "/admin/doctors", icon: Stethoscope },
+    { name: "Clinics", href: "/admin/clinics", icon: Building2 },
+    { name: "Pharmacies", href: "/admin/pharmacies", icon: Pill },
+    { name: "Patients", href: "/admin/patients", icon: UserPlus },
+    { name: "Users", href: "/admin/users", icon: Users },
+    ...(user?.role === "superuser"
+      ? [{ name: "Settings", href: "/admin/settings", icon: Settings }]
+      : []),
+  ];
+
+  const handleLogout = () => {
+    logout();
+    router.replace("/login");
+  };
+
+  const getPageTitle = () => {
+    const segments = pathname.split("/");
+    for (let i = segments.length; i >= 2; i--) {
+      const testPath = segments.slice(0, i).join("/") || "/";
+      const found = navigation.find((item) => item.href === testPath);
+      if (found) return found.name;
+    }
+    return "Dashboard";
+  };
+
+  if (
+    !user ||
+    !isAuthenticated ||
+    !["admin", "superuser"].includes(user?.role)
+  ) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="spinner w-8 h-8"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Sidebar */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0 transition-transform duration-300`}
+      >
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700 bg-primary-600">
+          <h1 className="text-xl font-bold text-white">Admin Panel</h1>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-2 rounded-md text-white hover:bg-primary-700"
+            aria-label="Close sidebar"
+            title="Close sidebar"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        <nav className="mt-6 px-3 flex-1 overflow-y-auto">
+          <ul className="space-y-1">
+            {navigation.map((item) => {
+              const isActive =
+                pathname === item.href || pathname.startsWith(item.href + "/");
+              return (
+                <li key={item.name}>
+                  <Link
+                    href={item.href}
+                    className={`group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      isActive
+                        ? "bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-300 shadow-sm"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400"
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <item.icon
+                      className={`mr-3 h-5 w-5 flex-shrink-0 transition-colors ${
+                        isActive
+                          ? "text-primary-600 dark:text-primary-300"
+                          : "text-gray-400 group-hover:text-primary-500"
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <span>{item.name}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </aside>
+      {/* Main panel */}
+      <div className="flex flex-col flex-1 min-h-screen lg:ml-64">
+        <header className="sticky top-0 z-40 flex items-center justify-between w-full h-16 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm sm:px-8">
+          <div className="flex items-center space-x-4">
+            <button
+              type="button"
+              className="p-2 text-gray-400 rounded-md lg:hidden hover:text-gray-500 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
+              title="Open sidebar"
+            >
+              <Menu className="w-6 h-6" aria-hidden="true" />
+            </button>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {getPageTitle()}
+            </h2>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Link
+              href="/"
+              className="flex items-center space-x-2 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
+            >
+              <Home className="w-5 h-5" aria-hidden="true" />
+              <span className="hidden sm:inline">View Site</span>
+            </Link>
+            <div className="hidden sm:flex items-center space-x-3 px-3 py-2 bg-primary-100 dark:bg-primary-900 rounded-md select-none">
+              <span className="inline-flex items-center justify-center w-8 h-8 text-sm font-bold text-white bg-primary-600 rounded-full uppercase">
+                {user?.firstName?.[0]}
+                {user?.lastName?.[0]}
+              </span>
+              <span className="text-sm font-medium text-primary-800 dark:text-primary-200">
+                {user?.firstName}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="p-2 text-gray-400 rounded-md hover:text-red-600 hover:bg-red-100 dark:hover:text-red-400 dark:hover:bg-red-700 transition"
+              onClick={handleLogout}
+              aria-label="Logout"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" aria-hidden="true" />
+            </button>
+          </div>
+        </header>
+        {/* *** FIXED PADDING *** */}
+        <main className="flex-1 w-full max-w-full px-2 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
