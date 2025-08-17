@@ -18,12 +18,15 @@ import {
   Download,
   Apple,
   PlayCircle,
+  WhatsappIcon,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import SearchSection from "@/components/common/SearchSection";
 import ServiceCard from "@/components/cards/ServiceCard";
 import DoctorCard from "@/components/cards/DoctorCard";
+import DepartmentCard from "@/components/cards/DepartmentCard";
+import AppointmentModal from "@/components/common/AppointmentModal";
 import { useLocation } from "@/hooks/useLocation";
 import { useApi } from "@/hooks/useApi";
 import { useAuthStore } from "@/store/authStore";
@@ -38,12 +41,16 @@ export default function HomePage() {
   const { get } = useApi();
   const { isAuthenticated } = useAuthStore();
   const [featuredDoctors, setFeaturedDoctors] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchType, setSearchType] = useState("doctors");
+  const [searchType, setSearchType] = useState("all"); // Default to 'all'
+  const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
 
   useEffect(() => {
     requestLocation();
     fetchFeaturedDoctors();
+    fetchDepartments();
   }, []);
 
   const fetchFeaturedDoctors = async () => {
@@ -52,6 +59,15 @@ export default function HomePage() {
       setFeaturedDoctors(response.data.doctors || []);
     } catch (error) {
       console.error("Error fetching featured doctors:", error);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await get("/departments"); // departments contain pic, details, heading, and linked doctors
+      setDepartments(response.data.departments || []);
+    } catch (error) {
+      setDepartments([]);
     }
   };
 
@@ -71,6 +87,13 @@ export default function HomePage() {
 
     router.push(`/search?${queryParams.toString()}`);
   };
+
+  // Handle opening appointment booking modal
+
+  function bookAppointment(doctor) {
+    setSelectedDoctor(doctor);
+    setAppointmentModalOpen(true);
+  }
 
   const services = [
     {
@@ -104,22 +127,22 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 relative">
       <Header />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-20 pb-16">
+      <section className="relative overflow-hidden pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
             className="text-center"
           >
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+            {/* <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
               Your Health, Our{" "}
               <span className="text-primary-600">Priority</span>
-            </h1>
+            </h1> */}
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
               Find and book appointments with the best doctors, clinics, and
               pharmacies near you
@@ -139,8 +162,36 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Department Section - Scrollable Cards */}
+      {departments.length > 0 && (
+        <section className="py-8 bg-white dark:bg-gray-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              Departments
+            </h2>
+
+            <div className="overflow-x-auto scrollbar-hide pb-2">
+              <div className="flex gap-6 min-w-fit">
+                {departments.map((dept) => (
+                  <DepartmentCard key={dept._id} department={dept} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Services Section with Better Padding */}
-      <section className="py-16 bg-white dark:bg-gray-800">
+      <section className="py-12 bg-white dark:bg-gray-800">
+        {/* <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            Our Services
+          </h2>
+
+          <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            Comprehensive healthcare services at your fingertips
+          </p>
+        </div> */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -162,7 +213,7 @@ export default function HomePage() {
                 key={service.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
               >
                 <ServiceCard {...service} />
               </motion.div>
@@ -178,7 +229,7 @@ export default function HomePage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.5 }}
               className="text-center mb-12"
             >
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
@@ -197,13 +248,45 @@ export default function HomePage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
                 >
-                  <DoctorCard doctor={doctor} showRating={true} />
+                  <DoctorCard
+                    doctor={doctor}
+                    showRating={true}
+                    onBook={() => bookAppointment(doctor)}
+                  />
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
       )}
+
+      {/* Appointment Modal (popup from right side) */}
+      {appointmentModalOpen && (
+        <AppointmentModal
+          doctor={selectedDoctor}
+          onClose={() => setAppointmentModalOpen(false)}
+        />
+      )}
+
+      {/* Global WhatsApp and Phone Buttons */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-4 items-end">
+        <a
+          href="https://wa.me/97123456789" // Replace with your WhatsApp contact
+          className="inline-flex items-center px-4 py-3 rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 transition"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {/* <WhatsappIcon className="w-6 h-6 mr-2" /> */}
+          WhatsApp
+        </a>
+        <a
+          href="tel:+97123456789" // Replace with your phone contact
+          className="inline-flex items-center px-4 py-3 rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-600 transition"
+        >
+          <Phone className="w-6 h-6 mr-2" />
+          Call Us
+        </a>
+      </div>
 
       <div className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
