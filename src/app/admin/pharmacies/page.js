@@ -12,6 +12,10 @@ const initialForm = {
   email: "",
   phone: "",
   address: "",
+  place: "",
+  state: "",
+  zipCode: "",
+  country: "India",
   services: "",
   is24Hours: false,
 };
@@ -59,7 +63,11 @@ export default function PharmaciesPage() {
       licenseNumber: pharmacy.licenseNumber || "",
       email: pharmacy.email || "",
       phone: pharmacy.phone || "",
-      address: JSON.stringify(pharmacy.address || {}, null, 2),
+      address: pharmacy.address || "",
+      place: pharmacy.place || "",
+      state: pharmacy.state || "",
+      zipCode: pharmacy.zipCode || "",
+      country: pharmacy.country || "India",
       services: (pharmacy.services || []).join(", "),
       is24Hours: !!pharmacy.is24Hours,
     });
@@ -93,21 +101,17 @@ export default function PharmaciesPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true); // Set submitting state
-    let parsedAddress = {};
-    try {
-      parsedAddress = JSON.parse(form.address);
-    } catch (err) {
-      toast.error("Invalid JSON in address field.");
-      setIsSubmitting(false);
-      return;
-    }
 
     const payload = {
       name: form.name,
-      licenseNumber: form.licenseNumber,
+      licenseNumber: form.licenseNumber || undefined,
       email: form.email,
       phone: form.phone,
-      address: parsedAddress,
+      address: form.address,
+      place: form.place,
+      state: form.state,
+      zipCode: form.zipCode,
+      country: form.country,
       services: form.services
         .split(",")
         .map((s) => s.trim())

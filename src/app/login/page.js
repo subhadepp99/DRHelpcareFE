@@ -30,14 +30,14 @@ export default function LoginPage() {
         password: data.password,
       });
 
-      console.log("Login result:", result);
       if (result.success) {
-        if (result.user.role === "user") {
-          router.push("/");
-          toast.success("Login successful!");
+        const role = result.user.role;
+        if (["admin", "superuser"].includes(role)) {
+          router.push("/admin");
         } else {
-          toast.error("Only user login is allowed on this page.");
+          router.push("/profile");
         }
+        toast.success("Login successful!");
       } else {
         toast.error(result.message || "Login failed");
       }

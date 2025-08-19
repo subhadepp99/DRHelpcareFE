@@ -28,11 +28,10 @@ export default function AdminLoginPage() {
         password: data.password,
       });
 
-      console.log("Login result:", result);
       if (result.success) {
         if (["admin", "superuser"].includes(result.user.role)) {
           router.push("/admin");
-          toast.success("Admin Login successful!");
+          toast.success("Admin login successful!");
         } else {
           toast.error("Insufficient permissions for admin access");
         }

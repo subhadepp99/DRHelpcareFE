@@ -12,6 +12,10 @@ const initialForm = {
   email: "",
   phone: "",
   address: "",
+  place: "",
+  state: "",
+  zipCode: "",
+  country: "India",
   services: "",
   facilities: "",
 };
@@ -55,7 +59,11 @@ export default function AdminClinics() {
       registrationNumber: clinic.registrationNumber || "",
       email: clinic.email || "",
       phone: clinic.phone || "",
-      address: JSON.stringify(clinic.address || {}, null, 2),
+      address: clinic.address || "",
+      place: clinic.place || "",
+      state: clinic.state || "",
+      zipCode: clinic.zipCode || "",
+      country: clinic.country || "India",
       services: (clinic.services || []).join(", "),
       facilities: (clinic.facilities || []).join(", "),
     });
@@ -82,20 +90,17 @@ export default function AdminClinics() {
   async function onSubmit(e) {
     e.preventDefault();
     setIsSubmitting(true);
-    let parsedAddress = {};
-    try {
-      parsedAddress = JSON.parse(form.address);
-    } catch (err) {
-      toast.error("Invalid JSON in address field.");
-      setIsSubmitting(false);
-      return;
-    }
+
     const payload = {
       name: form.name,
-      registrationNumber: form.registrationNumber,
+      registrationNumber: form.registrationNumber || undefined,
       email: form.email,
       phone: form.phone,
-      address: parsedAddress,
+      address: form.address,
+      place: form.place,
+      state: form.state,
+      zipCode: form.zipCode,
+      country: form.country,
       services: form.services
         .split(",")
         .map((s) => s.trim())

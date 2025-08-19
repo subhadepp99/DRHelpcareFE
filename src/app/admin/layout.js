@@ -14,6 +14,8 @@ import {
   Menu,
   X,
   LogOut,
+  TestTube,
+  Building,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
@@ -28,7 +30,7 @@ export default function AdminLayout({ children }) {
       router.replace("/login");
     } else if (
       isAuthenticated === true &&
-      !["admin", "superuser"].includes(user?.role)
+      !["admin", "superuser", "masteruser"].includes(user?.role)
     ) {
       router.replace("/");
     }
@@ -37,10 +39,21 @@ export default function AdminLayout({ children }) {
   const navigation = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Doctors", href: "/admin/doctors", icon: Stethoscope },
+    { name: "Departments", href: "/admin/departments", icon: Building },
     { name: "Clinics", href: "/admin/clinics", icon: Building2 },
     { name: "Pharmacies", href: "/admin/pharmacies", icon: Pill },
+    { name: "Pathology", href: "/admin/pathology", icon: TestTube },
     { name: "Patients", href: "/admin/patients", icon: UserPlus },
     { name: "Users", href: "/admin/users", icon: Users },
+    ...(user?.role === "superuser" || user?.role === "masteruser"
+      ? [
+          {
+            name: "Access Requests",
+            href: "/admin/access-requests",
+            icon: UserPlus,
+          },
+        ]
+      : []),
     ...(user?.role === "superuser"
       ? [{ name: "Settings", href: "/admin/settings", icon: Settings }]
       : []),

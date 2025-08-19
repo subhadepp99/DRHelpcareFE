@@ -23,13 +23,33 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  login: async (email, password) => {
+  login: async (identifierOrPayload, passwordMaybe) => {
     set({ isLoading: true });
 
     try {
-      const response = await api.post("/auth/login", { email, password });
+      let rawPayload;
+      if (
+        typeof identifierOrPayload === "object" &&
+        identifierOrPayload !== null
+      ) {
+        rawPayload = identifierOrPayload;
+      } else {
+        rawPayload = { email: identifierOrPayload, password: passwordMaybe };
+      }
 
-      console.log("Login response:", response.data);
+      // Normalize to { identifier, password }
+      const payload = {
+        identifier:
+          rawPayload.identifier ||
+          rawPayload.email ||
+          rawPayload.username ||
+          rawPayload.phone ||
+          "",
+        password: rawPayload.password || "",
+      };
+
+      const response = await api.post("/auth/login", payload);
+
       const { token, user } = response.data.data;
 
       localStorage.setItem("token", token);
