@@ -32,11 +32,11 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
     reset,
   } = useForm({
     defaultValues: {
-      patientName: `${user?.firstName} ${user?.lastName}` || "",
+      patientName: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
       phone: user?.phone || "",
       email: user?.email || "",
       reason: "",
-      paymentMethod: "card",
+      paymentMethod: "cash",
     },
   });
 
@@ -147,7 +147,9 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Book Appointment with Dr. {doctor.name}
+                Book Appointment with Dr.{" "}
+                {doctor?.name ||
+                  `${doctor?.firstName || ""} ${doctor?.lastName || ""}`.trim()}
               </h3>
               <button
                 onClick={handleClose}
@@ -368,7 +370,11 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                           Doctor:
                         </span>
                         <span className="text-gray-900 dark:text-white">
-                          Dr. {doctor.name}
+                          Dr.{" "}
+                          {doctor?.name ||
+                            `${doctor?.firstName || ""} ${
+                              doctor?.lastName || ""
+                            }`.trim()}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -392,7 +398,7 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                           Total:
                         </span>
                         <span className="text-primary-600 dark:text-primary-400">
-                          ₹{doctor.consultationFee}
+                          ₹{doctor?.consultationFee ?? 0}
                         </span>
                       </div>
                     </div>
@@ -404,16 +410,17 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                       Payment Method
                     </h5>
                     <div className="space-y-3">
-                      <label className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900">
+                      <label className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-not-allowed opacity-60">
                         <input
                           {...register("paymentMethod")}
                           type="radio"
                           value="card"
                           className="text-primary-600"
+                          disabled
                         />
                         <CreditCard className="w-5 h-5 mx-3 text-gray-400" />
                         <span className="text-gray-900 dark:text-white">
-                          Credit/Debit Card
+                          Credit/Debit Card (Disabled)
                         </span>
                       </label>
                       <label className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900">
@@ -424,7 +431,7 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                           className="text-primary-600"
                         />
                         <div className="w-5 h-5 mx-3 bg-primary-600 rounded text-white text-xs flex items-center justify-center font-bold">
-                          U
+                          UPI
                         </div>
                         <span className="text-gray-900 dark:text-white">
                           UPI Payment
@@ -434,14 +441,14 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                         <input
                           {...register("paymentMethod")}
                           type="radio"
-                          value="wallet"
+                          value="cash"
                           className="text-primary-600"
                         />
                         <div className="w-5 h-5 mx-3 bg-green-600 rounded text-white text-xs flex items-center justify-center font-bold">
-                          W
+                          CASH
                         </div>
                         <span className="text-gray-900 dark:text-white">
-                          Digital Wallet
+                          Cash at Clinic
                         </span>
                       </label>
                     </div>
@@ -487,7 +494,11 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                           Doctor:
                         </span>
                         <span className="text-gray-900 dark:text-white">
-                          Dr. {doctor.name}
+                          Dr.{" "}
+                          {doctor?.name ||
+                            `${doctor?.firstName || ""} ${
+                              doctor?.lastName || ""
+                            }`.trim()}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -538,14 +549,14 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                   <button
                     onClick={handleSubmit(onSubmit)}
                     disabled={loading}
-                    className="btn-primary"
+                    className="btn-primary inline-flex items-center gap-2"
                   >
                     {loading ? (
-                      <div className="spinner mr-2"></div>
+                      <div className="spinner"></div>
                     ) : (
-                      <CreditCard className="w-4 h-4 mr-2" />
+                      <CreditCard className="w-4 h-4" />
                     )}
-                    Confirm & Pay
+                    <span>Confirm & Pay</span>
                   </button>
                 )}
               </div>

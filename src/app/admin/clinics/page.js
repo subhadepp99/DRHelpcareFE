@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import Modal from "@/components/common/Modal";
+import toast from "react-hot-toast"; // Import toast
 
 const initialForm = {
   name: "",
@@ -18,7 +19,9 @@ const initialForm = {
 export default function AdminClinics() {
   const { get, post, put, del } = useApi();
   const [clinics, setClinics] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true); // Renamed loading to fetching
+  const [isSubmitting, setIsSubmitting] = useState(false); // New state for form submission
+  const [isDeleting, setIsDeleting] = useState(false); // New state for deletion
   const [form, setForm] = useState(initialForm);
   const [editing, setEditing] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -26,15 +29,19 @@ export default function AdminClinics() {
   useEffect(() => {
     fetchClinics();
   }, []);
+
   async function fetchClinics() {
-    setLoading(true);
+    setFetching(true);
     try {
       const res = await get("/clinics?limit=1000");
       setClinics(res.data.clinics || res.data.data?.clinics || []);
-    } catch {
+    } catch (err) {
+      console.error("Failed to fetch clinics:", err);
+      toast.error("Failed to fetch clinics.");
       setClinics([]);
+    } finally {
+      setFetching(false);
     }
-    setLoading(false);
   }
 
   const openAdd = () => {
@@ -57,19 +64,30 @@ export default function AdminClinics() {
   };
   const handleDelete = async (id) => {
     if (!confirm("Confirm delete?")) return;
-    await del(`/clinics/${id}`);
-    fetchClinics();
+    setIsDeleting(true);
+    try {
+      await del(`/clinics/${id}`);
+      toast.success("Clinic deleted successfully!");
+      fetchClinics();
+    } catch (err) {
+      console.error("Failed to delete clinic:", err);
+      toast.error("Failed to delete clinic.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
   function onChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
   async function onSubmit(e) {
     e.preventDefault();
+    setIsSubmitting(true);
     let parsedAddress = {};
     try {
       parsedAddress = JSON.parse(form.address);
-    } catch {
-      alert("Invalid JSON in address");
+    } catch (err) {
+      toast.error("Invalid JSON in address field.");
+      setIsSubmitting(false);
       return;
     }
     const payload = {
@@ -87,10 +105,22 @@ export default function AdminClinics() {
         .map((f) => f.trim())
         .filter(Boolean),
     };
-    if (editing) await put(`/clinics/${editing._id}`, payload);
-    else await post("/clinics", payload);
-    setModalOpen(false);
-    fetchClinics();
+    try {
+      if (editing) {
+        await put(`/clinics/${editing._id}`, payload);
+        toast.success("Clinic updated successfully!");
+      } else {
+        await post("/clinics", payload);
+        toast.success("Clinic added successfully!");
+      }
+      setModalOpen(false);
+      fetchClinics();
+    } catch (err) {
+      console.error("Failed to save clinic:", err);
+      toast.error("Failed to save clinic.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -105,8 +135,10 @@ export default function AdminClinics() {
           <span>Add Clinic</span>
         </button>
       </div>
-      {loading ? (
-        <p>Loading...</p>
+      {fetching ? (
+        <p>Loading clinics...</p>
+      ) : clinics.length === 0 ? (
+        <p className="text-center text-gray-500">No clinics found.</p>
       ) : (
         <table className="w-full table-auto border-collapse border">
           <thead>
@@ -137,8 +169,13 @@ export default function AdminClinics() {
                   <button
                     onClick={() => handleDelete(clinic._id)}
                     className="text-red-600 hover:text-red-800"
+                    disabled={isDeleting} // Disable delete button while deleting
                   >
-                    <Trash2 className="inline-block w-5 h-5" />
+                    {isDeleting ? (
+                      "Deleting..."
+                    ) : (
+                      <Trash2 className="inline-block w-5 h-5" />
+                    )}
                   </button>
                 </td>
               </tr>
@@ -205,8 +242,18 @@ export default function AdminClinics() {
               placeholder="Facilities (comma separated)"
               className="input-field"
             />
-            <button type="submit" className="btn-primary w-full">
-              {editing ? "Update" : "Add"}
+            <button
+              type="submit"
+              className="btn-primary w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting
+                ? editing
+                  ? "Updating..."
+                  : "Adding..."
+                : editing
+                ? "Update"
+                : "Add"}
             </button>
           </form>
         </Modal>

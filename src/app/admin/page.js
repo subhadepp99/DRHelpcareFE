@@ -18,6 +18,7 @@ import { useApi } from "@/hooks/useApi";
 import StatsCard from "@/components/admin/StatsCard";
 import DashboardChart from "@/components/charts/DashboardChart";
 import RecentActivity from "@/components/admin/RecentActivity";
+import toast from "react-hot-toast";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -27,20 +28,32 @@ export default function AdminDashboard() {
   const [registrationStats, setRegistrationStats] = useState([]);
   const [bookingStats, setBookingStats] = useState([]);
   const [period, setPeriod] = useState("monthly");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchData();
   }, [period]);
 
   const fetchData = async () => {
-    const statsRes = await get("/dashboard/stats");
-    const doctorRes = await get(`/dashboard/doctors?period=${period}`);
-    const regRes = await get(`/dashboard/registrations?period=${period}`);
-    const bookRes = await get(`/dashboard/bookings?period=${period}`);
-    setStats(statsRes.data);
-    setDoctorStats(doctorRes.data.doctorStats);
-    setRegistrationStats(regRes.data.registrationStats);
-    setBookingStats(bookRes.data.bookingStats);
+    setLoading(true);
+    setError(null);
+    try {
+      const statsRes = await get("/dashboard/stats");
+      const doctorRes = await get(`/dashboard/doctors?period=${period}`);
+      const regRes = await get(`/dashboard/registrations?period=${period}`);
+      const bookRes = await get(`/dashboard/bookings?period=${period}`);
+      setStats(statsRes.data);
+      setDoctorStats(doctorRes.data.doctorStats);
+      setRegistrationStats(regRes.data.registrationStats);
+      setBookingStats(bookRes.data.bookingStats);
+    } catch (err) {
+      setError("Failed to load dashboard data.");
+      toast.error("Failed to load dashboard data. Please try again.");
+      console.error("Dashboard data fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const statsCards = [
@@ -73,6 +86,22 @@ export default function AdminDashboard() {
       href: "/admin/patients",
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-100px)]">
+        <p className="text-gray-500 dark:text-gray-400">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center mt-12 text-red-600 dark:text-red-400">
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

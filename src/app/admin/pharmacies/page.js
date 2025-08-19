@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import Modal from "@/components/common/Modal";
+import toast from "react-hot-toast"; // Import toast
 
 const initialForm = {
   name: "",
@@ -18,7 +19,10 @@ const initialForm = {
 export default function PharmaciesPage() {
   const { get, post, put, del } = useApi();
   const [pharmacies, setPharmacies] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Renamed to loading
+  const [isSubmitting, setIsSubmitting] = useState(false); // New state for form submission
+  const [isDeleting, setIsDeleting] = useState(false); // New state for deletion
+  const [error, setError] = useState(null); // New state for errors
   const [form, setForm] = useState(initialForm);
   const [editing, setEditing] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -26,21 +30,29 @@ export default function PharmaciesPage() {
   useEffect(() => {
     fetchPharmacies();
   }, []);
+
   const fetchPharmacies = async () => {
     setLoading(true);
+    setError(null); // Clear previous errors
     try {
       const res = await get("/pharmacies?limit=1000");
       setPharmacies(res.data.pharmacies || []);
-    } catch {
+    } catch (err) {
+      console.error("Failed to fetch pharmacies:", err);
+      toast.error("Failed to fetch pharmacies.");
+      setError("Failed to load pharmacies data.");
       setPharmacies([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
   const openAdd = () => {
     setForm(initialForm);
     setEditing(null);
     setModalOpen(true);
   };
+
   const openEdit = (pharmacy) => {
     setForm({
       name: pharmacy.name || "",
@@ -54,24 +66,42 @@ export default function PharmaciesPage() {
     setEditing(pharmacy);
     setModalOpen(true);
   };
+
   const handleDelete = async (id) => {
     if (!confirm("Confirm delete?")) return;
-    await del(`/pharmacies/${id}`);
-    fetchPharmacies();
+    setIsDeleting(true); // Set deleting state
+    try {
+      await del(`/pharmacies/${id}`);
+      toast.success("Pharmacy deleted successfully!");
+      fetchPharmacies();
+    } catch (err) {
+      console.error("Failed to delete pharmacy:", err);
+      toast.error(
+        "Failed to delete pharmacy: " +
+          (err?.response?.data?.message || err.message || "Unknown error")
+      );
+    } finally {
+      setIsDeleting(false); // Reset deleting state
+    }
   };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm({ ...form, [name]: type === "checkbox" ? checked : value });
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true); // Set submitting state
     let parsedAddress = {};
     try {
       parsedAddress = JSON.parse(form.address);
-    } catch {
-      alert("Address must be valid JSON");
+    } catch (err) {
+      toast.error("Invalid JSON in address field.");
+      setIsSubmitting(false);
       return;
     }
+
     const payload = {
       name: form.name,
       licenseNumber: form.licenseNumber,
@@ -84,10 +114,26 @@ export default function PharmaciesPage() {
         .filter(Boolean),
       is24Hours: form.is24Hours,
     };
-    if (editing) await put(`/pharmacies/${editing._id}`, payload);
-    else await post("/pharmacies", payload);
-    setModalOpen(false);
-    fetchPharmacies();
+
+    try {
+      if (editing) {
+        await put(`/pharmacies/${editing._id}`, payload);
+        toast.success("Pharmacy updated successfully!");
+      } else {
+        await post("/pharmacies", payload);
+        toast.success("Pharmacy added successfully!");
+      }
+      setModalOpen(false);
+      fetchPharmacies();
+    } catch (err) {
+      console.error("Failed to save pharmacy:", err);
+      toast.error(
+        "Failed to save pharmacy: " +
+          (err?.response?.data?.message || err.message || "Unknown error")
+      );
+    } finally {
+      setIsSubmitting(false); // Reset submitting state
+    }
   };
 
   return (
@@ -102,7 +148,11 @@ export default function PharmaciesPage() {
         </button>
       </div>
       {loading ? (
-        <p>Loading...</p>
+        <p>Loading pharmacies...</p>
+      ) : error ? (
+        <p className="text-center text-red-600">{error}</p>
+      ) : pharmacies.length === 0 ? (
+        <p className="text-center text-gray-500">No pharmacies found.</p>
       ) : (
         <table className="w-full table-auto border-collapse border">
           <thead>
@@ -137,8 +187,13 @@ export default function PharmaciesPage() {
                   <button
                     onClick={() => handleDelete(pharmacy._id)}
                     className="text-red-600"
+                    disabled={isDeleting} // Disable delete button while deleting
                   >
-                    <Trash2 className="inline-block w-5 h-5" />
+                    {isDeleting ? (
+                      "Deleting..."
+                    ) : (
+                      <Trash2 className="inline-block w-5 h-5" />
+                    )}
                   </button>
                 </td>
               </tr>
@@ -207,8 +262,18 @@ export default function PharmaciesPage() {
               />
               <span>Open 24 Hours</span>
             </label>
-            <button type="submit" className="btn-primary w-full">
-              {editing ? "Update Pharmacy" : "Add Pharmacy"}
+            <button
+              type="submit"
+              className="btn-primary w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting
+                ? editing
+                  ? "Updating..."
+                  : "Adding..."
+                : editing
+                ? "Update Pharmacy"
+                : "Add Pharmacy"}
             </button>
           </form>
         </Modal>

@@ -10,6 +10,7 @@ export default function DoctorCard({
   doctor,
   showBookButton = true,
   showRating = true,
+  highlight = "",
 }) {
   const router = useRouter();
   const [isLiked, setIsLiked] = useState(false);
@@ -28,11 +29,51 @@ export default function DoctorCard({
   };
 
   // Generate realistic rating
-  const ratingRaw = doctor.rating || 4.2 + Math.random() * 0.8;
+  const ratingRaw = doctor.rating || 0; // Directly use doctor.rating or 0 if not provided
   const rating =
     typeof ratingRaw === "number" ? ratingRaw : Number(ratingRaw) || 0;
   const reviewCount =
-    doctor.reviewCount || Math.floor(50 + Math.random() * 200);
+    doctor.reviewCount != null
+      ? doctor.reviewCount
+      : doctor.reviews
+      ? doctor.reviews.length
+      : 0;
+
+  // Helper to highlight matches
+  function highlightText(text) {
+    if (!highlight || !text) return text;
+    const regex = new RegExp(`(${highlight})`, "gi");
+    return text.split(regex).map((part, i) =>
+      regex.test(part) ? (
+        <span
+          key={i}
+          className="bg-yellow-200 dark:bg-yellow-700 text-black dark:text-white rounded px-1"
+        >
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  }
+
+  // Helper to get image src safely
+  const getImageSrc = () => {
+    if (!doctor.image) return undefined;
+    if (typeof doctor.image === "string" && doctor.image.startsWith("http"))
+      return doctor.image;
+    if (
+      typeof doctor.image === "string" &&
+      doctor.image.startsWith("data:image/")
+    )
+      return doctor.image;
+    if (
+      typeof doctor.image === "string" &&
+      doctor.image.startsWith("/uploads/")
+    )
+      return `${process.env.NEXT_PUBLIC_API_URL}${doctor.image}`;
+    return undefined;
+  };
 
   return (
     <motion.div
@@ -43,10 +84,10 @@ export default function DoctorCard({
       <div className="relative">
         {/* Doctor Image */}
         <div className="aspect-w-16 aspect-h-12 bg-gray-100 dark:bg-gray-700">
-          {doctor.image && !imageError ? (
+          {getImageSrc() && !imageError ? (
             <Image
-              src={`${process.env.NEXT_PUBLIC_API_URL}/doctors/${doctor._id}/image`}
-              alt={doctor.name}
+              src={getImageSrc()}
+              alt={doctor.name || "Doctor"}
               fill
               className="object-cover"
               onError={() => setImageError(true)}
@@ -89,13 +130,13 @@ export default function DoctorCard({
         {/* Doctor Info */}
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-            Dr. {doctor.name}
+            Dr. {highlightText(doctor.name || doctor.firstName || "Doctor")}
           </h3>
           <p className="text-primary-600 dark:text-primary-400 font-medium text-sm">
-            {doctor.specialization}
+            {highlightText(doctor.specialization || "Specialist")}
           </p>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
-            {doctor.qualification}
+            {highlightText(doctor.qualification || "")}
           </p>
         </div>
 
@@ -117,7 +158,7 @@ export default function DoctorCard({
               ))}
             </div>
             <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-              {rating.toFixed(1)} ({reviewCount} reviews)
+              {rating.toFixed(1)} ({reviewCount || 0} reviews)
             </span>
           </div>
         )}
@@ -138,7 +179,14 @@ export default function DoctorCard({
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-4">
             <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
             <span className="truncate">
-              {doctor.address.city}, {doctor.address.state}
+              {highlightText(
+                typeof doctor.address === "string"
+                  ? doctor.address
+                  : doctor.address.fullAddress ||
+                      `${doctor.address.city || ""}, ${
+                        doctor.address.state || ""
+                      }`
+              )}
             </span>
           </div>
         )}
@@ -154,21 +202,27 @@ export default function DoctorCard({
           {showBookButton && (
             <button
               onClick={handleBooking}
-              className="flex-1 btn-primary text-sm py-2"
+              className="flex-1 btn-primary text-sm px-6 py-3 rounded-lg font-semibold shadow hover:shadow-lg transition inline-flex items-center justify-center gap-2"
             >
-              <Calendar className="w-4 h-4 mr-1" />
-              Book Now
+              <Calendar className="w-4 h-4" />
+              <span>Book Now</span>
             </button>
           )}
         </div>
 
         {/* Quick Actions */}
         <div className="flex items-center justify-center space-x-4 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <button className="flex items-center text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+          <button
+            onClick={() => window.open(`tel:${doctor.phone}`, "_self")}
+            className="flex items-center text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+          >
             <Phone className="w-3 h-3 mr-1" />
             Call
           </button>
-          <button className="flex items-center text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+          <button
+            onClick={() => window.open(`/booking/${doctor._id}`, "_blank")}
+            className="flex items-center text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+          >
             <Calendar className="w-3 h-3 mr-1" />
             Schedule
           </button>

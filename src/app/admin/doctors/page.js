@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useApi } from "@/hooks/useApi";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import Modal from "@/components/common/Modal";
+import toast from "react-hot-toast"; // Import toast
 
 const specializations = [
   "Cardiology",
@@ -37,6 +38,8 @@ export default function AdminDoctorsPage() {
   const { get, post, put, del } = useApi();
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false); // New state for form submission
+  const [isDeleting, setIsDeleting] = useState(false); // New state for deletion
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
 
@@ -59,7 +62,9 @@ export default function AdminDoctorsPage() {
     try {
       const res = await get("/doctors"); // Adjust if your base API path is different
       setDoctors(res.data.doctors || res.data.data?.doctors || []);
-    } catch {
+    } catch (err) {
+      console.error("Failed to fetch doctors:", err);
+      toast.error("Failed to fetch doctors.");
       setDoctors([]);
     } finally {
       setLoading(false);
@@ -104,11 +109,19 @@ export default function AdminDoctorsPage() {
 
   const handleDelete = async (id) => {
     if (confirm("Are you sure you want to delete this doctor?")) {
+      setIsDeleting(true); // Set deleting state
       try {
         await del(`/doctors/${id}`);
         setDoctors((prev) => prev.filter((doc) => doc._id !== id));
+        toast.success("Doctor deleted successfully!");
       } catch (err) {
-        alert("Failed to delete doctor: " + (err?.message || "Unknown error"));
+        console.error("Failed to delete doctor:", err);
+        toast.error(
+          "Failed to delete doctor: " +
+            (err?.response?.data?.message || err.message || "Unknown error")
+        );
+      } finally {
+        setIsDeleting(false); // Reset deleting state
       }
     }
   };
@@ -131,19 +144,9 @@ export default function AdminDoctorsPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   if (editingDoctor) {
-  //     await put(`/doctors/${editingDoctor._id}`, form);
-  //   } else {
-  //     await post("/doctors", form);
-  //   }
-  //   setModalOpen(false);
-  //   fetchDoctors();
-  // };
-
   async function handleSubmit(e) {
     e.preventDefault();
+    setIsSubmitting(true); // Set submitting state
     const payload = {
       ...form,
       experience: Number(form.experience),
@@ -159,13 +162,21 @@ export default function AdminDoctorsPage() {
             doc._id === editingDoctor._id ? { ...doc, ...payload } : doc
           )
         );
+        toast.success("Doctor updated successfully!");
       } else {
         const res = await post("/doctors", payload);
         setDoctors((prev) => [...prev, res.data]);
+        toast.success("Doctor added successfully!");
       }
       setModalOpen(false);
     } catch (err) {
-      alert("Could not save doctor: " + err.message);
+      console.error("Failed to save doctor:", err);
+      toast.error(
+        "Could not save doctor: " +
+          (err?.response?.data?.message || err.message || "Unknown error")
+      );
+    } finally {
+      setIsSubmitting(false); // Reset submitting state
     }
   }
 
@@ -186,6 +197,8 @@ export default function AdminDoctorsPage() {
 
       {loading ? (
         <p>Loading...</p>
+      ) : doctors.length === 0 ? (
+        <p className="text-center text-gray-500">No doctors found.</p>
       ) : (
         <table className="w-full text-left border-collapse border">
           <thead>
@@ -231,8 +244,13 @@ export default function AdminDoctorsPage() {
                   <button
                     onClick={() => handleDelete(doc._id)}
                     className="p-1 hover:text-red-600"
+                    disabled={isDeleting} // Disable delete button while deleting
                   >
-                    <Trash2 className="w-5 h-5" />
+                    {isDeleting ? (
+                      "Deleting..."
+                    ) : (
+                      <Trash2 className="w-5 h-5" />
+                    )}
                   </button>
                 </td>
               </tr>
@@ -339,8 +357,18 @@ export default function AdminDoctorsPage() {
                 className="w-20 h-20 rounded-full object-cover mx-auto mt-2"
               />
             )}
-            <button type="submit" className="btn-primary w-full">
-              {editingDoctor ? "Update Doctor" : "Add Doctor"}
+            <button
+              type="submit"
+              className="btn-primary w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting
+                ? editingDoctor
+                  ? "Updating..."
+                  : "Adding..."
+                : editingDoctor
+                ? "Update Doctor"
+                : "Add Doctor"}
             </button>
           </form>
         </Modal>

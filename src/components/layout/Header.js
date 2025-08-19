@@ -15,6 +15,7 @@ import {
   Heart,
   Calendar,
   Search,
+  Phone,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuthStore } from "@/store/authStore";
@@ -54,6 +55,8 @@ export default function Header() {
               Dr Helpcare Pro
             </span>
           </Link>
+          {/* Global Call & WhatsApp */}
+          <div className="hidden md:flex items-center space-x-4"></div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
@@ -190,55 +193,8 @@ export default function Header() {
                     {item.name}
                   </Link>
                 ))}
-
-                <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                  {isAuthenticated ? (
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">
-                        {user?.firstName}
-                      </span>
-                      <button
-                        onClick={handleLogout}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <LogOut className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-4">
-                      <Link
-                        href="/login"
-                        className="text-gray-600 dark:text-gray-300 font-medium"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        Login
-                      </Link>
-                      <Link
-                        href="/register"
-                        className="btn-primary text-sm"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        Sign Up
-                      </Link>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() =>
-                      setTheme(theme === "dark" ? "light" : "dark")
-                    }
-                    className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-                  >
-                    {theme === "dark" ? (
-                      <Sun className="w-4 h-4" />
-                    ) : (
-                      <Moon className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
+                {/* Global Call & WhatsApp for mobile */}
+                <div className="flex items-center space-x-2 pt-4"></div>
               </div>
             </motion.div>
           )}

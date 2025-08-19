@@ -24,8 +24,13 @@ export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated || !["admin", "superuser"].includes(user?.role)) {
+    if (isAuthenticated === false) {
       router.replace("/login");
+    } else if (
+      isAuthenticated === true &&
+      !["admin", "superuser"].includes(user?.role)
+    ) {
+      router.replace("/");
     }
   }, [isAuthenticated, user, router]);
 
@@ -56,14 +61,17 @@ export default function AdminLayout({ children }) {
     return "Dashboard";
   };
 
-  if (
-    !user ||
-    !isAuthenticated ||
-    !["admin", "superuser"].includes(user?.role)
-  ) {
+  if (isAuthenticated !== true) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="spinner w-8 h-8"></div>
+      </div>
+    );
+  }
+  if (!["admin", "superuser"].includes(user?.role)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <p className="text-gray-700 dark:text-gray-300">Access denied.</p>
       </div>
     );
   }

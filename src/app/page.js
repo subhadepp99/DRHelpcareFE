@@ -48,7 +48,6 @@ export default function HomePage() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
 
   useEffect(() => {
-    requestLocation();
     fetchFeaturedDoctors();
     fetchDepartments();
   }, []);
@@ -56,7 +55,9 @@ export default function HomePage() {
   const fetchFeaturedDoctors = async () => {
     try {
       const response = await get("/doctors?limit=6");
-      setFeaturedDoctors(response.data.doctors || []);
+      const doctors =
+        response?.data?.data?.doctors || response?.data?.doctors || [];
+      setFeaturedDoctors(doctors);
     } catch (error) {
       console.error("Error fetching featured doctors:", error);
     }
@@ -64,27 +65,20 @@ export default function HomePage() {
 
   const fetchDepartments = async () => {
     try {
-      const response = await get("/departments"); // departments contain pic, details, heading, and linked doctors
+      const response = await get("/department"); // departments contain pic, details, heading, and linked doctors
       setDepartments(response.data.departments || []);
     } catch (error) {
       setDepartments([]);
     }
   };
 
-  const handleSearch = () => {
-    if (!searchQuery.trim()) return;
-
-    const queryParams = new URLSearchParams({
-      q: searchQuery,
-      type: searchType,
-    });
-
-    if (location) {
-      queryParams.append("lat", location.lat);
-      queryParams.append("lng", location.lng);
-      queryParams.append("city", location.city);
-    }
-
+  const handleSearch = ({ selectedLocation } = {}) => {
+    const hasQuery = !!searchQuery.trim();
+    const hasLocation = !!selectedLocation?.trim();
+    if (!hasQuery && !hasLocation) return;
+    const queryParams = new URLSearchParams({ type: searchType });
+    if (hasQuery) queryParams.set("q", searchQuery);
+    if (hasLocation) queryParams.set("city", selectedLocation);
     router.push(`/search?${queryParams.toString()}`);
   };
 
@@ -131,22 +125,19 @@ export default function HomePage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-20 pb-12">
+      <section className="relative z-40 overflow-hidden pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center"
+            className="text-center relative z-50"
           >
             {/* <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
               Your Health, Our{" "}
               <span className="text-primary-600">Priority</span>
             </h1> */}
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-              Find and book appointments with the best doctors, clinics, and
-              pharmacies near you
-            </p>
+            {/* Subtitle removed as requested */}
 
             {/* Enhanced Search Section */}
             <SearchSection
@@ -155,8 +146,6 @@ export default function HomePage() {
               searchType={searchType}
               setSearchType={setSearchType}
               onSearch={handleSearch}
-              location={location}
-              locationLoading={locationLoading}
             />
           </motion.div>
         </div>
@@ -268,22 +257,20 @@ export default function HomePage() {
         />
       )}
 
-      {/* Global WhatsApp and Phone Buttons */}
+      {/* Floating Call & WhatsApp Buttons (global) */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-4 items-end">
         <a
-          href="https://wa.me/97123456789" // Replace with your WhatsApp contact
+          href="https://wa.me/919674243119"
           className="inline-flex items-center px-4 py-3 rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 transition"
           target="_blank"
           rel="noopener noreferrer"
         >
-          {/* <WhatsappIcon className="w-6 h-6 mr-2" /> */}
           WhatsApp
         </a>
         <a
-          href="tel:+97123456789" // Replace with your phone contact
+          href="tel:+919674243119"
           className="inline-flex items-center px-4 py-3 rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-600 transition"
         >
-          <Phone className="w-6 h-6 mr-2" />
           Call Us
         </a>
       </div>
@@ -345,6 +332,7 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+      <div className="pb-32" />
 
       <Footer />
     </div>

@@ -3,8 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Search, MapPin, SlidersHorizontal, Grid3X3, List } from "lucide-react";
-import { useLocation } from "@/hooks/useLocation";
+import {
+  Search,
+  MapPin,
+  SlidersHorizontal,
+  Grid3X3,
+  List,
+  Compass,
+} from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -17,7 +23,6 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { location, requestLocation, loading: locationLoading } = useLocation();
   const { get, loading: apiLoading } = useApi();
 
   const [results, setResults] = useState({});
@@ -36,6 +41,45 @@ export default function SearchPage() {
     distance: "",
   });
 
+  // Location typeahead
+  const locations = [
+    "Delhi",
+    "Mumbai",
+    "Bangalore",
+    "Hyderabad",
+    "Ahmedabad",
+    "Chennai",
+    "Kolkata",
+    "Pune",
+    "Jaipur",
+    "Lucknow",
+  ]; // trimmed list for brevity
+  const [locationInput, setLocationInput] = useState(
+    searchParams.get("city") || ""
+  );
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState("");
+
+  const handleLocationInput = (e) => {
+    const value = e.target.value;
+    setLocationInput(value);
+    setSelectedLocation("");
+    if (value.length >= 2) {
+      setLocationSuggestions(
+        locations.filter((loc) =>
+          loc.toLowerCase().includes(value.toLowerCase())
+        )
+      );
+    } else {
+      setLocationSuggestions([]);
+    }
+  };
+  const handleLocationSelect = (loc) => {
+    setLocationInput(loc);
+    setSelectedLocation(loc);
+    setLocationSuggestions([]);
+  };
+
   const performSearch = useCallback(async () => {
     try {
       const queryParams = new URLSearchParams({
@@ -44,17 +88,14 @@ export default function SearchPage() {
         sort: sortBy,
         ...filters,
       });
-      if (location) {
-        queryParams.append("lat", location.lat);
-        queryParams.append("lng", location.lng);
-      }
+      if (selectedLocation) queryParams.set("city", selectedLocation);
       const response = await get(`/search?${queryParams.toString()}`);
       setResults(response.data?.results || {});
     } catch (error) {
       console.error("Search error:", error);
       setResults({});
     }
-  }, [searchQuery, searchType, sortBy, filters, location, get]);
+  }, [searchQuery, searchType, sortBy, filters, selectedLocation, get]);
 
   useEffect(() => {
     if (searchQuery.trim() || searchType !== "all") {
@@ -68,13 +109,10 @@ export default function SearchPage() {
     const params = new URLSearchParams();
     if (searchQuery) params.set("q", searchQuery);
     if (searchType !== "all") params.set("type", searchType);
-    if (location) {
-      params.set("lat", location.lat);
-      params.set("lng", location.lng);
-    }
+    if (selectedLocation) params.set("city", selectedLocation);
     const newUrl = `/search${params.toString() ? `?${params.toString()}` : ""}`;
     router.replace(newUrl, { shallow: true });
-  }, [searchQuery, searchType, location, router]);
+  }, [searchQuery, searchType, selectedLocation, router]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -109,7 +147,32 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <Header />
-
+      {/* Breadcrumb Navigation */}
+      <nav
+        className="text-sm text-gray-500 dark:text-gray-400 py-4 px-4 max-w-7xl mx-auto"
+        aria-label="Breadcrumb"
+      >
+        <ol className="list-reset flex">
+          <li>
+            <a href="/" className="hover:text-primary-600">
+              Home
+            </a>
+            <span className="mx-2">/</span>
+          </li>
+          <li>
+            <a href="/search" className="hover:text-primary-600">
+              Search
+            </a>
+            <span className="mx-2">/</span>
+          </li>
+          <li
+            className="text-primary-600 font-semibold truncate max-w-xs"
+            title={searchQuery}
+          >
+            {searchQuery || "All"}
+          </li>
+        </ol>
+      </nav>
       <main className="flex-grow pt-20">
         <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-16 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -125,7 +188,32 @@ export default function SearchPage() {
                     placeholder="Search for doctors, clinics, pharmacies..."
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
                     aria-label="Search input"
+                    minLength={3}
                   />
+                </div>
+                <div className="flex-1 relative">
+                  <Compass className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={locationInput}
+                    onChange={handleLocationInput}
+                    placeholder="Enter location (city, state, village)"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                    autoComplete="off"
+                  />
+                  {locationSuggestions.length > 0 && (
+                    <ul className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10 mt-1 max-h-48 overflow-y-auto">
+                      {locationSuggestions.map((loc) => (
+                        <li
+                          key={loc}
+                          className="px-4 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900"
+                          onClick={() => handleLocationSelect(loc)}
+                        >
+                          {loc}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <button type="submit" className="btn-primary px-6 py-3">
                   Search
@@ -166,10 +254,10 @@ export default function SearchPage() {
                   <span>Filters</span>
                 </button>
 
-                {location && (
+                {selectedLocation && (
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                     <MapPin className="w-4 h-4 mr-1" />
-                    <span>{location.city}</span>
+                    <span>{selectedLocation}</span>
                   </div>
                 )}
 
@@ -252,7 +340,11 @@ export default function SearchPage() {
                   }`}
                 >
                   {results.doctors.map((doctor) => (
-                    <DoctorCard key={doctor._id} doctor={doctor} />
+                    <DoctorCard
+                      key={doctor._id}
+                      doctor={doctor}
+                      highlight={searchQuery}
+                    />
                   ))}
                 </div>
               </section>
@@ -308,15 +400,6 @@ export default function SearchPage() {
               <p className="mt-2">
                 Try adjusting your search terms or filters.
               </p>
-              <button
-                onClick={() => requestLocation()}
-                disabled={locationLoading}
-                className="inline-flex items-center bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white px-4 py-2 rounded shadow mt-4"
-                title="Search near me"
-              >
-                <MapPin className="w-5 h-5 mr-2" />
-                {locationLoading ? "Locating..." : "Search near me"}
-              </button>
             </div>
           )}
         </div>

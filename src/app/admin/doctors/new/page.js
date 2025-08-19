@@ -70,7 +70,8 @@ export default function NewDoctorPage() {
       toast.success("Doctor added successfully!");
       router.push("/admin/doctors");
     } catch (error) {
-      toast.error("Failed to add doctor");
+      console.error("Error adding doctor:", error);
+      toast.error(error.response?.data?.message || "Failed to add doctor");
     } finally {
       setLoading(false);
     }

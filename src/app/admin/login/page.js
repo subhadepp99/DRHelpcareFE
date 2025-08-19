@@ -1,21 +1,19 @@
-"use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, UserCheck } from "lucide-react"; // Removed Shield
+import { Eye, EyeOff, Mail, Lock, Shield } from "lucide-react"; // Removed UserCheck
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const router = useRouter();
   const { login, isLoading } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
 
-  // Hardcode loginType to 'user' for this page
-  const loginType = "user";
+  // Hardcode loginType to 'admin' for this page
+  const loginType = "admin";
 
   const {
     register,
@@ -32,11 +30,11 @@ export default function LoginPage() {
 
       console.log("Login result:", result);
       if (result.success) {
-        if (result.user.role === "user") {
-          router.push("/");
-          toast.success("Login successful!");
+        if (["admin", "superuser"].includes(result.user.role)) {
+          router.push("/admin");
+          toast.success("Admin Login successful!");
         } else {
-          toast.error("Only user login is allowed on this page.");
+          toast.error("Insufficient permissions for admin access");
         }
       } else {
         toast.error(result.message || "Login failed");
@@ -61,25 +59,18 @@ export default function LoginPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mx-auto h-12 w-12 bg-primary-600 rounded-full flex items-center justify-center"
           >
-            <UserCheck className="h-6 w-6 text-white" />
+            <Shield className="h-6 w-6 text-white" />
           </motion.div>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
-            Sign in to your account
+            Admin Login
           </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Or{" "}
-            <Link
-              href="/register"
-              className="font-medium text-primary-600 hover:text-primary-500"
-            >
-              create a new account
-            </Link>{" "}
-            |{" "}
+            Go back to{" "}
             <Link
               href="/"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              Back to Home
+              main website
             </Link>
           </p>
         </div>
@@ -173,7 +164,7 @@ export default function LoginPage() {
               disabled={isLoading}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
-              {isLoading ? <div className="spinner"></div> : "Sign in"}
+              {isLoading ? <div className="spinner"></div> : "Sign in as Admin"}
             </button>
           </div>
         </form>
