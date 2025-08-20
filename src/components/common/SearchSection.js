@@ -24,7 +24,7 @@ export default function SearchSection({
     { value: "all", label: "All", icon: "🔍" },
     { value: "doctors", label: "Doctors", icon: "👨‍⚕️" },
     { value: "clinics", label: "Clinics", icon: "🏥" },
-    { value: "pharmacies", label: "Pharmacies", icon: "��" },
+    { value: "pharmacies", label: "Pharmacies", icon: "💊" },
     { value: "ambulance", label: "Ambulance", icon: "🚑" },
   ];
 
