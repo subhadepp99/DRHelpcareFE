@@ -184,7 +184,7 @@ export default function PathologyPage() {
     setFormData({ ...formData, testsOffered: newTests });
   };
 
-  const filteredPathologies = pathologies.filter(
+  const filteredPathologies = (pathologies || []).filter(
     (pathology) =>
       pathology.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pathology.place.toLowerCase().includes(searchTerm.toLowerCase()) ||

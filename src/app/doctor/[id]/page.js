@@ -61,19 +61,41 @@ export default function DoctorProfilePage() {
 
   // Helper to get image src safely
   const getImageSrc = () => {
-    if (!doctor.image) return undefined;
-    if (typeof doctor.image === "string" && doctor.image.startsWith("http"))
-      return doctor.image;
-    if (
-      typeof doctor.image === "string" &&
-      doctor.image.startsWith("data:image/")
-    )
-      return doctor.image;
-    if (
-      typeof doctor.image === "string" &&
-      doctor.image.startsWith("/uploads/")
-    )
-      return `${process.env.NEXT_PUBLIC_API_URL}${doctor.image}`;
+    // First check imageUrl (preferred)
+    if (doctor.imageUrl) {
+      if (
+        typeof doctor.imageUrl === "string" &&
+        doctor.imageUrl.startsWith("http")
+      )
+        return doctor.imageUrl;
+      if (
+        typeof doctor.imageUrl === "string" &&
+        doctor.imageUrl.startsWith("data:image/")
+      )
+        return doctor.imageUrl;
+      if (
+        typeof doctor.imageUrl === "string" &&
+        doctor.imageUrl.startsWith("/uploads/")
+      )
+        return `${process.env.NEXT_PUBLIC_API_URL}${doctor.imageUrl}`;
+    }
+
+    // Fallback to image field
+    if (doctor.image) {
+      if (typeof doctor.image === "string" && doctor.image.startsWith("http"))
+        return doctor.image;
+      if (
+        typeof doctor.image === "string" &&
+        doctor.image.startsWith("data:image/")
+      )
+        return doctor.image;
+      if (
+        typeof doctor.image === "string" &&
+        doctor.image.startsWith("/uploads/")
+      )
+        return `${process.env.NEXT_PUBLIC_API_URL}${doctor.image}`;
+    }
+
     return undefined;
   };
 

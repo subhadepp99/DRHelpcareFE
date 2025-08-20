@@ -53,15 +53,6 @@ export default function AdminDashboard() {
         ]
       );
 
-      // Debug logging
-      console.log("Dashboard API Responses:", {
-        stats: statsRes,
-        doctors: doctorRes,
-        registrations: regRes,
-        bookings: bookRes,
-        departments: deptRes,
-      });
-
       // Handle the nested API response structure
       const statsData = statsRes.data?.data || statsRes.data || {};
       const doctorData =
@@ -74,14 +65,6 @@ export default function AdminDashboard() {
         bookRes.data?.data?.bookingStats || bookRes.data?.bookingStats || [];
       const departmentData =
         deptRes.data?.data?.departments || deptRes.data?.departments || [];
-
-      console.log("Processed Data:", {
-        stats: statsData,
-        doctors: doctorData,
-        registrations: registrationData,
-        bookings: bookingData,
-        departments: departmentData,
-      });
 
       setStats(statsData);
       setDoctorStats(doctorData);
@@ -272,12 +255,12 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {statsCards.map((card) => (
           <div
             key={card.title}
             onClick={() => router.push(card.href)}
-            className="cursor-pointer transform transition-transform hover:scale-105"
+            className="cursor-pointer transform transition-transform hover:scale-105 h-full"
           >
             <StatsCard {...card} />
           </div>
@@ -286,36 +269,36 @@ export default function AdminDashboard() {
 
       {/* Additional Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-          <div className="card-body p-6">
+        <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+          <div className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-100">
+                <p className="text-sm font-semibold text-blue-100 mb-1">
                   Total Bookings
                 </p>
                 <p className="text-3xl font-bold">{stats.totalBookings || 0}</p>
-                <p className="text-sm text-blue-200">
+                <p className="text-sm text-blue-200 mt-1">
                   {stats.periodStats?.bookings || 0} this {period}
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-blue-400 bg-opacity-30">
+              <div className="p-3 rounded-xl bg-blue-400 bg-opacity-30 shadow-lg">
                 <Calendar className="w-8 h-8 text-white" />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card bg-gradient-to-r from-green-500 to-green-600 text-white">
-          <div className="card-body p-6">
+        <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+          <div className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-100">
+                <p className="text-sm font-semibold text-green-100 mb-1">
                   Completed Bookings
                 </p>
                 <p className="text-3xl font-bold">
                   {stats.completedBookings || 0}
                 </p>
-                <p className="text-sm text-green-200">
+                <p className="text-sm text-green-200 mt-1">
                   {stats.totalBookings > 0
                     ? Math.round(
                         (stats.completedBookings / stats.totalBookings) * 100
@@ -324,24 +307,24 @@ export default function AdminDashboard() {
                   % completion rate
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-green-400 bg-opacity-30">
+              <div className="p-3 rounded-xl bg-green-400 bg-opacity-30 shadow-lg">
                 <TrendingUp className="w-8 h-8 text-white" />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
-          <div className="card-body p-6">
+        <div className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+          <div className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-yellow-100">
+                <p className="text-sm font-semibold text-yellow-100 mb-1">
                   Pending Bookings
                 </p>
                 <p className="text-3xl font-bold">
                   {stats.pendingBookings || 0}
                 </p>
-                <p className="text-sm text-yellow-200">
+                <p className="text-sm text-yellow-200 mt-1">
                   {stats.totalBookings > 0
                     ? Math.round(
                         (stats.pendingBookings / stats.totalBookings) * 100
@@ -350,26 +333,26 @@ export default function AdminDashboard() {
                   % pending rate
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-yellow-400 bg-opacity-30">
+              <div className="p-3 rounded-xl bg-yellow-400 bg-opacity-30 shadow-lg">
                 <Clock className="w-8 h-8 text-white" />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-          <div className="card-body p-6">
+        <div className="card bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+          <div className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-100">
+                <p className="text-sm font-semibold text-purple-100 mb-1">
                   Total Users
                 </p>
                 <p className="text-3xl font-bold">{stats.totalUsers || 0}</p>
-                <p className="text-sm text-purple-200">
+                <p className="text-sm text-purple-200 mt-1">
                   {stats.periodStats?.patients || 0} new this {period}
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-purple-400 bg-opacity-30">
+              <div className="p-3 rounded-xl bg-purple-400 bg-opacity-30 shadow-lg">
                 <UserPlus className="w-8 h-8 text-white" />
               </div>
             </div>
@@ -493,24 +476,24 @@ export default function AdminDashboard() {
               {departmentStats.slice(0, 6).map((dept) => (
                 <div
                   key={dept._id}
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow"
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border border-blue-200 dark:border-gray-600 hover:shadow-lg transition-all duration-200 transform hover:scale-105"
                 >
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                    <h4 className="font-semibold text-gray-900 dark:text-white truncate">
                       {dept.heading || dept.name}
                     </h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {dept.doctorCount || 0} doctors
                     </p>
                   </div>
-                  <div className="text-2xl font-bold text-blue-500 ml-4">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 ml-4">
                     {dept.doctorCount || 0}
                   </div>
                 </div>
               ))}
             </div>
             {departmentStats.length > 6 && (
-              <div className="mt-4 text-center">
+              <div className="mt-6 text-center">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Showing 6 of {departmentStats.length} departments
                 </p>
@@ -562,20 +545,6 @@ export default function AdminDashboard() {
           <RecentActivity />
         </div>
       </div>
-
-      {/* Debug Info - Remove in production */}
-      {/* {process.env.NODE_ENV === "development" && (
-        <div className="card bg-gray-50 dark:bg-gray-800">
-          <div className="p-4">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-              Debug Info
-            </h4>
-            <pre className="text-xs text-gray-600 dark:text-gray-400 overflow-auto">
-              {JSON.stringify({ stats, period }, null, 2)}
-            </pre>
-          </div>
-        </div>
-      )} */}
 
       <div className="flex flex-wrap gap-4 mt-6">
         <button

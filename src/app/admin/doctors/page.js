@@ -31,7 +31,7 @@ const initialForm = {
   experience: "",
   licenseNumber: "",
   consultationFee: "",
-  photoUrl: "",
+  imageUrl: "",
 };
 
 export default function AdminDoctorsPage() {
@@ -53,7 +53,7 @@ export default function AdminDoctorsPage() {
     experience: "",
     licenseNumber: "",
     consultationFee: "",
-    photoUrl: "", // Ensure photoUrl is always present
+    imageUrl: "", // Ensure imageUrl is always present
   });
 
   // Fetch doctors from the API using the Node backend endpoint
@@ -86,7 +86,7 @@ export default function AdminDoctorsPage() {
       experience: "",
       licenseNumber: "",
       consultationFee: "",
-      photoUrl: "", // Ensure photoUrl is reset
+      imageUrl: "", // Ensure imageUrl is reset
     });
     setModalOpen(true);
   };
@@ -102,7 +102,7 @@ export default function AdminDoctorsPage() {
       experience: doc.experience ? String(doc.experience) : "",
       licenseNumber: doc.licenseNumber || "",
       consultationFee: doc.consultationFee ? String(doc.consultationFee) : "",
-      photoUrl: doc.photoUrl || "",
+      imageUrl: doc.imageUrl || "",
     });
     setModalOpen(true);
   };
@@ -133,7 +133,7 @@ export default function AdminDoctorsPage() {
     if (name === "photo" && files && files.length > 0) {
       const reader = new FileReader();
       reader.onload = () =>
-        setForm((prev) => ({ ...prev, photoUrl: reader.result }));
+        setForm((prev) => ({ ...prev, imageUrl: reader.result }));
       reader.readAsDataURL(files[0]);
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
@@ -151,7 +151,7 @@ export default function AdminDoctorsPage() {
       ...form,
       experience: Number(form.experience),
       consultationFee: Number(form.consultationFee),
-      photoUrl: form.photoUrl || "", // Always include photoUrl
+      imageUrl: form.imageUrl || "", // Always include imageUrl
     };
 
     try {
@@ -218,9 +218,9 @@ export default function AdminDoctorsPage() {
                 className="hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <td className="border p-2">
-                  {doc.photoUrl ? (
+                  {doc.imageUrl ? (
                     <img
-                      src={doc.photoUrl}
+                      src={doc.imageUrl}
                       alt={doc.name}
                       className="w-12 h-12 rounded-full object-cover border"
                     />
@@ -350,9 +350,9 @@ export default function AdminDoctorsPage() {
               />
             </label>
             {/* Photo Preview */}
-            {form.photoUrl && (
+            {form.imageUrl && (
               <img
-                src={form.photoUrl}
+                src={form.imageUrl}
                 alt="Doctor Preview"
                 className="w-20 h-20 rounded-full object-cover mx-auto mt-2"
               />

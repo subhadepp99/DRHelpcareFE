@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, X } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import Modal from "@/components/common/Modal";
-import toast from "react-hot-toast"; // Import toast
+import StatesDropdown from "@/components/common/StatesDropdown";
+import toast from "react-hot-toast";
 
 const initialForm = {
   name: "",
@@ -18,17 +19,20 @@ const initialForm = {
   country: "India",
   services: "",
   facilities: "",
+  imageUrl: "",
 };
 
 export default function AdminClinics() {
   const { get, post, put, del } = useApi();
   const [clinics, setClinics] = useState([]);
-  const [fetching, setFetching] = useState(true); // Renamed loading to fetching
-  const [isSubmitting, setIsSubmitting] = useState(false); // New state for form submission
-  const [isDeleting, setIsDeleting] = useState(false); // New state for deletion
+  const [fetching, setFetching] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [editing, setEditing] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
 
   useEffect(() => {
     fetchClinics();
@@ -51,8 +55,11 @@ export default function AdminClinics() {
   const openAdd = () => {
     setForm(initialForm);
     setEditing(null);
+    setImageFile(null);
+    setImagePreview("");
     setModalOpen(true);
   };
+
   const openEdit = (clinic) => {
     setForm({
       name: clinic.name || "",
@@ -66,10 +73,14 @@ export default function AdminClinics() {
       country: clinic.country || "India",
       services: (clinic.services || []).join(", "),
       facilities: (clinic.facilities || []).join(", "),
+      imageUrl: clinic.imageUrl || "",
     });
     setEditing(clinic);
+    setImageFile(null);
+    setImagePreview(clinic.imageUrl || "");
     setModalOpen(true);
   };
+
   const handleDelete = async (id) => {
     if (!confirm("Confirm delete?")) return;
     setIsDeleting(true);
@@ -84,9 +95,29 @@ export default function AdminClinics() {
       setIsDeleting(false);
     }
   };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    setForm((prev) => ({ ...prev, imageUrl: "" }));
+  };
+
   function onChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
+
   async function onSubmit(e) {
     e.preventDefault();
     setIsSubmitting(true);
@@ -109,7 +140,9 @@ export default function AdminClinics() {
         .split(",")
         .map((f) => f.trim())
         .filter(Boolean),
+      imageUrl: form.imageUrl,
     };
+
     try {
       if (editing) {
         await put(`/clinics/${editing._id}`, payload);
@@ -130,7 +163,7 @@ export default function AdminClinics() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Clinics Management</h1>
         <button
           onClick={openAdd}
@@ -140,113 +173,230 @@ export default function AdminClinics() {
           <span>Add Clinic</span>
         </button>
       </div>
+
       {fetching ? (
-        <p>Loading clinics...</p>
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading clinics...</p>
+        </div>
       ) : clinics.length === 0 ? (
-        <p className="text-center text-gray-500">No clinics found.</p>
+        <div className="text-center py-8 text-gray-500">
+          <p>No clinics found.</p>
+        </div>
       ) : (
-        <table className="w-full table-auto border-collapse border">
-          <thead>
-            <tr>
-              <th className="border p-2">Name</th>
-              <th className="border p-2">Reg. No.</th>
-              <th className="border p-2">Email</th>
-              <th className="border p-2">Phone</th>
-              <th className="border p-2">City</th>
-              <th className="border p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clinics.map((clinic) => (
-              <tr key={clinic._id} className="hover:bg-gray-100">
-                <td className="border p-2">{clinic.name}</td>
-                <td className="border p-2">{clinic.registrationNumber}</td>
-                <td className="border p-2">{clinic.email}</td>
-                <td className="border p-2">{clinic.phone}</td>
-                <td className="border p-2">{clinic.address?.city || "-"}</td>
-                <td className="border p-2 space-x-2">
-                  <button
-                    onClick={() => openEdit(clinic)}
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    <Edit className="inline-block w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(clinic._id)}
-                    className="text-red-600 hover:text-red-800"
-                    disabled={isDeleting} // Disable delete button while deleting
-                  >
-                    {isDeleting ? (
-                      "Deleting..."
-                    ) : (
-                      <Trash2 className="inline-block w-5 h-5" />
-                    )}
-                  </button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full table-auto border-collapse border border-gray-300">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="border border-gray-300 p-3 text-left font-semibold">
+                  Name
+                </th>
+                <th className="border border-gray-300 p-3 text-left font-semibold">
+                  Reg. No.
+                </th>
+                <th className="border border-gray-300 p-3 text-left font-semibold">
+                  Email
+                </th>
+                <th className="border border-gray-300 p-3 text-left font-semibold">
+                  Phone
+                </th>
+                <th className="border border-gray-300 p-3 text-left font-semibold">
+                  Place
+                </th>
+                <th className="border border-gray-300 p-3 text-left font-semibold">
+                  State
+                </th>
+                <th className="border border-gray-300 p-3 text-left font-semibold">
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {clinics.map((clinic) => (
+                <tr key={clinic._id} className="hover:bg-gray-50">
+                  <td className="border border-gray-300 p-3">{clinic.name}</td>
+                  <td className="border border-gray-300 p-3">
+                    {clinic.registrationNumber || "-"}
+                  </td>
+                  <td className="border border-gray-300 p-3">{clinic.email}</td>
+                  <td className="border border-gray-300 p-3">{clinic.phone}</td>
+                  <td className="border border-gray-300 p-3">
+                    {clinic.place || "-"}
+                  </td>
+                  <td className="border border-gray-300 p-3">
+                    {clinic.state || "-"}
+                  </td>
+                  <td className="border border-gray-300 p-3">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => openEdit(clinic)}
+                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(clinic._id)}
+                        className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                        disabled={isDeleting}
+                        title="Delete"
+                      >
+                        {isDeleting ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
+
       {modalOpen && (
         <Modal
           title={editing ? "Edit Clinic" : "Add Clinic"}
           onClose={() => setModalOpen(false)}
         >
-          <form onSubmit={onSubmit} className="space-y-3">
-            <input
-              name="name"
-              value={form.name}
-              onChange={onChange}
-              required
-              placeholder="Name"
-              className="input-field"
-            />
-            <input
-              name="registrationNumber"
-              value={form.registrationNumber}
-              onChange={onChange}
-              required
-              placeholder="Registration Number"
-              className="input-field"
-            />
-            <input
-              name="email"
-              value={form.email}
-              onChange={onChange}
-              type="email"
-              placeholder="Email"
-              className="input-field"
-            />
-            <input
-              name="phone"
-              value={form.phone}
-              onChange={onChange}
-              placeholder="Phone"
-              className="input-field"
-            />
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                name="name"
+                value={form.name}
+                onChange={onChange}
+                required
+                placeholder="Clinic Name"
+                className="input-field"
+              />
+              <input
+                name="registrationNumber"
+                value={form.registrationNumber}
+                onChange={onChange}
+                placeholder="Registration Number (Optional)"
+                className="input-field"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                name="email"
+                value={form.email}
+                onChange={onChange}
+                type="email"
+                required
+                placeholder="Email"
+                className="input-field"
+              />
+              <input
+                name="phone"
+                value={form.phone}
+                onChange={onChange}
+                required
+                placeholder="Phone"
+                className="input-field"
+              />
+            </div>
+
             <textarea
               name="address"
               value={form.address}
               onChange={onChange}
-              placeholder='Address JSON e.g. {"city":"Delhi"}'
+              required
+              placeholder="Full Address"
               className="input-field"
-              rows={4}
+              rows={3}
             />
-            <input
-              name="services"
-              value={form.services}
-              onChange={onChange}
-              placeholder="Services (comma separated)"
-              className="input-field"
-            />
-            <input
-              name="facilities"
-              value={form.facilities}
-              onChange={onChange}
-              placeholder="Facilities (comma separated)"
-              className="input-field"
-            />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <input
+                name="place"
+                value={form.place}
+                onChange={onChange}
+                required
+                placeholder="City/Place"
+                className="input-field"
+              />
+              <StatesDropdown
+                name="state"
+                value={form.state}
+                onChange={onChange}
+                required
+                placeholder="Select State"
+              />
+              <input
+                name="zipCode"
+                value={form.zipCode}
+                onChange={onChange}
+                required
+                placeholder="ZIP Code"
+                className="input-field"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                name="services"
+                value={form.services}
+                onChange={onChange}
+                placeholder="Services (comma separated)"
+                className="input-field"
+              />
+              <input
+                name="facilities"
+                value={form.facilities}
+                onChange={onChange}
+                placeholder="Facilities (comma separated)"
+                className="input-field"
+              />
+            </div>
+
+            {/* Image Upload Section */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">
+                Clinic Image
+              </label>
+
+              {imagePreview && (
+                <div className="relative inline-block">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-24 h-24 object-cover rounded-lg border"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center space-x-3">
+                <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg border border-gray-300 flex items-center space-x-2">
+                  <Upload className="w-4 h-4" />
+                  <span>Upload Image</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+                <input
+                  name="imageUrl"
+                  value={form.imageUrl}
+                  onChange={onChange}
+                  placeholder="Or enter image URL"
+                  className="input-field flex-1"
+                />
+              </div>
+            </div>
+
             <button
               type="submit"
               className="btn-primary w-full"
@@ -257,8 +407,8 @@ export default function AdminClinics() {
                   ? "Updating..."
                   : "Adding..."
                 : editing
-                ? "Update"
-                : "Add"}
+                ? "Update Clinic"
+                : "Add Clinic"}
             </button>
           </form>
         </Modal>
