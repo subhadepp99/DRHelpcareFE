@@ -42,6 +42,14 @@ export default function SearchFilters({
     "Pathology",
   ];
 
+  const searchTypes = [
+    { value: "all", label: "All", icon: "🔍" },
+    { value: "doctors", label: "Doctors", icon: "👨‍⚕️" },
+    { value: "clinics", label: "Clinics", icon: "🏥" },
+    { value: "pharmacies", label: "Pharmacies", icon: "��" },
+    { value: "ambulance", label: "Ambulance", icon: "🚑" },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}

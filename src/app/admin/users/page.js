@@ -47,7 +47,9 @@ export default function UsersPage() {
     try {
       setLoading(true);
       const response = await get("/users");
-      setUsers(response.data.users || []);
+      console.log("Users API response:", response); // Debug log
+      const users = response.data?.data?.users || response.data?.users || [];
+      setUsers(users);
     } catch (error) {
       toast.error("Failed to fetch users");
       console.error("Error fetching users:", error);
@@ -431,7 +433,6 @@ export default function UsersPage() {
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
                     <option value="superuser">Superuser</option>
-                    <option value="masteruser">Masteruser</option>
                   </select>
                 </div>
               </div>
@@ -507,7 +508,6 @@ export default function UsersPage() {
                 >
                   <option value="admin">Admin</option>
                   <option value="superuser">Superuser</option>
-                  <option value="masteruser">Masteruser</option>
                 </select>
               </div>
 

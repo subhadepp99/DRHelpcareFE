@@ -6,37 +6,24 @@ import { Plus, Edit, Trash2 } from "lucide-react";
 import Modal from "@/components/common/Modal";
 import toast from "react-hot-toast"; // Import toast
 
-const specializations = [
-  "Cardiology",
-  "Dermatology",
-  "Neurology",
-  "Pediatrics",
-  "Orthopedics",
-  "Gynecology",
-  "Psychiatry",
-  "Radiology",
-  "Anesthesiology",
-  "Pathology",
-  "Emergency",
-  "General",
-  "Others",
-];
-
 const initialForm = {
   name: "",
   email: "",
   phone: "",
-  specialization: "",
+  department: "",
   qualification: "",
   experience: "",
   licenseNumber: "",
   consultationFee: "",
+  state: "",
+  city: "",
   imageUrl: "",
 };
 
 export default function AdminDoctorsPage() {
   const { get, post, put, del } = useApi();
   const [doctors, setDoctors] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false); // New state for form submission
   const [isDeleting, setIsDeleting] = useState(false); // New state for deletion
@@ -48,11 +35,13 @@ export default function AdminDoctorsPage() {
     name: "",
     email: "",
     phone: "",
-    specialization: "",
+    department: "",
     qualification: "",
     experience: "",
     licenseNumber: "",
     consultationFee: "",
+    state: "",
+    city: "",
     imageUrl: "", // Ensure imageUrl is always present
   });
 
@@ -60,7 +49,7 @@ export default function AdminDoctorsPage() {
   const fetchDoctors = async () => {
     setLoading(true);
     try {
-      const res = await get("/doctors"); // Adjust if your base API path is different
+      const res = await get("/doctors?populate=department"); // Add populate to get department names
       setDoctors(res.data.doctors || res.data.data?.doctors || []);
     } catch (err) {
       console.error("Failed to fetch doctors:", err);
@@ -71,8 +60,23 @@ export default function AdminDoctorsPage() {
     }
   };
 
+  // Fetch departments from the API
+  const fetchDepartments = async () => {
+    try {
+      const res = await get("/department");
+      const depts = res.data?.data?.departments || res.data?.departments || [];
+      console.log("Fetched departments:", depts); // Debug departments
+      setDepartments(depts);
+    } catch (err) {
+      console.error("Failed to fetch departments:", err);
+      toast.error("Failed to fetch departments.");
+      setDepartments([]);
+    }
+  };
+
   useEffect(() => {
     fetchDoctors();
+    fetchDepartments();
   }, []);
 
   const openAddModal = () => {
@@ -81,11 +85,13 @@ export default function AdminDoctorsPage() {
       name: "",
       email: "",
       phone: "",
-      specialization: "",
+      department: "",
       qualification: "",
       experience: "",
       licenseNumber: "",
       consultationFee: "",
+      state: "",
+      city: "",
       imageUrl: "", // Ensure imageUrl is reset
     });
     setModalOpen(true);
@@ -97,11 +103,13 @@ export default function AdminDoctorsPage() {
       name: doc.name || "",
       email: doc.email || "",
       phone: doc.phone || "",
-      specialization: doc.specialization || specializations[0],
+      department: doc.department?.name || doc.department || "", // Handle both ObjectId and name
+      state: doc.state || "",
+      city: doc.city || "",
       qualification: doc.qualification || "",
-      experience: doc.experience ? String(doc.experience) : "",
+      experience: doc.experience || "",
       licenseNumber: doc.licenseNumber || "",
-      consultationFee: doc.consultationFee ? String(doc.consultationFee) : "",
+      consultationFee: doc.consultationFee || "",
       imageUrl: doc.imageUrl || "",
     });
     setModalOpen(true);
@@ -141,12 +149,17 @@ export default function AdminDoctorsPage() {
   }
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
   };
 
   async function handleSubmit(e) {
     e.preventDefault();
     setIsSubmitting(true); // Set submitting state
+
+    console.log("Submitting doctor form:", form); // Debug log
+    console.log("Department value:", form.department); // Debug department specifically
+
     const payload = {
       ...form,
       experience: Number(form.experience),
@@ -154,9 +167,41 @@ export default function AdminDoctorsPage() {
       imageUrl: form.imageUrl || "", // Always include imageUrl
     };
 
+    // Remove empty licenseNumber to avoid validation issues
+    if (!payload.licenseNumber || payload.licenseNumber.trim() === "") {
+      delete payload.licenseNumber;
+    }
+
+    // Ensure department is properly set
+    if (!form.department || form.department.trim() === "") {
+      toast.error("Please select a department");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Validate required fields
+    if (
+      !form.name ||
+      !form.email ||
+      !form.phone ||
+      !form.qualification ||
+      !form.experience ||
+      !form.consultationFee
+    ) {
+      toast.error("Please fill in all required fields");
+      setIsSubmitting(false);
+      return;
+    }
+
+    console.log("Doctor payload:", payload); // Debug log
+    console.log("Department in payload:", payload.department); // Debug department in payload
+
     try {
       if (editingDoctor) {
-        await put(`/doctors/${editingDoctor._id}`, payload);
+        console.log("Updating doctor:", editingDoctor._id); // Debug log
+        const response = await put(`/doctors/${editingDoctor._id}`, payload);
+        console.log("Update response:", response); // Debug log
+
         setDoctors((prev) =>
           prev.map((doc) =>
             doc._id === editingDoctor._id ? { ...doc, ...payload } : doc
@@ -164,13 +209,17 @@ export default function AdminDoctorsPage() {
         );
         toast.success("Doctor updated successfully!");
       } else {
+        console.log("Creating new doctor"); // Debug log
         const res = await post("/doctors", payload);
+        console.log("Create response:", res); // Debug log
+
         setDoctors((prev) => [...prev, res.data]);
         toast.success("Doctor added successfully!");
       }
       setModalOpen(false);
     } catch (err) {
       console.error("Failed to save doctor:", err);
+      console.error("Error response:", err?.response); // Debug log
       toast.error(
         "Could not save doctor: " +
           (err?.response?.data?.message || err.message || "Unknown error")
@@ -206,7 +255,7 @@ export default function AdminDoctorsPage() {
               <th className="border p-2">Photo</th>
               <th className="border p-2">Name</th>
               <th className="border p-2">Email</th>
-              <th className="border p-2">Specialization</th>
+              <th className="border p-2">Department</th>
               <th className="border p-2">Phone</th>
               <th className="border p-2">Actions</th>
             </tr>
@@ -232,7 +281,9 @@ export default function AdminDoctorsPage() {
                 </td>
                 <td className="border p-2">{doc.name}</td>
                 <td className="border p-2">{doc.email}</td>
-                <td className="border p-2">{doc.specialization}</td>
+                <td className="border p-2">
+                  {doc.department?.name || doc.department || "Unknown"}
+                </td>
                 <td className="border p-2">{doc.phone}</td>
                 <td className="border p-2 space-x-2">
                   <button
@@ -265,82 +316,188 @@ export default function AdminDoctorsPage() {
           onClose={() => setModalOpen(false)}
         >
           <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              name="name"
-              required
-              placeholder="Name"
-              className="input-field"
-              value={form.name}
-              onChange={handleChange}
-            />
-            <input
-              name="email"
-              required
-              type="email"
-              placeholder="Email"
-              className="input-field"
-              value={form.email}
-              onChange={handleChange}
-            />
-            <input
-              name="phone"
-              required
-              placeholder="Phone"
-              className="input-field"
-              value={form.phone}
-              onChange={handleChange}
-            />
-            <select
-              name="specialization"
-              required
-              placeholder="Specialization"
-              className="input-field"
-              value={form.specialization}
-              onChange={handleChange}
-            >
-              {specializations.map((spec) => (
-                <option key={spec} value={spec}>
-                  {spec.charAt(0).toUpperCase() + spec.slice(1)}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="name"
+                required
+                placeholder="Name"
+                className="input-field"
+                value={form.name}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="email"
+                required
+                type="email"
+                placeholder="Email"
+                className="input-field"
+                value={form.email}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Phone <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="phone"
+                required
+                placeholder="Phone"
+                className="input-field"
+                value={form.phone}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Department <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="department"
+                required
+                className="input-field"
+                value={form.department}
+                onChange={handleChange}
+              >
+                <option value="">Select Department</option>
+                {departments.map((dept) => (
+                  <option key={dept._id} value={dept.name}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                State <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="state"
+                required
+                className="input-field"
+                value={form.state}
+                onChange={handleChange}
+              >
+                <option value="">Select State</option>
+                <option value="Andhra Pradesh">Andhra Pradesh</option>
+                <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                <option value="Assam">Assam</option>
+                <option value="Bihar">Bihar</option>
+                <option value="Chhattisgarh">Chhattisgarh</option>
+                <option value="Goa">Goa</option>
+                <option value="Gujarat">Gujarat</option>
+                <option value="Haryana">Haryana</option>
+                <option value="Himachal Pradesh">Himachal Pradesh</option>
+                <option value="Jharkhand">Jharkhand</option>
+                <option value="Karnataka">Karnataka</option>
+                <option value="Kerala">Kerala</option>
+                <option value="Madhya Pradesh">Madhya Pradesh</option>
+                <option value="Maharashtra">Maharashtra</option>
+                <option value="Manipur">Manipur</option>
+                <option value="Meghalaya">Meghalaya</option>
+                <option value="Mizoram">Mizoram</option>
+                <option value="Nagaland">Nagaland</option>
+                <option value="Odisha">Odisha</option>
+                <option value="Punjab">Punjab</option>
+                <option value="Rajasthan">Rajasthan</option>
+                <option value="Sikkim">Sikkim</option>
+                <option value="Tamil Nadu">Tamil Nadu</option>
+                <option value="Telangana">Telangana</option>
+                <option value="Tripura">Tripura</option>
+                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                <option value="Uttarakhand">Uttarakhand</option>
+                <option value="West Bengal">West Bengal</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Jammu and Kashmir">Jammu and Kashmir</option>
+                <option value="Ladakh">Ladakh</option>
+                <option value="Chandigarh">Chandigarh</option>
+                <option value="Dadra and Nagar Haveli and Daman and Diu">
+                  Dadra and Nagar Haveli and Daman and Diu
                 </option>
-              ))}
-            </select>
-            <input
-              name="qualification"
-              required
-              placeholder="Qualification"
-              className="input-field"
-              value={form.qualification}
-              onChange={handleChange}
-            />
-            <input
-              name="experience"
-              type="number"
-              placeholder="Experience (years)"
-              className="input-field"
-              value={form.experience}
-              onChange={handleChange}
-            />
-            <input
-              name="licenseNumber"
-              placeholder="License Number"
-              className="input-field"
-              value={form.licenseNumber}
-              onChange={handleChange}
-            />
-            <input
-              name="consultationFee"
-              type="number"
-              placeholder="Consultation Fee"
-              className="input-field"
-              value={form.consultationFee}
-              onChange={handleChange}
-            />
+                <option value="Lakshadweep">Lakshadweep</option>
+                <option value="Puducherry">Puducherry</option>
+                <option value="Andaman and Nicobar Islands">
+                  Andaman and Nicobar Islands
+                </option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                City <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="city"
+                required
+                placeholder="City"
+                className="input-field"
+                value={form.city}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Qualification <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="qualification"
+                required
+                placeholder="Qualification"
+                className="input-field"
+                value={form.qualification}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Experience (years) <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="experience"
+                type="number"
+                placeholder="Experience (years)"
+                className="input-field"
+                value={form.experience}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                License Number (Optional)
+              </label>
+              <input
+                name="licenseNumber"
+                placeholder="License Number (Optional)"
+                className="input-field"
+                value={form.licenseNumber}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Consultation Fee <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="consultationFee"
+                type="number"
+                placeholder="Consultation Fee"
+                className="input-field"
+                value={form.consultationFee}
+                onChange={handleChange}
+              />
+            </div>
             {/* Doctor Photo Upload */}
-
-            <label className="block">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Doctor Photo
-              </span>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Doctor Photo (Optional)
+              </label>
               <input
                 type="file"
                 name="photo"
@@ -348,7 +505,7 @@ export default function AdminDoctorsPage() {
                 onChange={handleInputChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md"
               />
-            </label>
+            </div>
             {/* Photo Preview */}
             {form.imageUrl && (
               <img

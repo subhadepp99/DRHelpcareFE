@@ -15,12 +15,21 @@ export default function PharmacyCard({ pharmacy }) {
 
   const formatAddress = (address) => {
     if (!address) return "Address not available";
-    return `${address.city}, ${address.state}`;
+
+    if (typeof address === "string") {
+      return address;
+    }
+
+    const city = address.city || "N/A";
+    const state = address.state || "N/A";
+    return `${city}, ${state}`;
   };
 
   const getOperatingHours = () => {
     if (!pharmacy.operatingHours) return "Hours not specified";
-    const today = new Date().toLocaleLowerCase();
+    const today = new Date()
+      .toLocaleDateString("en-US", { weekday: "long" })
+      .toLowerCase();
     const todaysHours = pharmacy.operatingHours[today];
     return todaysHours
       ? `${todaysHours.open} - ${todaysHours.close}`
@@ -71,14 +80,28 @@ export default function PharmacyCard({ pharmacy }) {
         <div className="flex items-center mb-3">
           <ReactStars
             count={5}
-            value={pharmacy.rating || 4.1}
+            value={
+              typeof pharmacy.rating === "object" &&
+              pharmacy.rating.average !== undefined
+                ? pharmacy.rating.average
+                : pharmacy.rating || 4.1
+            }
             size={16}
             edit={false}
             activeColor="#f59e0b"
             color="#d1d5db"
           />
           <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-            {pharmacy.rating || 4.1} ({pharmacy.reviewCount || 67} reviews)
+            {typeof pharmacy.rating === "object" &&
+            pharmacy.rating.average !== undefined
+              ? pharmacy.rating.average
+              : pharmacy.rating || 4.1}{" "}
+            (
+            {typeof pharmacy.rating === "object" &&
+            pharmacy.rating.count !== undefined
+              ? pharmacy.rating.count
+              : pharmacy.reviewCount || 67}{" "}
+            reviews)
           </span>
         </div>
 

@@ -16,12 +16,23 @@ export default function ClinicCard({ clinic }) {
 
   const formatAddress = (address) => {
     if (!address) return "Address not available";
-    return `${address.city}, ${address.state}`;
+
+    if (typeof address === "string") {
+      return address;
+    }
+
+    const city = address.city || "N/A";
+    const state = address.state || "N/A";
+    return `${city}, ${state}`;
   };
 
   const getOperatingHours = () => {
     if (!clinic.operatingHours) return "Hours not specified";
-    const today = new Date().toLocaleLowerCase();
+    const today = new Date()
+      .toLocaleDateString("en-US", {
+        weekday: "long",
+      })
+      .toLowerCase();
     const todaysHours = clinic.operatingHours[today];
     return todaysHours
       ? `${todaysHours.open} - ${todaysHours.close}`
@@ -56,7 +67,7 @@ export default function ClinicCard({ clinic }) {
             {clinic.name}
           </h3>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Registration: {clinic.registrationNumber}
+            Registration: {clinic.registrationNumber || "Not specified"}
           </p>
         </div>
 
@@ -64,14 +75,28 @@ export default function ClinicCard({ clinic }) {
         <div className="flex items-center mb-3">
           <ReactStars
             count={5}
-            value={clinic.rating || 4.2}
+            value={
+              typeof clinic.rating === "object" &&
+              clinic.rating.average !== undefined
+                ? clinic.rating.average
+                : clinic.rating || 4.2
+            }
             size={16}
             edit={false}
             activeColor="#f59e0b"
             color="#d1d5db"
           />
           <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-            {clinic.rating || 4.2} ({clinic.reviewCount || 89} reviews)
+            {typeof clinic.rating === "object" &&
+            clinic.rating.average !== undefined
+              ? clinic.rating.average
+              : clinic.rating || 4.2}{" "}
+            (
+            {typeof clinic.rating === "object" &&
+            clinic.rating.count !== undefined
+              ? clinic.rating.count
+              : clinic.reviewCount || 89}{" "}
+            reviews)
           </span>
         </div>
 

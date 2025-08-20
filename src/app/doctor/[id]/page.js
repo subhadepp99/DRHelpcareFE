@@ -109,7 +109,7 @@ export default function DoctorProfilePage() {
           name="description"
           content={`Book an appointment with Dr. ${
             doctor.name || doctor.firstName || ""
-          }. Specialization: ${doctor.specialization || "Doctor"}.`}
+          }. Department: ${doctor.department || "Doctor"}.`}
         />
       </Head>
       <Header />

@@ -65,36 +65,31 @@ export default function ProfilePage() {
 
   const fetchBookings = async () => {
     try {
-      // Mock bookings data - replace with actual API call
-      const mockBookings = [
-        {
-          id: 1,
-          doctorName: "Dr. Sarah Johnson",
-          specialization: "Cardiology",
-          date: "2024-02-15",
-          time: "10:30 AM",
-          status: "confirmed",
-          fee: 800,
-          symptoms: "Chest pain and shortness of breath",
-          diagnosis: "Pending consultation",
-          prescription: "To be provided after consultation",
-        },
-        {
-          id: 2,
-          doctorName: "Dr. Michael Brown",
-          specialization: "Dermatology",
-          date: "2024-01-28",
-          time: "2:00 PM",
-          status: "completed",
-          fee: 600,
-          symptoms: "Skin rash and itching",
-          diagnosis: "Eczema",
-          prescription: "Topical corticosteroid cream, twice daily",
-        },
-      ];
-      setBookings(mockBookings);
+      const response = await get("/bookings/my-bookings");
+      const realBookings = response.data?.bookings || [];
+
+      // Transform API data to match the expected format
+      const transformedBookings = realBookings.map((booking) => ({
+        id: booking._id,
+        doctorName: `Dr. ${booking.doctor?.name || "Unknown"}`,
+        specialization: booking.doctor?.department || "General",
+        date: new Date(booking.appointmentDate).toLocaleDateString(),
+        time: booking.appointmentTime || "Time not specified",
+        status: booking.status || "pending",
+        fee: booking.doctor?.consultationFee || "Not specified",
+        symptoms: booking.symptoms || "Not specified",
+        diagnosis: booking.diagnosis || "Pending consultation",
+        prescription:
+          booking.prescription || "To be provided after consultation",
+        // Add original booking data for modal
+        originalData: booking,
+      }));
+
+      setBookings(transformedBookings);
     } catch (error) {
       console.error("Error fetching bookings:", error);
+      // Fallback to empty array if API fails
+      setBookings([]);
     }
   };
 
@@ -181,6 +176,16 @@ export default function ProfilePage() {
                             src={imagePreview}
                             alt="Profile Preview"
                             className="w-full h-full object-cover"
+                          />
+                        ) : user?.profileImage ? (
+                          <img
+                            src={user.profileImage}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
                           />
                         ) : (
                           <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">

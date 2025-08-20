@@ -44,7 +44,9 @@ export default function PharmaciesPage() {
     setError(null);
     try {
       const res = await get("/pharmacies?limit=1000");
-      setPharmacies(res.data.pharmacies || []);
+      const pharmacies =
+        res.data?.data?.pharmacies || res.data?.pharmacies || [];
+      setPharmacies(pharmacies);
     } catch (err) {
       console.error("Failed to fetch pharmacies:", err);
       toast.error("Failed to fetch pharmacies.");
@@ -129,6 +131,14 @@ export default function PharmaciesPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    // Ensure services are properly formatted
+    const servicesArray = form.services
+      ? form.services
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+
     const payload = {
       name: form.name,
       licenseNumber: form.licenseNumber || undefined,
@@ -139,13 +149,11 @@ export default function PharmaciesPage() {
       state: form.state,
       zipCode: form.zipCode,
       country: form.country,
-      services: form.services
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      is24Hours: form.is24Hours,
+      services: servicesArray,
       imageUrl: form.imageUrl,
     };
+
+    console.log("Submitting pharmacy payload:", payload); // Debug log
 
     try {
       if (editing) {
@@ -197,6 +205,9 @@ export default function PharmaciesPage() {
             <thead>
               <tr className="bg-gray-50">
                 <th className="border border-gray-300 p-3 text-left font-semibold">
+                  Image
+                </th>
+                <th className="border border-gray-300 p-3 text-left font-semibold">
                   Name
                 </th>
                 <th className="border border-gray-300 p-3 text-left font-semibold">
@@ -225,6 +236,23 @@ export default function PharmaciesPage() {
             <tbody>
               {pharmacies.map((pharmacy) => (
                 <tr key={pharmacy._id} className="hover:bg-gray-50">
+                  <td className="border border-gray-300 p-3">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                      {pharmacy.imageUrl ? (
+                        <img
+                          src={pharmacy.imageUrl}
+                          alt={pharmacy.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                          <span className="text-gray-500 text-xs font-medium">
+                            {pharmacy.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </td>
                   <td className="border border-gray-300 p-3">
                     {pharmacy.name}
                   </td>
@@ -288,6 +316,7 @@ export default function PharmaciesPage() {
         <Modal
           title={editing ? "Edit Pharmacy" : "Add Pharmacy"}
           onClose={() => setModalOpen(false)}
+          className="max-w-4xl"
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -434,16 +463,19 @@ export default function PharmaciesPage() {
 
             <button
               type="submit"
-              className="btn-primary w-full"
               disabled={isSubmitting}
+              className="btn-primary w-full flex items-center justify-center"
             >
-              {isSubmitting
-                ? editing
-                  ? "Updating..."
-                  : "Adding..."
-                : editing
-                ? "Update Pharmacy"
-                : "Add Pharmacy"}
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {editing ? "Updating..." : "Adding..."}
+                </>
+              ) : editing ? (
+                "Update Pharmacy"
+              ) : (
+                "Add Pharmacy"
+              )}
             </button>
           </form>
         </Modal>

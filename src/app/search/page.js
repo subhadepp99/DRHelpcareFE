@@ -123,17 +123,24 @@ export default function SearchPage() {
     setFilters(newFilters);
   };
 
-  const getTotalResults = () =>
-    Object.values(results).reduce(
-      (total, items) => total + (items?.length || 0),
-      0
-    );
+  const getTotalResults = () => {
+    if (searchType === "all") {
+      return (
+        (results.doctors?.length || 0) +
+        (results.clinics?.length || 0) +
+        (results.pharmacies?.length || 0) +
+        (results.ambulances?.length || 0)
+      );
+    }
+    return results[searchType]?.length || 0;
+  };
 
   const searchTypes = [
-    { value: "all", label: "All" },
-    { value: "doctors", label: "Doctors" },
-    { value: "clinics", label: "Clinics" },
-    { value: "pharmacies", label: "Pharmacies" },
+    { value: "all", label: "All", icon: "🔍" },
+    { value: "doctors", label: "Doctors", icon: "👨‍⚕️" },
+    { value: "clinics", label: "Clinics", icon: "🏥" },
+    { value: "pharmacies", label: "Pharmacies", icon: "💊" },
+    { value: "ambulance", label: "Ambulance", icon: "🚑" },
   ];
 
   const sortOptions = [
@@ -233,7 +240,7 @@ export default function SearchPage() {
                       : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
                 >
-                  {type.label}
+                  {type.icon} {type.label}
                   {results[type.value] && (
                     <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs">
                       {results[type.value].length}
@@ -325,72 +332,296 @@ export default function SearchPage() {
             </motion.div>
           )}
 
-          {/* Doctors */}
-          {(searchType === "all" || searchType === "doctors") &&
-            results.doctors?.length > 0 && (
-              <section>
-                <h2 className="text-xl font-semibold mb-4">
-                  Doctors ({results.doctors.length})
-                </h2>
-                <div
-                  className={`grid gap-6 ${
-                    viewMode === "grid"
-                      ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
-                      : "grid-cols-1"
-                  }`}
-                >
-                  {results.doctors.map((doctor) => (
-                    <DoctorCard
-                      key={doctor._id}
-                      doctor={doctor}
-                      highlight={searchQuery}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
+          {/* All Results Combined */}
+          {searchType === "all" && (
+            <div className="space-y-8">
+              {/* Doctors */}
+              {results.doctors?.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">
+                    Doctors ({results.doctors.length})
+                  </h2>
+                  <div
+                    className={`grid gap-6 ${
+                      viewMode === "grid"
+                        ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                        : "grid-cols-1"
+                    }`}
+                  >
+                    {results.doctors.map((doctor) => (
+                      <DoctorCard key={doctor._id} doctor={doctor} />
+                    ))}
+                  </div>
+                </section>
+              )}
 
-          {/* Clinics */}
-          {(searchType === "all" || searchType === "clinics") &&
-            results.clinics?.length > 0 && (
-              <section>
-                <h2 className="text-xl font-semibold mb-4">
-                  Clinics ({results.clinics.length})
-                </h2>
-                <div
-                  className={`grid gap-6 ${
-                    viewMode === "grid"
-                      ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
-                      : "grid-cols-1"
-                  }`}
-                >
-                  {results.clinics.map((clinic) => (
-                    <ClinicCard key={clinic._id} clinic={clinic} />
-                  ))}
-                </div>
-              </section>
-            )}
+              {/* Clinics */}
+              {results.clinics?.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">
+                    Clinics ({results.clinics.length})
+                  </h2>
+                  <div
+                    className={`grid gap-6 ${
+                      viewMode === "grid"
+                        ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                        : "grid-cols-1"
+                    }`}
+                  >
+                    {results.clinics.map((clinic) => (
+                      <ClinicCard key={clinic._id} clinic={clinic} />
+                    ))}
+                  </div>
+                </section>
+              )}
 
-          {/* Pharmacies */}
-          {(searchType === "all" || searchType === "pharmacies") &&
-            results.pharmacies?.length > 0 && (
-              <section>
-                <h2 className="text-xl font-semibold mb-4">
-                  Pharmacies ({results.pharmacies.length})
-                </h2>
-                <div
-                  className={`grid gap-6 ${
-                    viewMode === "grid"
-                      ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
-                      : "grid-cols-1"
-                  }`}
-                >
-                  {results.pharmacies.map((pharmacy) => (
-                    <PharmacyCard key={pharmacy._id} pharmacy={pharmacy} />
-                  ))}
-                </div>
-              </section>
-            )}
+              {/* Pharmacies */}
+              {results.pharmacies?.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">
+                    Pharmacies ({results.pharmacies.length})
+                  </h2>
+                  <div
+                    className={`grid gap-6 ${
+                      viewMode === "grid"
+                        ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                        : "grid-cols-1"
+                    }`}
+                  >
+                    {results.pharmacies.map((pharmacy) => (
+                      <PharmacyCard key={pharmacy._id} pharmacy={pharmacy} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Ambulances */}
+              {results.ambulances?.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">
+                    Ambulances ({results.ambulances.length})
+                  </h2>
+                  <div
+                    className={`grid gap-6 ${
+                      viewMode === "grid"
+                        ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                        : "grid-cols-1"
+                    }`}
+                  >
+                    {results.ambulances.map((ambulance) => (
+                      <div
+                        key={ambulance._id}
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
+                              <span className="text-2xl">🚑</span>
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                {ambulance.name}
+                              </h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Vehicle: {ambulance.vehicleNumber}
+                              </p>
+                            </div>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-medium ${
+                              ambulance.isAvailable
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            }`}
+                          >
+                            {ambulance.isAvailable
+                              ? "Available"
+                              : "Unavailable"}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Driver: {ambulance.driverName}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Phone: {ambulance.phone}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Location: {ambulance.location || "N/A"},{" "}
+                              {ambulance.city || "N/A"}
+                            </span>
+                            <button
+                              onClick={() =>
+                                window.open(`tel:${ambulance.phone}`, "_blank")
+                              }
+                              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              Call Now
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
+
+          {/* Individual Type Results */}
+          {searchType !== "all" && (
+            <>
+              {/* Doctors */}
+              {searchType === "doctors" && results.doctors?.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">
+                    Doctors ({results.doctors.length})
+                  </h2>
+                  <div
+                    className={`grid gap-6 ${
+                      viewMode === "grid"
+                        ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                        : "grid-cols-1"
+                    }`}
+                  >
+                    {results.doctors.map((doctor) => (
+                      <DoctorCard key={doctor._id} doctor={doctor} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Clinics */}
+              {searchType === "clinics" && results.clinics?.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">
+                    Clinics ({results.clinics.length})
+                  </h2>
+                  <div
+                    className={`grid gap-6 ${
+                      viewMode === "grid"
+                        ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                        : "grid-cols-1"
+                    }`}
+                  >
+                    {results.clinics.map((clinic) => (
+                      <ClinicCard key={clinic._id} clinic={clinic} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Pharmacies */}
+              {searchType === "pharmacies" &&
+                results.pharmacies?.length > 0 && (
+                  <section>
+                    <h2 className="text-xl font-semibold mb-4">
+                      Pharmacies ({results.pharmacies.length})
+                    </h2>
+                    <div
+                      className={`grid gap-6 ${
+                        viewMode === "grid"
+                          ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                          : "grid-cols-1"
+                      }`}
+                    >
+                      {results.pharmacies.map((pharmacy) => (
+                        <PharmacyCard key={pharmacy._id} pharmacy={pharmacy} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+              {/* Ambulances */}
+              {searchType === "ambulance" && results.ambulances?.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">
+                    Ambulances ({results.ambulances.length})
+                  </h2>
+                  <div
+                    className={`grid gap-6 ${
+                      viewMode === "grid"
+                        ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                        : "grid-cols-1"
+                    }`}
+                  >
+                    {results.ambulances.map((ambulance) => (
+                      <div
+                        key={ambulance._id}
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
+                              <span className="text-2xl">🚑</span>
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                {ambulance.name}
+                              </h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Vehicle: {ambulance.vehicleNumber}
+                              </p>
+                            </div>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-medium ${
+                              ambulance.isAvailable
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            }`}
+                          >
+                            {ambulance.isAvailable
+                              ? "Available"
+                              : "Unavailable"}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Driver: {ambulance.driverName}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Phone: {ambulance.phone}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Location: {ambulance.location || "N/A"},{" "}
+                              {ambulance.city || "N/A"}
+                            </span>
+                            <button
+                              onClick={() =>
+                                window.open(`tel:${ambulance.phone}`, "_blank")
+                              }
+                              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              Call Now
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
 
           {/* No Results Message */}
           {getTotalResults() === 0 && !apiLoading && (

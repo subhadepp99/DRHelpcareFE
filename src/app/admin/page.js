@@ -15,6 +15,9 @@ import {
   Activity,
   TestTube,
   Building,
+  Truck,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import StatsCard from "@/components/admin/StatsCard";
@@ -32,7 +35,7 @@ export default function AdminDashboard() {
   const [departmentStats, setDepartmentStats] = useState([]);
   const [period, setPeriod] = useState("monthly");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [errors, setErrors] = useState({});
   const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
@@ -41,105 +44,264 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     setLoading(true);
-    setError(null);
+    setErrors({});
+
     try {
-      const [statsRes, doctorRes, regRes, bookRes, deptRes] = await Promise.all(
-        [
-          get(`/dashboard/stats?period=${period}`),
-          get(`/dashboard/doctors?period=${period}`),
-          get(`/dashboard/registrations?period=${period}`),
-          get(`/dashboard/bookings?period=${period}`),
-          get("/dashboard/departments"),
-        ]
-      );
+      // Fetch all data with individual error handling
+      const results = await Promise.allSettled([
+        get(`/dashboard/stats?period=${period}`)
+          .then((res) => ({ type: "stats", data: res }))
+          .catch((err) => ({ type: "stats", error: err })),
+        get(`/dashboard/doctors?period=${period}`)
+          .then((res) => ({ type: "doctors", data: res }))
+          .catch((err) => ({ type: "doctors", error: err })),
+        get(`/dashboard/registrations?period=${period}`)
+          .then((res) => ({ type: "registrations", data: res }))
+          .catch((err) => ({ type: "registrations", error: err })),
+        get(`/dashboard/bookings?period=${period}`)
+          .then((res) => ({ type: "bookings", data: res }))
+          .catch((err) => ({ type: "bookings", error: err })),
+        get("/dashboard/departments")
+          .then((res) => ({ type: "departments", data: res }))
+          .catch((err) => ({ type: "departments", error: err })),
+      ]);
 
-      // Handle the nested API response structure
-      const statsData = statsRes.data?.data || statsRes.data || {};
-      const doctorData =
-        doctorRes.data?.data?.doctorStats || doctorRes.data?.doctorStats || [];
-      const registrationData =
-        regRes.data?.data?.registrationStats ||
-        regRes.data?.registrationStats ||
-        [];
-      const bookingData =
-        bookRes.data?.data?.bookingStats || bookRes.data?.bookingStats || [];
-      const departmentData =
-        deptRes.data?.data?.departments || deptRes.data?.departments || [];
+      // Process results and handle errors individually
+      const newErrors = {};
+      results.forEach((result) => {
+        if (result.status === "fulfilled") {
+          const { type, data, error } = result.value;
 
-      setStats(statsData);
-      setDoctorStats(doctorData);
-      setRegistrationStats(registrationData);
-      setBookingStats(bookingData);
-      setDepartmentStats(departmentData);
+          if (error) {
+            // Handle API error response
+            newErrors[type] = `API Error: ${error.message || "Unknown error"}`;
+            return;
+          }
+
+          // Process successful data
+          switch (type) {
+            case "stats":
+              const statsData = data.data?.data || data.data || {};
+              setStats(statsData);
+              break;
+            case "doctors":
+              const doctorData =
+                data.data?.data?.doctorStats || data.data?.doctorStats || [];
+              setDoctorStats(doctorData);
+              break;
+            case "registrations":
+              const registrationData =
+                data.data?.data?.registrationStats ||
+                data.data?.registrationStats ||
+                [];
+              setRegistrationStats(registrationData);
+              break;
+            case "bookings":
+              const bookingData =
+                data.data?.data?.bookingStats || data.data?.bookingStats || [];
+              setBookingStats(bookingData);
+              break;
+            case "departments":
+              const departmentData =
+                data.data?.data?.departments || data.data?.departments || [];
+              setDepartmentStats(departmentData);
+              break;
+          }
+        } else {
+          // Handle promise rejection
+          const { type, error } = result.reason;
+          newErrors[type] = `Network Error: ${
+            error.message || "Failed to connect"
+          }`;
+        }
+      });
+
+      // Set errors after processing all results
+      setErrors(newErrors);
 
       // Set last updated time
       setLastUpdated(new Date());
 
-      // Show success message
-      toast.success(`Dashboard data updated successfully for ${period} period`);
+      // Show success message based on errors
+      const hasErrors = Object.keys(newErrors).length > 0;
+      if (!hasErrors) {
+        toast.success(
+          `Dashboard data updated successfully for ${period} period`
+        );
+      } else {
+        const errorCount = Object.keys(newErrors).length;
+        const successCount = 5 - errorCount;
+        toast.success(
+          `${successCount} out of 5 data sources loaded successfully`
+        );
+        if (errorCount > 0) {
+          toast.error(`${errorCount} data sources failed to load`);
+        }
+      }
     } catch (err) {
-      setError("Failed to load dashboard data.");
-      toast.error("Failed to load dashboard data. Please try again.");
       console.error("Dashboard data fetch error:", err);
+      toast.error("Failed to load dashboard data. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const retryData = async (type) => {
+    try {
+      let endpoint;
+      switch (type) {
+        case "stats":
+          endpoint = `/dashboard/stats?period=${period}`;
+          break;
+        case "doctors":
+          endpoint = `/dashboard/doctors?period=${period}`;
+          break;
+        case "registrations":
+          endpoint = `/dashboard/registrations?period=${period}`;
+          break;
+        case "bookings":
+          endpoint = `/dashboard/bookings?period=${period}`;
+          break;
+        case "departments":
+          endpoint = "/dashboard/departments";
+          break;
+        default:
+          return;
+      }
+
+      const response = await get(endpoint);
+
+      // Process successful data
+      switch (type) {
+        case "stats":
+          const statsData = response.data?.data || response.data || {};
+          setStats(statsData);
+          break;
+        case "doctors":
+          const doctorData =
+            response.data?.data?.doctorStats ||
+            response.data?.doctorStats ||
+            [];
+          setDoctorStats(doctorData);
+          break;
+        case "registrations":
+          const registrationData =
+            response.data?.data?.registrationStats ||
+            response.data?.registrationStats ||
+            [];
+          setRegistrationStats(registrationData);
+          break;
+        case "bookings":
+          const bookingData =
+            response.data?.data?.bookingStats ||
+            response.data?.bookingStats ||
+            [];
+          setBookingStats(bookingData);
+          break;
+        case "departments":
+          const departmentData =
+            response.data?.data?.departments ||
+            response.data?.departments ||
+            [];
+          setDepartmentStats(departmentData);
+          break;
+      }
+
+      // Clear error for this type
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[type];
+        return newErrors;
+      });
+
+      toast.success(
+        `${
+          type.charAt(0).toUpperCase() + type.slice(1)
+        } data refreshed successfully`
+      );
+    } catch (err) {
+      console.error(`Retry ${type} error:`, err);
+      toast.error(`Failed to refresh ${type} data`);
     }
   };
 
   const statsCards = [
     {
       title: "Total Doctors",
-      value: stats.totalDoctors || 0,
+      value: errors.doctors ? "Unavailable" : stats.totalDoctors || 0,
       icon: Stethoscope,
       color: "bg-blue-500",
       href: "/admin/doctors",
-      growth: stats.growth?.doctors || 0,
-      periodStats: stats.periodStats?.doctors || 0,
+      growth: errors.doctors ? null : stats.growth?.doctors || 0,
+      periodStats: errors.doctors ? null : stats.periodStats?.doctors || 0,
+      hasError: !!errors.doctors,
+      errorType: "doctors",
     },
     {
       title: "Total Clinics",
-      value: stats.totalClinics || 0,
+      value: errors.stats ? "Unavailable" : stats.totalClinics || 0,
       icon: Building2,
       color: "bg-green-500",
       href: "/admin/clinics",
-      growth: stats.growth?.clinics || 0,
-      periodStats: stats.periodStats?.clinics || 0,
+      growth: errors.stats ? null : stats.growth?.clinics || 0,
+      periodStats: errors.stats ? null : stats.periodStats?.clinics || 0,
+      hasError: !!errors.stats,
+      errorType: "stats",
     },
     {
       title: "Total Pharmacies",
-      value: stats.totalPharmacies || 0,
+      value: errors.stats ? "Unavailable" : stats.totalPharmacies || 0,
       icon: Pill,
       color: "bg-purple-500",
       href: "/admin/pharmacies",
-      growth: stats.growth?.pharmacies || 0,
-      periodStats: stats.periodStats?.pharmacies || 0,
+      growth: errors.stats ? null : stats.growth?.pharmacies || 0,
+      periodStats: errors.stats ? null : stats.periodStats?.pharmacies || 0,
+      hasError: !!errors.stats,
+      errorType: "stats",
     },
     {
       title: "Total Patients",
-      value: stats.totalPatients || 0,
+      value: errors.stats ? "Unavailable" : stats.totalPatients || 0,
       icon: Users,
       color: "bg-orange-500",
       href: "/admin/patients",
-      growth: stats.growth?.patients || 0,
-      periodStats: stats.periodStats?.patients || 0,
+      growth: errors.stats ? null : stats.growth?.patients || 0,
+      periodStats: errors.stats ? null : stats.periodStats?.patients || 0,
+      hasError: !!errors.stats,
+      errorType: "stats",
     },
     {
       title: "Total Pathologies",
-      value: stats.totalPathologies || 0,
+      value: errors.stats ? "Unavailable" : stats.totalPathologies || 0,
       icon: TestTube,
       color: "bg-red-500",
       href: "/admin/pathology",
-      growth: 0, // Add growth calculation when available
-      periodStats: 0, // Add period stats when available
+      growth: 0,
+      periodStats: 0,
+      hasError: !!errors.stats,
+      errorType: "stats",
     },
     {
       title: "Total Departments",
-      value: stats.totalDepartments || 0,
+      value: errors.departments ? "Unavailable" : stats.totalDepartments || 0,
       icon: Building,
       color: "bg-indigo-500",
       href: "/admin/departments",
-      growth: 0, // Add growth calculation when available
-      periodStats: 0, // Add period stats when available
+      growth: 0,
+      periodStats: 0,
+      hasError: !!errors.departments,
+      errorType: "departments",
+    },
+    {
+      title: "Total Ambulances",
+      value: errors.stats ? "Unavailable" : stats.totalAmbulances || 0,
+      icon: Truck,
+      color: "bg-orange-500",
+      href: "/admin/ambulances",
+      growth: errors.stats ? null : stats.growth?.ambulances || 0,
+      periodStats: errors.stats ? null : stats.periodStats?.ambulances || 0,
+      hasError: !!errors.stats,
+      errorType: "stats",
     },
   ];
 
@@ -199,22 +361,44 @@ export default function AdminDashboard() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="text-center mt-12 text-red-600 dark:text-red-400">
-        <p>{error}</p>
-        <button
-          onClick={fetchData}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+  // Show error summary at the top if there are any errors, but still display partial data
+  const hasErrors = Object.keys(errors).length > 0;
 
   return (
     <div className="space-y-8">
+      {/* Error Summary Banner */}
+      {hasErrors && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+              <div>
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                  Some data sources failed to load
+                </h3>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  {Object.keys(errors).length} out of 5 data sources are
+                  unavailable. You can retry individual sources or refresh all
+                  data.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.keys(errors).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => retryData(type)}
+                  className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-800 dark:hover:bg-red-700 text-red-700 dark:text-red-300 rounded-full transition-colors flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Retry {type.charAt(0).toUpperCase() + type.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -257,13 +441,7 @@ export default function AdminDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {statsCards.map((card) => (
-          <div
-            key={card.title}
-            onClick={() => router.push(card.href)}
-            className="cursor-pointer transform transition-transform hover:scale-105 h-full"
-          >
-            <StatsCard {...card} />
-          </div>
+          <StatsCard key={card.title} {...card} onRetry={retryData} />
         ))}
       </div>
 

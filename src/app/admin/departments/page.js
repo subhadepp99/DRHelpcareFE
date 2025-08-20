@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/useApi";
+import { useAuthStore } from "@/store/authStore";
 import {
   Plus,
   Search,
@@ -16,6 +17,7 @@ import toast from "react-hot-toast";
 
 export default function DepartmentsPage() {
   const { get, post, put, del } = useApi();
+  const { user } = useAuthStore();
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,6 +32,13 @@ export default function DepartmentsPage() {
     image: null,
     imageUrl: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check if user can modify departments
+  const canModifyDepartments =
+    user?.role === "admin" ||
+    user?.role === "superuser" ||
+    user?.role === "masteruser";
 
   useEffect(() => {
     fetchDepartments();
@@ -38,8 +47,11 @@ export default function DepartmentsPage() {
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      const response = await get("/department");
-      setDepartments(response.data.departments || []);
+      const response = await get("/departments");
+      console.log("Department API response:", response); // Debug log
+      const departments =
+        response.data?.data?.departments || response.data?.departments || [];
+      setDepartments(departments);
     } catch (error) {
       toast.error("Failed to fetch departments");
       console.error("Error fetching departments:", error);
@@ -50,12 +62,13 @@ export default function DepartmentsPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       if (selectedDepartment) {
-        await put(`/department/${selectedDepartment._id}`, formData);
+        await put(`/departments/${selectedDepartment._id}`, formData);
         toast.success("Department updated successfully");
       } else {
-        await post("/department", formData);
+        await post("/departments", formData);
         toast.success("Department added successfully");
       }
       setShowAddModal(false);
@@ -70,6 +83,8 @@ export default function DepartmentsPage() {
           : "Failed to add department"
       );
       console.error("Error saving department:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -90,7 +105,7 @@ export default function DepartmentsPage() {
     if (!confirm("Are you sure you want to delete this department?")) return;
 
     try {
-      await del(`/department/${id}`);
+      await del(`/departments/${id}`);
       toast.success("Department deleted successfully");
       fetchDepartments();
     } catch (error) {
@@ -140,16 +155,22 @@ export default function DepartmentsPage() {
             Department Management
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Manage medical departments and specializations
+            {canModifyDepartments
+              ? "Manage departments and their specializations"
+              : "View departments and their specializations (Admin users can only view)"}
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="mt-4 sm:mt-0 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Add Department
-        </button>
+        <div className="flex gap-3 mt-4 sm:mt-0">
+          {canModifyDepartments && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Add Department
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -187,20 +208,24 @@ export default function DepartmentsPage() {
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleEdit(department)}
-                    className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
-                    title="Edit"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(department._id)}
-                    className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {canModifyDepartments && (
+                    <>
+                      <button
+                        onClick={() => handleEdit(department)}
+                        className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(department._id)}
+                        className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -229,6 +254,29 @@ export default function DepartmentsPage() {
                     {department.doctorCount || 0}
                   </span>
                 </div>
+
+                {/* Show Doctors List */}
+                {department.doctors && department.doctors.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 block">
+                      Doctors in this department:
+                    </span>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {department.doctors.map((doctor, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center space-x-2 text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded"
+                        >
+                          <Stethoscope className="w-3 h-3 text-blue-500" />
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {doctor.name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between text-sm mt-1">
                   <span className="text-gray-600 dark:text-gray-400">
                     Status:
@@ -270,11 +318,14 @@ export default function DepartmentsPage() {
                     type="text"
                     required
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const capitalizedValue =
+                        value.charAt(0).toUpperCase() + value.slice(1);
+                      setFormData({ ...formData, name: capitalizedValue });
+                    }}
                     className="input-field w-full"
-                    placeholder="e.g., cardiology"
+                    placeholder="e.g., Cardiology"
                   />
                 </div>
 
@@ -376,9 +427,19 @@ export default function DepartmentsPage() {
               <div className="flex space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center"
                 >
-                  {selectedDepartment ? "Update Department" : "Add Department"}
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      {selectedDepartment ? "Updating..." : "Adding..."}
+                    </>
+                  ) : selectedDepartment ? (
+                    "Update Department"
+                  ) : (
+                    "Add Department"
+                  )}
                 </button>
                 <button
                   type="button"

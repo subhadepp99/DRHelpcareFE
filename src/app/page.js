@@ -19,6 +19,8 @@ import {
   Apple,
   PlayCircle,
   WhatsappIcon,
+  TestTube,
+  Truck,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -30,6 +32,7 @@ import AppointmentModal from "@/components/common/AppointmentModal";
 import { useLocation } from "@/hooks/useLocation";
 import { useApi } from "@/hooks/useApi";
 import { useAuthStore } from "@/store/authStore";
+import Image from "next/image";
 
 export default function HomePage() {
   const router = useRouter();
@@ -42,19 +45,32 @@ export default function HomePage() {
   const { isAuthenticated } = useAuthStore();
   const [featuredDoctors, setFeaturedDoctors] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [testPackages, setTestPackages] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchType, setSearchType] = useState("all"); // Default to 'all'
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     fetchFeaturedDoctors();
     fetchDepartments();
+    fetchTestPackages();
   }, []);
+
+  // Auto-slide for cards
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide(
+        (prev) => (prev + 1) % Math.ceil(featuredDoctors.length / 4)
+      );
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [featuredDoctors.length]);
 
   const fetchFeaturedDoctors = async () => {
     try {
-      const response = await get("/doctors?limit=6");
+      const response = await get("/doctors?limit=8");
       const doctors =
         response?.data?.data?.doctors || response?.data?.doctors || [];
       setFeaturedDoctors(doctors);
@@ -65,10 +81,20 @@ export default function HomePage() {
 
   const fetchDepartments = async () => {
     try {
-      const response = await get("/department"); // departments contain pic, details, heading, and linked doctors
+      const response = await get("/departments/public"); // departments contain pic, details, heading, and linked doctors
       setDepartments(response.data.departments || []);
     } catch (error) {
       setDepartments([]);
+    }
+  };
+
+  const fetchTestPackages = async () => {
+    try {
+      const response = await get("/pathology/test-packages");
+      setTestPackages(response.data?.testPackages || []);
+    } catch (error) {
+      console.error("Error fetching test packages:", error);
+      setTestPackages([]);
     }
   };
 
@@ -83,7 +109,6 @@ export default function HomePage() {
   };
 
   // Handle opening appointment booking modal
-
   function bookAppointment(doctor) {
     setSelectedDoctor(doctor);
     setAppointmentModalOpen(true);
@@ -112,13 +137,24 @@ export default function HomePage() {
       href: "/search?type=pharmacies",
     },
     {
-      icon: Users,
-      title: "Health Records",
-      description: "Manage your health records",
-      color: "bg-orange-500",
-      href: isAuthenticated ? "/profile" : "/login",
+      icon: TestTube,
+      title: "Pathology Tests",
+      description: "Book diagnostic tests and health packages",
+      color: "bg-red-500",
+      href: "/pathology",
     },
   ];
+
+  const getDiscountPercentage = (originalPrice, discountedPrice) => {
+    if (!originalPrice || !discountedPrice) return 0;
+    return Math.round(
+      ((originalPrice - discountedPrice) / originalPrice) * 100
+    );
+  };
+
+  const handleCall = (phoneNumber = "+919674243119") => {
+    window.open(`tel:${phoneNumber}`, "_blank");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 relative">
@@ -133,12 +169,6 @@ export default function HomePage() {
             transition={{ duration: 0.5 }}
             className="text-center relative z-50"
           >
-            {/* <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-              Your Health, Our{" "}
-              <span className="text-primary-600">Priority</span>
-            </h1> */}
-            {/* Subtitle removed as requested */}
-
             {/* Enhanced Search Section */}
             <SearchSection
               searchQuery={searchQuery}
@@ -156,11 +186,11 @@ export default function HomePage() {
         <section className="py-8 bg-white dark:bg-gray-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              Departments
+              Our Departments
             </h2>
 
             <div className="overflow-x-auto scrollbar-hide pb-2">
-              <div className="flex gap-6 min-w-fit">
+              <div className="flex gap-4 min-w-fit">
                 {departments.map((dept) => (
                   <DepartmentCard key={dept._id} department={dept} />
                 ))}
@@ -170,17 +200,91 @@ export default function HomePage() {
         </section>
       )}
 
+      {/* Featured Health Packages Section */}
+      {testPackages.length > 0 && (
+        <section className="py-12 bg-white dark:bg-gray-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                Featured Health Packages
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                Comprehensive health screening packages at affordable prices
+              </p>
+            </motion.div>
+
+            <div className="overflow-x-auto scrollbar-hide pb-4">
+              <div className="flex space-x-6 min-w-fit">
+                {testPackages.map((pkg, index) => (
+                  <motion.div
+                    key={pkg._id}
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="flex-none w-72 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+                  >
+                    <div className="relative h-40 bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-800 dark:to-primary-900">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <TestTube className="w-16 h-16 text-primary-600 dark:text-primary-400" />
+                      </div>
+                      {pkg.discountedPrice &&
+                        pkg.discountedPrice < pkg.price && (
+                          <div className="absolute top-4 right-4">
+                            <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                              {getDiscountPercentage(
+                                pkg.price,
+                                pkg.discountedPrice
+                              )}
+                              % OFF
+                            </span>
+                          </div>
+                        )}
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        {pkg.name}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm line-clamp-2">
+                        {pkg.description}
+                      </p>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                            ₹{pkg.discountedPrice || pkg.price}
+                          </span>
+                          {pkg.discountedPrice &&
+                            pkg.discountedPrice < pkg.price && (
+                              <span className="text-lg text-gray-500 line-through">
+                                ₹{pkg.price}
+                              </span>
+                            )}
+                        </div>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          {pkg.category}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => router.push("/pathology")}
+                        className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+                      >
+                        <span>View Details</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Services Section with Better Padding */}
       <section className="py-12 bg-white dark:bg-gray-800">
-        {/* <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-            Our Services
-          </h2>
-
-          <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Comprehensive healthcare services at your fingertips
-          </p>
-        </div> */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -196,7 +300,7 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {services.map((service, index) => (
               <motion.div
                 key={service.title}
@@ -211,7 +315,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Doctors with Ratings */}
+      {/* Featured Doctors with Auto-slider */}
       {featuredDoctors.length > 0 && (
         <section className="py-16 bg-gray-50 dark:bg-gray-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -229,21 +333,67 @@ export default function HomePage() {
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredDoctors.map((doctor, index) => (
-                <motion.div
-                  key={doctor._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                >
-                  <DoctorCard
-                    doctor={doctor}
-                    showRating={true}
-                    onBook={() => bookAppointment(doctor)}
-                  />
-                </motion.div>
-              ))}
+            <div className="relative overflow-hidden">
+              <div
+                className="flex transition-transform duration-1000 ease-in-out"
+                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+              >
+                <div className="flex gap-4 min-w-full">
+                  {featuredDoctors.slice(0, 4).map((doctor, index) => (
+                    <motion.div
+                      key={doctor._id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: index * 0.1 }}
+                      className="flex-none w-80"
+                    >
+                      <DoctorCard
+                        doctor={doctor}
+                        showRating={true}
+                        onBook={() => bookAppointment(doctor)}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+                {featuredDoctors.length > 4 && (
+                  <div className="flex gap-4 min-w-full">
+                    {featuredDoctors.slice(4, 8).map((doctor, index) => (
+                      <motion.div
+                        key={doctor._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: index * 0.1 }}
+                        className="flex-none w-80"
+                      >
+                        <DoctorCard
+                          doctor={doctor}
+                          showRating={true}
+                          onBook={() => bookAppointment(doctor)}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Slider Indicators */}
+              {featuredDoctors.length > 4 && (
+                <div className="flex justify-center mt-6 space-x-2">
+                  {Array.from({
+                    length: Math.ceil(featuredDoctors.length / 4),
+                  }).map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentSlide(index)}
+                      className={`w-3 h-3 rounded-full transition-colors duration-200 ${
+                        index === currentSlide
+                          ? "bg-primary-600"
+                          : "bg-gray-300 dark:bg-gray-600"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -261,16 +411,30 @@ export default function HomePage() {
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-4 items-end">
         <a
           href="https://wa.me/919674243119"
-          className="inline-flex items-center px-4 py-3 rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 transition"
+          className="inline-flex items-center px-4 py-3 rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 transition-all duration-300 hover:scale-110"
           target="_blank"
           rel="noopener noreferrer"
         >
+          <Image
+            src="/watsapp.png"
+            alt="WhatsApp"
+            width={20}
+            height={20}
+            className="mr-2"
+          />
           WhatsApp
         </a>
         <a
           href="tel:+919674243119"
-          className="inline-flex items-center px-4 py-3 rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-600 transition"
+          className="inline-flex items-center px-4 py-3 rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-600 transition-all duration-300 hover:scale-110"
         >
+          <Image
+            src="/Call.png"
+            alt="Call"
+            width={20}
+            height={20}
+            className="mr-2"
+          />
           Call Us
         </a>
       </div>
@@ -332,7 +496,6 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-      <div className="pb-32" />
 
       <Footer />
     </div>

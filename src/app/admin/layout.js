@@ -16,6 +16,9 @@ import {
   LogOut,
   TestTube,
   Building,
+  ChevronDown,
+  User,
+  Truck,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
@@ -24,6 +27,7 @@ export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const { user, logout, isAuthenticated } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated === false) {
@@ -43,6 +47,7 @@ export default function AdminLayout({ children }) {
     { name: "Clinics", href: "/admin/clinics", icon: Building2 },
     { name: "Pharmacies", href: "/admin/pharmacies", icon: Pill },
     { name: "Pathology", href: "/admin/pathology", icon: TestTube },
+    { name: "Ambulances", href: "/admin/ambulances", icon: Truck },
     { name: "Patients", href: "/admin/patients", icon: UserPlus },
     { name: "Users", href: "/admin/users", icon: Users },
     ...(user?.role === "superuser" || user?.role === "masteruser"
@@ -118,7 +123,10 @@ export default function AdminLayout({ children }) {
           <ul className="space-y-1">
             {navigation.map((item) => {
               const isActive =
-                pathname === item.href || pathname.startsWith(item.href + "/");
+                item.href === "/admin"
+                  ? pathname === "/admin"
+                  : pathname === item.href ||
+                    pathname.startsWith(item.href + "/");
               return (
                 <li key={item.name}>
                   <Link
@@ -171,24 +179,71 @@ export default function AdminLayout({ children }) {
               <Home className="w-5 h-5" aria-hidden="true" />
               <span className="hidden sm:inline">View Site</span>
             </Link>
-            <div className="hidden sm:flex items-center space-x-3 px-3 py-2 bg-primary-100 dark:bg-primary-900 rounded-md select-none">
-              <span className="inline-flex items-center justify-center w-8 h-8 text-sm font-bold text-white bg-primary-600 rounded-full uppercase">
-                {user?.firstName?.[0]}
-                {user?.lastName?.[0]}
-              </span>
-              <span className="text-sm font-medium text-primary-800 dark:text-primary-200">
-                {user?.firstName}
+
+            {/* Role Display */}
+            <div className="hidden sm:flex items-center px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-md">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+                {user?.role || "User"}
               </span>
             </div>
-            <button
-              type="button"
-              className="p-2 text-gray-400 rounded-md hover:text-red-600 hover:bg-red-100 dark:hover:text-red-400 dark:hover:bg-red-700 transition"
-              onClick={handleLogout}
-              aria-label="Logout"
-              title="Logout"
-            >
-              <LogOut className="w-5 h-5" aria-hidden="true" />
-            </button>
+
+            {/* User Menu Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="hidden sm:flex items-center space-x-3 px-3 py-2 bg-primary-100 dark:bg-primary-900 rounded-md select-none hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors"
+              >
+                <span className="inline-flex items-center justify-center w-8 h-8 text-sm font-bold text-white bg-primary-600 rounded-full uppercase">
+                  {user?.firstName?.[0]}
+                  {user?.lastName?.[0]}
+                </span>
+                <span className="text-sm font-medium text-primary-800 dark:text-primary-200">
+                  {user?.firstName}
+                </span>
+                <ChevronDown className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-700">
+                  <Link
+                    href="/profile"
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <User className="w-4 h-4 mr-3" />
+                    Profile
+                  </Link>
+                  {user?.role === "superuser" && (
+                    <Link
+                      href="/admin/settings"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <Settings className="w-4 h-4 mr-3" />
+                      Settings
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  >
+                    <LogOut className="w-4 h-4 mr-3" />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Close dropdown when clicking outside */}
+            {userMenuOpen && (
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setUserMenuOpen(false)}
+              />
+            )}
           </div>
         </header>
         {/* *** FIXED PADDING *** */}

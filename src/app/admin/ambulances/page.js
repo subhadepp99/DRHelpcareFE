@@ -1,83 +1,82 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Upload, X } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, X, Search } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import Modal from "@/components/common/Modal";
-import StatesDropdown from "@/components/common/StatesDropdown";
 import toast from "react-hot-toast";
 
 const initialForm = {
   name: "",
-  registrationNumber: "",
-  email: "",
+  vehicleNumber: "",
+  driverName: "",
+  driverPhone: "",
   phone: "",
-  address: "",
-  place: "",
-  state: "",
-  zipCode: "",
-  country: "India",
-  services: "",
-  facilities: "",
+  location: "",
+  city: "",
+  isAvailable: true,
   imageUrl: "",
 };
 
-export default function AdminClinics() {
+export default function AmbulancesPage() {
   const { get, post, put, del } = useApi();
-  const [clinics, setClinics] = useState([]);
-  const [fetching, setFetching] = useState(true);
+  const [ambulances, setAmbulances] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [editing, setEditing] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [imageFile, setImageFile] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    fetchClinics();
+    fetchAmbulances();
   }, []);
 
-  async function fetchClinics() {
-    setFetching(true);
+  const fetchAmbulances = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const res = await get("/clinics?limit=1000");
-      setClinics(res.data.clinics || res.data.data?.clinics || []);
+      const res = await get("/ambulances?limit=1000");
+      const ambulances =
+        res.data?.data?.ambulances || res.data?.ambulances || [];
+      setAmbulances(ambulances);
     } catch (err) {
-      console.error("Failed to fetch clinics:", err);
-      toast.error("Failed to fetch clinics.");
-      setClinics([]);
+      console.error("Failed to fetch ambulances:", err);
+      toast.error("Failed to fetch ambulances.");
+      setError("Failed to load ambulances data.");
+      setAmbulances([]);
     } finally {
-      setFetching(false);
+      setLoading(false);
     }
-  }
+  };
 
   const openAdd = () => {
     setForm(initialForm);
     setEditing(null);
-    setImageFile(null);
+    setSelectedImage(null);
     setImagePreview("");
     setModalOpen(true);
   };
 
-  const openEdit = (clinic) => {
+  const openEdit = (ambulance) => {
     setForm({
-      name: clinic.name || "",
-      registrationNumber: clinic.registrationNumber || "",
-      email: clinic.email || "",
-      phone: clinic.phone || "",
-      address: clinic.address || "",
-      place: clinic.place || "",
-      state: clinic.state || "",
-      zipCode: clinic.zipCode || "",
-      country: clinic.country || "India",
-      services: (clinic.services || []).join(", "),
-      facilities: (clinic.facilities || []).join(", "),
-      imageUrl: clinic.imageUrl || "",
+      name: ambulance.name || "",
+      vehicleNumber: ambulance.vehicleNumber || "",
+      driverName: ambulance.driverName || "",
+      driverPhone: ambulance.driverPhone || "",
+      phone: ambulance.phone || "",
+      location: ambulance.location || "",
+      city: ambulance.city || "",
+      isAvailable: !!ambulance.isAvailable,
+      imageUrl: ambulance.imageUrl || "",
     });
-    setEditing(clinic);
-    setImageFile(null);
-    setImagePreview(clinic.imageUrl || "");
+    setEditing(ambulance);
+    setSelectedImage(null);
+    setImagePreview(ambulance.imageUrl || "");
     setModalOpen(true);
   };
 
@@ -85,12 +84,15 @@ export default function AdminClinics() {
     if (!confirm("Confirm delete?")) return;
     setIsDeleting(true);
     try {
-      await del(`/clinics/${id}`);
-      toast.success("Clinic deleted successfully!");
-      fetchClinics();
+      await del(`/ambulances/${id}`);
+      toast.success("Ambulance deleted successfully!");
+      fetchAmbulances();
     } catch (err) {
-      console.error("Failed to delete clinic:", err);
-      toast.error("Failed to delete clinic.");
+      console.error("Failed to delete ambulance:", err);
+      toast.error(
+        "Failed to delete ambulance: " +
+          (err?.response?.data?.message || err.message || "Unknown error")
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -99,9 +101,9 @@ export default function AdminClinics() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file);
+      setSelectedImage(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onload = () => {
         setImagePreview(reader.result);
       };
       reader.readAsDataURL(file);
@@ -109,93 +111,100 @@ export default function AdminClinics() {
   };
 
   const removeImage = () => {
-    setImageFile(null);
+    setSelectedImage(null);
     setImagePreview("");
     setForm((prev) => ({ ...prev, imageUrl: "" }));
   };
 
-  function onChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  }
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
+  };
 
-  async function onSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Ensure services and facilities are properly formatted
-    const servicesArray = form.services
-      ? form.services
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : [];
-
-    const facilitiesArray = form.facilities
-      ? form.facilities
-          .split(",")
-          .map((f) => f.trim())
-          .filter(Boolean)
-      : [];
-
     const payload = {
       name: form.name,
-      registrationNumber: form.registrationNumber || undefined,
-      email: form.email,
+      vehicleNumber: form.vehicleNumber,
+      driverName: form.driverName,
+      driverPhone: form.driverPhone,
       phone: form.phone,
-      address: form.address,
-      place: form.place,
-      state: form.state,
-      zipCode: form.zipCode,
-      country: form.country,
-      services: servicesArray,
-      facilities: facilitiesArray,
+      location: form.location,
+      city: form.city,
+      isAvailable: form.isAvailable,
       imageUrl: form.imageUrl,
     };
 
-    console.log("Submitting clinic payload:", payload); // Debug log
-
     try {
       if (editing) {
-        await put(`/clinics/${editing._id}`, payload);
-        toast.success("Clinic updated successfully!");
+        await put(`/ambulances/${editing._id}`, payload);
+        toast.success("Ambulance updated successfully!");
       } else {
-        await post("/clinics", payload);
-        toast.success("Clinic added successfully!");
+        await post("/ambulances", payload);
+        toast.success("Ambulance added successfully!");
       }
       setModalOpen(false);
-      fetchClinics();
+      fetchAmbulances();
     } catch (err) {
-      console.error("Failed to save clinic:", err);
+      console.error("Failed to save ambulance:", err);
       toast.error(
-        "Failed to save clinic: " +
+        "Failed to save ambulance: " +
           (err?.response?.data?.message || err.message || "Unknown error")
       );
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
+
+  const filteredAmbulances = ambulances.filter(
+    (ambulance) =>
+      ambulance.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ambulance.vehicleNumber
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      ambulance.driverName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Clinics Management</h1>
+        <h1 className="text-2xl font-semibold">Ambulance Management</h1>
         <button
-          onClick={openAdd}
           className="btn-primary flex items-center space-x-2"
+          onClick={openAdd}
         >
-          <Plus className="w-4 h-4" />
-          <span>Add Clinic</span>
+          <Plus className="w-4 h-4" /> <span>Add Ambulance</span>
         </button>
       </div>
 
-      {fetching ? (
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search ambulances by name, vehicle number, or driver name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+
+      {loading ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading clinics...</p>
+          <p className="mt-2 text-gray-600">Loading ambulances...</p>
         </div>
-      ) : clinics.length === 0 ? (
+      ) : error ? (
+        <div className="text-center py-8 text-red-600">{error}</div>
+      ) : filteredAmbulances.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
-          <p>No clinics found.</p>
+          {searchTerm
+            ? "No ambulances found matching your search."
+            : "No ambulances found."}
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -209,19 +218,22 @@ export default function AdminClinics() {
                   Name
                 </th>
                 <th className="border border-gray-300 p-3 text-left font-semibold">
-                  Reg. No.
+                  Vehicle No.
                 </th>
                 <th className="border border-gray-300 p-3 text-left font-semibold">
-                  Email
+                  Driver
                 </th>
                 <th className="border border-gray-300 p-3 text-left font-semibold">
                   Phone
                 </th>
                 <th className="border border-gray-300 p-3 text-left font-semibold">
-                  Place
+                  Location
                 </th>
                 <th className="border border-gray-300 p-3 text-left font-semibold">
-                  State
+                  City
+                </th>
+                <th className="border border-gray-300 p-3 text-left font-semibold">
+                  Status
                 </th>
                 <th className="border border-gray-300 p-3 text-left font-semibold">
                   Actions
@@ -229,48 +241,72 @@ export default function AdminClinics() {
               </tr>
             </thead>
             <tbody>
-              {clinics.map((clinic) => (
-                <tr key={clinic._id} className="hover:bg-gray-50">
+              {filteredAmbulances.map((ambulance) => (
+                <tr key={ambulance._id} className="hover:bg-gray-50">
                   <td className="border border-gray-300 p-3">
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                      {clinic.imageUrl ? (
+                      {ambulance.imageUrl ? (
                         <img
-                          src={clinic.imageUrl}
-                          alt={clinic.name}
+                          src={ambulance.imageUrl}
+                          alt={ambulance.name}
                           className="w-full h-full object-cover"
                         />
                       ) : (
                         <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                           <span className="text-gray-500 text-xs font-medium">
-                            {clinic.name.charAt(0).toUpperCase()}
+                            {ambulance.name.charAt(0).toUpperCase()}
                           </span>
                         </div>
                       )}
                     </div>
                   </td>
-                  <td className="border border-gray-300 p-3">{clinic.name}</td>
                   <td className="border border-gray-300 p-3">
-                    {clinic.registrationNumber || "-"}
-                  </td>
-                  <td className="border border-gray-300 p-3">{clinic.email}</td>
-                  <td className="border border-gray-300 p-3">{clinic.phone}</td>
-                  <td className="border border-gray-300 p-3">
-                    {clinic.place || "-"}
+                    {ambulance.name}
                   </td>
                   <td className="border border-gray-300 p-3">
-                    {clinic.state || "-"}
+                    {ambulance.vehicleNumber}
+                  </td>
+                  <td className="border border-gray-300 p-3">
+                    <div>
+                      <div className="font-medium">{ambulance.driverName}</div>
+                      <div className="text-sm text-gray-500">
+                        {ambulance.driverPhone}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="border border-gray-300 p-3">
+                    {ambulance.phone}
+                  </td>
+                  <td className="border border-gray-300 p-3">
+                    {ambulance.location}
+                  </td>
+                  <td className="border border-gray-300 p-3">
+                    {ambulance.city}
+                  </td>
+                  <td className="border border-gray-300 p-3">
+                    <div className="space-y-1">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          ambulance.isAvailable
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {ambulance.isAvailable ? "Available" : "Unavailable"}
+                      </span>
+                    </div>
                   </td>
                   <td className="border border-gray-300 p-3">
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => openEdit(clinic)}
+                        onClick={() => openEdit(ambulance)}
                         className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50"
                         title="Edit"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(clinic._id)}
+                        onClick={() => handleDelete(ambulance._id)}
                         className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
                         disabled={isDeleting}
                         title="Delete"
@@ -292,106 +328,96 @@ export default function AdminClinics() {
 
       {modalOpen && (
         <Modal
-          title={editing ? "Edit Clinic" : "Add Clinic"}
+          title={editing ? "Edit Ambulance" : "Add Ambulance"}
           onClose={() => setModalOpen(false)}
           className="max-w-4xl"
         >
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input
                 name="name"
                 value={form.name}
-                onChange={onChange}
+                onChange={handleChange}
                 required
-                placeholder="Clinic Name"
+                placeholder="Ambulance Name"
                 className="input-field"
               />
               <input
-                name="registrationNumber"
-                value={form.registrationNumber}
-                onChange={onChange}
-                placeholder="Registration Number (Optional)"
+                name="vehicleNumber"
+                value={form.vehicleNumber}
+                onChange={handleChange}
+                required
+                placeholder="Vehicle Number"
                 className="input-field"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input
-                name="email"
-                value={form.email}
-                onChange={onChange}
-                type="email"
+                name="driverName"
+                value={form.driverName}
+                onChange={handleChange}
                 required
-                placeholder="Email"
+                placeholder="Driver Name"
+                className="input-field"
+              />
+              <input
+                name="driverPhone"
+                value={form.driverPhone}
+                onChange={handleChange}
+                required
+                placeholder="Driver Phone"
+                className="input-field"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                name="city"
+                value={form.city}
+                onChange={handleChange}
+                required
+                placeholder="City"
                 className="input-field"
               />
               <input
                 name="phone"
                 value={form.phone}
-                onChange={onChange}
+                onChange={handleChange}
                 required
                 placeholder="Phone"
                 className="input-field"
               />
             </div>
 
-            <textarea
-              name="address"
-              value={form.address}
-              onChange={onChange}
+            <input
+              name="location"
+              value={form.location}
+              onChange={handleChange}
               required
-              placeholder="Full Address"
+              placeholder="Location (e.g., Hospital Name, Area)"
               className="input-field"
-              rows={3}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input
-                name="place"
-                value={form.place}
-                onChange={onChange}
-                required
-                placeholder="City/Place"
-                className="input-field"
-              />
-              <StatesDropdown
-                name="state"
-                value={form.state}
-                onChange={onChange}
-                required
-                placeholder="Select State"
-              />
-              <input
-                name="zipCode"
-                value={form.zipCode}
-                onChange={onChange}
-                required
-                placeholder="ZIP Code"
-                className="input-field"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                name="services"
-                value={form.services}
-                onChange={onChange}
-                placeholder="Services (comma separated)"
-                className="input-field"
-              />
-              <input
-                name="facilities"
-                value={form.facilities}
-                onChange={onChange}
-                placeholder="Facilities (comma separated)"
-                className="input-field"
-              />
+            <div className="flex items-center space-x-3">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="isAvailable"
+                  checked={form.isAvailable}
+                  onChange={handleChange}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Available for Service
+                </span>
+              </label>
             </div>
 
             {/* Image Upload Section */}
             <div className="space-y-3">
               <label className="block text-sm font-medium text-gray-700">
-                Clinic Image
+                Ambulance Image
               </label>
 
               {imagePreview && (
@@ -425,7 +451,7 @@ export default function AdminClinics() {
                 <input
                   name="imageUrl"
                   value={form.imageUrl}
-                  onChange={onChange}
+                  onChange={handleChange}
                   placeholder="Or enter image URL"
                   className="input-field flex-1"
                 />
@@ -443,9 +469,9 @@ export default function AdminClinics() {
                   {editing ? "Updating..." : "Adding..."}
                 </>
               ) : editing ? (
-                "Update Clinic"
+                "Update Ambulance"
               ) : (
-                "Add Clinic"
+                "Add Ambulance"
               )}
             </button>
           </form>

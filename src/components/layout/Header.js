@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu,
@@ -37,7 +38,7 @@ export default function Header() {
     { name: "Find Doctors", href: "/search?type=doctors" },
     { name: "Clinics", href: "/search?type=clinics" },
     { name: "Pharmacies", href: "/search?type=pharmacies" },
-    { name: "Pathology", href: "/search?type=pathology" },
+    { name: "Pathology", href: "/pathology" },
     { name: "Ambulance", href: "/search?type=ambulance" },
     { name: "About", href: "/about" },
   ];
@@ -47,9 +48,15 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <Heart className="w-5 h-5 text-white" />
+          <Link href="/" className="flex items-center space-x-3">
+            <div className="relative w-10 h-10">
+              <Image
+                src="/logo.png"
+                alt="Dr Helpcare Pro Logo"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
             <span className="text-xl font-bold text-gray-900 dark:text-white">
               Dr Helpcare Pro
