@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { MapPin, Stethoscope, Shield } from "lucide-react";
+import { MapPin, Stethoscope, Shield, Clock, Building } from "lucide-react";
 import Image from "next/image";
 import ReactStars from "react-rating-stars-component";
+import { getEntityImageUrl } from "@/utils/imageUtils";
 
 export default function DoctorCard({
   doctor,
@@ -28,7 +29,9 @@ export default function DoctorCard({
     }
   };
 
-  const imageSrc = doctor.imageUrl || doctor.profileImage;
+  const imageSrc =
+    getEntityImageUrl(doctor, "imageUrl") ||
+    getEntityImageUrl(doctor, "profileImage");
 
   // Generate realistic rating
   const ratingRaw = doctor.rating || 0;
@@ -46,6 +49,20 @@ export default function DoctorCard({
       : doctor.reviews
       ? doctor.reviews.length
       : 0;
+
+  // Get consultation fee (prioritize doctorFees, then consultationFee)
+  const consultationFee =
+    doctor.doctorFees || doctor.consultationFee || "Not specified";
+
+  // Get primary clinic information
+  const primaryClinic =
+    doctor.clinicDetails?.find((clinic) => clinic.isPrimary) ||
+    doctor.clinicDetails?.[0] ||
+    null;
+
+  // Check if doctor has availability
+  const hasAvailability =
+    doctor.availableDateTime && doctor.availableDateTime.length > 0;
 
   return (
     <motion.div
@@ -71,9 +88,19 @@ export default function DoctorCard({
 
         {/* Status Badge */}
         <div className="absolute top-3 left-3">
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-            <span className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1 animate-pulse"></span>
-            Available
+          <span
+            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              hasAvailability
+                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full mr-1 ${
+                hasAvailability ? "bg-green-400 animate-pulse" : "bg-gray-400"
+              }`}
+            ></span>
+            {hasAvailability ? "Available" : "Unavailable"}
           </span>
         </div>
 
@@ -94,6 +121,12 @@ export default function DoctorCard({
               ? doctor.department.name
               : doctor.department || "General Physician"}
           </p>
+          {/* Bio preview */}
+          {doctor.bio && (
+            <p className="text-gray-500 dark:text-gray-500 text-xs mt-1 line-clamp-2">
+              {doctor.bio}
+            </p>
+          )}
         </div>
 
         {/* Rating */}
@@ -122,12 +155,37 @@ export default function DoctorCard({
               {doctor.address?.state || doctor.state || "State"}
             </span>
           </div>
+
+          {/* Clinic Information */}
+          {primaryClinic && (
+            <div className="flex items-center text-gray-600 dark:text-gray-400">
+              <Building className="w-3 h-3 mr-1 flex-shrink-0" />
+              <span className="truncate">
+                {primaryClinic.clinicName ||
+                  primaryClinic.clinic?.name ||
+                  "Clinic"}
+              </span>
+            </div>
+          )}
+
+          {/* Consultation Fee */}
           <div className="flex items-center text-gray-600 dark:text-gray-400">
             <span className="font-medium text-primary-600 dark:text-primary-400">
-              ₹{doctor.consultationFee || "Not specified"}
+              ₹{consultationFee}
             </span>
             <span className="ml-1">consultation fee</span>
           </div>
+
+          {/* Availability */}
+          {hasAvailability && (
+            <div className="flex items-center text-gray-600 dark:text-gray-400">
+              <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
+              <span className="text-xs">
+                Available {doctor.availableDateTime.length} day
+                {doctor.availableDateTime.length !== 1 ? "s" : ""} per week
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}

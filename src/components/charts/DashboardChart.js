@@ -126,14 +126,14 @@ export default function DashboardChart({
               dot={{ r: 4 }}
               name="Clinics"
             />
-            <Line
+            {/* <Line
               type="monotone"
               dataKey="pharmacies"
               stroke="#8B5CF6"
               strokeWidth={2}
               dot={{ r: 4 }}
               name="Pharmacies"
-            />
+            /> */}
             <Line
               type="monotone"
               dataKey="patients"

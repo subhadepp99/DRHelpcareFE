@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import StatesDropdown from "@/components/common/StatesDropdown";
+import { getEntityImageUrl } from "@/utils/imageUtils";
 
 export default function PathologyPage() {
   const { get, post, put, del } = useApi();
@@ -29,6 +30,9 @@ export default function PathologyPage() {
   const [selectedPathology, setSelectedPathology] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
+    description: "",
+    category: "",
+    price: "",
     licenseNumber: "",
     email: "",
     phone: "",
@@ -101,6 +105,31 @@ export default function PathologyPage() {
         }
       });
 
+      // Debug: Log what's being sent
+      console.log("Form data being sent:", formData);
+      console.log("FormData entries:");
+      for (let [key, value] of formDataToSend.entries()) {
+        console.log(`${key}: ${value}`);
+      }
+
+      // Additional debugging for required fields
+      console.log("Required fields check:");
+      console.log("- name:", formData.name);
+      console.log("- description:", formData.description);
+      console.log("- category:", formData.category);
+      console.log("- price:", formData.price);
+      console.log("- email:", formData.email);
+      console.log("- phone:", formData.phone);
+      console.log("- address:", formData.address);
+      console.log("- place:", formData.place);
+      console.log("- state:", formData.state);
+      console.log("- zipCode:", formData.zipCode);
+
+      // Add image file if selected
+      if (selectedImage) {
+        formDataToSend.append("image", selectedImage);
+      }
+
       // Add image file if selected
       if (selectedImage) {
         formDataToSend.append("image", selectedImage);
@@ -119,12 +148,20 @@ export default function PathologyPage() {
       resetForm();
       fetchPathologies();
     } catch (error) {
+      console.error("Error saving pathology:", error);
+      console.error("Error response:", error.response);
+      console.error("Error data:", error.response?.data);
+
+      // Show more specific error message
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Unknown error occurred";
       toast.error(
         selectedPathology
-          ? "Failed to update pathology"
-          : "Failed to add pathology"
+          ? `Failed to update pathology: ${errorMessage}`
+          : `Failed to add pathology: ${errorMessage}`
       );
-      console.error("Error saving pathology:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -134,6 +171,9 @@ export default function PathologyPage() {
     setSelectedPathology(pathology);
     setFormData({
       name: pathology.name || "",
+      description: pathology.description || "",
+      category: pathology.category || "",
+      price: pathology.price || "",
       licenseNumber: pathology.licenseNumber || "",
       email: pathology.email || "",
       phone: pathology.phone || "",
@@ -177,6 +217,9 @@ export default function PathologyPage() {
   const resetForm = () => {
     setFormData({
       name: "",
+      description: "",
+      category: "",
+      price: "",
       licenseNumber: "",
       email: "",
       phone: "",
@@ -329,7 +372,7 @@ export default function PathologyPage() {
                 <div className="relative h-40 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900 dark:to-indigo-900">
                   {pathology.imageUrl ? (
                     <img
-                      src={pathology.imageUrl}
+                      src={getEntityImageUrl(pathology, "imageUrl")}
                       alt={pathology.name}
                       className="w-full h-full object-cover"
                     />
@@ -415,7 +458,7 @@ export default function PathologyPage() {
             <div className="relative h-48 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900 dark:to-indigo-900">
               {pathology.imageUrl ? (
                 <img
-                  src={pathology.imageUrl}
+                  src={getEntityImageUrl(pathology, "imageUrl")}
                   alt={pathology.name}
                   className="w-full h-full object-cover"
                 />
@@ -560,7 +603,7 @@ export default function PathologyPage() {
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {/* Basic Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Name *
@@ -574,6 +617,56 @@ export default function PathologyPage() {
                     }
                     className="input-field w-full"
                     placeholder="Pathology Lab Name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Description *
+                  </label>
+                  <textarea
+                    required
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                    className="input-field w-full"
+                    placeholder="Pathology description"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Category *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.category}
+                    onChange={(e) =>
+                      setFormData({ ...formData, category: e.target.value })
+                    }
+                    className="input-field w-full"
+                    placeholder="e.g., General, Specialized, etc."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Price *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    value={formData.price}
+                    onChange={(e) =>
+                      setFormData({ ...formData, price: e.target.value })
+                    }
+                    className="input-field w-full"
+                    placeholder="0.00"
                   />
                 </div>
 

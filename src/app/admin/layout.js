@@ -21,6 +21,7 @@ import {
   Truck,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { getEntityImageUrl } from "@/utils/imageUtils";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -45,7 +46,7 @@ export default function AdminLayout({ children }) {
     { name: "Doctors", href: "/admin/doctors", icon: Stethoscope },
     { name: "Departments", href: "/admin/departments", icon: Building },
     { name: "Clinics", href: "/admin/clinics", icon: Building2 },
-    { name: "Pharmacies", href: "/admin/pharmacies", icon: Pill },
+    // { name: "Pharmacies", href: "/admin/pharmacies", icon: Pill },
     { name: "Pathology", href: "/admin/pathology", icon: TestTube },
     { name: "Ambulances", href: "/admin/ambulances", icon: Truck },
     { name: "Patients", href: "/admin/patients", icon: UserPlus },
@@ -193,10 +194,18 @@ export default function AdminLayout({ children }) {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="hidden sm:flex items-center space-x-3 px-3 py-2 bg-primary-100 dark:bg-primary-900 rounded-md select-none hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors"
               >
-                <span className="inline-flex items-center justify-center w-8 h-8 text-sm font-bold text-white bg-primary-600 rounded-full uppercase">
-                  {user?.firstName?.[0]}
-                  {user?.lastName?.[0]}
-                </span>
+                {user?.profileImageUrl ? (
+                  <img
+                    src={getEntityImageUrl(user, "profileImageUrl")}
+                    alt="Profile"
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="inline-flex items-center justify-center w-8 h-8 text-sm font-bold text-white bg-primary-600 rounded-full uppercase">
+                    {user?.firstName?.[0]}
+                    {user?.lastName?.[0]}
+                  </span>
+                )}
                 <span className="text-sm font-medium text-primary-800 dark:text-primary-200">
                   {user?.firstName}
                 </span>

@@ -3,15 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { MapPin, Clock, Phone, Star, Users, Building2 } from "lucide-react";
+import { MapPin, Phone, Star, Users, Building2 } from "lucide-react";
 import ReactStars from "react-rating-stars-component";
+import { getEntityImageUrl } from "@/utils/imageUtils";
 
 export default function ClinicCard({ clinic }) {
   const router = useRouter();
   const [isLiked, setIsLiked] = useState(false);
 
   const handleViewDetails = () => {
-    router.push(`/clinic/${clinic._id}`);
+    // Create URL-friendly clinic name and location
+    const clinicName = encodeURIComponent(
+      clinic.name.replace(/\s+/g, "-").toLowerCase()
+    );
+    const location = encodeURIComponent(
+      clinic.place || clinic.state || "unknown"
+    );
+    // Pass ID as query parameter for better data retrieval
+    router.push(`/clinic/${clinicName}/${location}?id=${clinic._id}`);
   };
 
   const formatAddress = (address) => {
@@ -21,22 +30,14 @@ export default function ClinicCard({ clinic }) {
       return address;
     }
 
-    const city = address.city || "N/A";
-    const state = address.state || "N/A";
-    return `${city}, ${state}`;
-  };
+    const parts = [];
+    if (address.address) parts.push(address.address);
+    if (address.place) parts.push(address.place);
+    if (address.city) parts.push(address.city);
+    if (address.state) parts.push(address.state);
+    if (address.zipCode) parts.push(address.zipCode);
 
-  const getOperatingHours = () => {
-    if (!clinic.operatingHours) return "Hours not specified";
-    const today = new Date()
-      .toLocaleDateString("en-US", {
-        weekday: "long",
-      })
-      .toLowerCase();
-    const todaysHours = clinic.operatingHours[today];
-    return todaysHours
-      ? `${todaysHours.open} - ${todaysHours.close}`
-      : "Closed today";
+    return parts.length > 0 ? parts.join(", ") : "Address not available";
   };
 
   return (
@@ -47,7 +48,21 @@ export default function ClinicCard({ clinic }) {
       onClick={handleViewDetails}
     >
       <div className="relative h-48 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-800 dark:to-green-900">
-        <div className="absolute inset-0 flex items-center justify-center">
+        {clinic.imageUrl ? (
+          <img
+            src={getEntityImageUrl(clinic, "imageUrl")}
+            alt={clinic.name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.style.display = "none";
+              e.target.nextSibling.style.display = "flex";
+            }}
+          />
+        ) : null}
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ display: clinic.imageUrl ? "none" : "flex" }}
+        >
           <Building2 className="w-16 h-16 text-green-600 dark:text-green-400" />
         </div>
 
@@ -100,36 +115,48 @@ export default function ClinicCard({ clinic }) {
           </span>
         </div>
 
-        {/* Services */}
-        {clinic.services && clinic.services.length > 0 && (
-          <div className="mb-4">
-            <div className="flex flex-wrap gap-1">
-              {clinic.services.slice(0, 3).map((service, index) => (
-                <span
-                  key={index}
-                  className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full"
-                >
-                  {service}
-                </span>
-              ))}
-              {clinic.services.length > 3 && (
-                <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">
-                  +{clinic.services.length - 3} more
-                </span>
-              )}
+        {/* Services & Doctor Count */}
+        <div className="mb-4 space-y-3">
+          {/* Services */}
+          {clinic.services && clinic.services.length > 0 && (
+            <div>
+              <div className="flex flex-wrap gap-1">
+                {clinic.services.slice(0, 3).map((service, index) => (
+                  <span
+                    key={index}
+                    className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full"
+                  >
+                    {service}
+                  </span>
+                ))}
+                {clinic.services.length > 3 && (
+                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">
+                    +{clinic.services.length - 3} more
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Location & Hours */}
-        <div className="space-y-2 mb-4 text-sm">
+          {/* Doctor Count */}
+          <div className="flex items-center text-gray-600 dark:text-gray-400">
+            <Users className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span className="text-sm">
+              {clinic.doctorCount || clinic.doctors?.length || 0} Doctor
+              {clinic.doctorCount !== 1 ||
+              (clinic.doctors && clinic.doctors.length !== 1)
+                ? "s"
+                : ""}{" "}
+              Available
+            </span>
+          </div>
+        </div>
+
+        {/* Location */}
+        <div className="mb-4 text-sm">
           <div className="flex items-center text-gray-600 dark:text-gray-400">
             <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
             <span className="truncate">{formatAddress(clinic.address)}</span>
-          </div>
-          <div className="flex items-center text-gray-600 dark:text-gray-400">
-            <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span>{getOperatingHours()}</span>
           </div>
         </div>
 
@@ -149,7 +176,7 @@ export default function ClinicCard({ clinic }) {
               e.stopPropagation();
               // Handle contact
             }}
-            className="flex-1 btn-primary text-sm py-2"
+            className="flex-1 btn-primary text-sm py-2 flex items-center justify-center"
           >
             <Phone className="w-4 h-4 mr-1" />
             Contact

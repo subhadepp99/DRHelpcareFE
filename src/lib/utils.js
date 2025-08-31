@@ -106,3 +106,28 @@ export function removeEmptyFields(obj) {
     Object.entries(obj).filter(([_, v]) => v != null && v !== "")
   );
 }
+
+/**
+ * Constructs a proper image URL for server uploads
+ * @param {string} imagePath - The image path from the server (e.g., "/uploads/doctors/image.jpg")
+ * @returns {string} - The full image URL
+ */
+export const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+
+  // If it's already a full URL, return as is
+  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+    return imagePath;
+  }
+
+  // Get the API URL from environment or default to localhost:5000
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+  // Remove leading slash if present and construct full URL
+  const cleanPath = imagePath.startsWith("/") ? imagePath.slice(1) : imagePath;
+  const fullUrl = `${apiUrl}/${cleanPath}`;
+
+  console.log("Image URL construction:", { imagePath, apiUrl, fullUrl });
+
+  return fullUrl;
+};

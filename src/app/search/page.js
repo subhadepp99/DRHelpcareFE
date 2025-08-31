@@ -10,6 +10,10 @@ import {
   Grid3X3,
   List,
   Compass,
+  TestTube,
+  Home,
+  Building2,
+  Clock,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import Header from "@/components/layout/Header";
@@ -89,7 +93,13 @@ export default function SearchPage() {
         ...filters,
       });
       if (selectedLocation) queryParams.set("city", selectedLocation);
+      console.log("Search query params:", queryParams.toString());
+      console.log("Search type:", searchType);
+      console.log("Search query:", searchQuery);
       const response = await get(`/search?${queryParams.toString()}`);
+      console.log("Search response:", response.data);
+      console.log("Search results:", response.data?.results);
+      console.log("Ambulance results:", response.data?.results?.ambulances);
       setResults(response.data?.results || {});
     } catch (error) {
       console.error("Search error:", error);
@@ -98,12 +108,20 @@ export default function SearchPage() {
   }, [searchQuery, searchType, sortBy, filters, selectedLocation, get]);
 
   useEffect(() => {
+    // Always perform search when a specific type is selected, or when there's a search query
     if (searchQuery.trim() || searchType !== "all") {
       performSearch();
     } else {
       setResults({});
     }
   }, [performSearch]);
+
+  // Trigger search when searchType changes
+  useEffect(() => {
+    if (searchType !== "all") {
+      performSearch();
+    }
+  }, [searchType]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -128,8 +146,9 @@ export default function SearchPage() {
       return (
         (results.doctors?.length || 0) +
         (results.clinics?.length || 0) +
-        (results.pharmacies?.length || 0) +
-        (results.ambulances?.length || 0)
+        // (results.pharmacies?.length || 0) +
+        (results.ambulances?.length || 0) +
+        (results.pathologies?.length || 0)
       );
     }
     return results[searchType]?.length || 0;
@@ -139,8 +158,9 @@ export default function SearchPage() {
     { value: "all", label: "All", icon: "🔍" },
     { value: "doctors", label: "Doctors", icon: "👨‍⚕️" },
     { value: "clinics", label: "Clinics", icon: "🏥" },
-    { value: "pharmacies", label: "Pharmacies", icon: "💊" },
+    // { value: "pharmacies", label: "Pharmacies", icon: "💊" },
     { value: "ambulance", label: "Ambulance", icon: "🚑" },
+    // { value: "pathology", label: "Pathology", icon: "⚕️" },
   ];
 
   const sortOptions = [
@@ -180,7 +200,7 @@ export default function SearchPage() {
           </li>
         </ol>
       </nav>
-      <main className="flex-grow pt-20">
+      <main className="flex-grow pt-4">
         <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-16 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             {/* Search Form */}
@@ -192,7 +212,7 @@ export default function SearchPage() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search for doctors, clinics, pharmacies..."
+                    placeholder="Search for doctors, clinics, ambulances..."
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
                     aria-label="Search input"
                     minLength={3}
@@ -369,14 +389,72 @@ export default function SearchPage() {
                     }`}
                   >
                     {results.clinics.map((clinic) => (
-                      <ClinicCard key={clinic._id} clinic={clinic} />
+                      <div
+                        key={clinic._id}
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                              <Building2 className="w-6 h-6 text-green-600" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                {clinic.name}
+                              </h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {clinic.type || "General Clinic"}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm font-medium">
+                            {clinic.place || clinic.state || "N/A"}
+                          </span>
+                        </div>
+
+                        <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm line-clamp-2">
+                          {clinic.description || "No description available"}
+                        </p>
+
+                        <div className="flex items-center justify-between text-sm mb-4">
+                          <span className="text-gray-500 dark:text-gray-400">
+                            {clinic.place || "N/A"}, {clinic.state || "N/A"}
+                          </span>
+                          {clinic.is24Hours && (
+                            <span className="text-blue-600 dark:text-blue-400 flex items-center">
+                              <Clock className="w-4 h-4 mr-1" />
+                              24/7
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <button
+                            onClick={() => {
+                              const clinicName = encodeURIComponent(
+                                clinic.name.replace(/\s+/g, "-").toLowerCase()
+                              );
+                              const location = encodeURIComponent(
+                                clinic.place || clinic.state || "unknown"
+                              );
+                              // Pass ID as query parameter for better data retrieval
+                              router.push(
+                                `/clinic/${clinicName}/${location}?id=${clinic._id}`
+                              );
+                            }}
+                            className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </section>
               )}
 
               {/* Pharmacies */}
-              {results.pharmacies?.length > 0 && (
+              {/* {results.pharmacies?.length > 0 && (
                 <section>
                   <h2 className="text-xl font-semibold mb-4">
                     Pharmacies ({results.pharmacies.length})
@@ -393,10 +471,10 @@ export default function SearchPage() {
                     ))}
                   </div>
                 </section>
-              )}
+              )} */}
 
-              {/* Ambulances */}
-              {results.ambulances?.length > 0 && (
+              {/* Ambulances - Only show for "all" search type */}
+              {searchType === "all" && results.ambulances?.length > 0 && (
                 <section>
                   <h2 className="text-xl font-semibold mb-4">
                     Ambulances ({results.ambulances.length})
@@ -474,6 +552,87 @@ export default function SearchPage() {
                   </div>
                 </section>
               )}
+
+              {/* Pathologies */}
+              {results.pathologies?.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">
+                    Pathology Tests ({results.pathologies.length})
+                  </h2>
+                  <div
+                    className={`grid gap-6 ${
+                      viewMode === "grid"
+                        ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                        : "grid-cols-1"
+                    }`}
+                  >
+                    {results.pathologies.map((pathology) => (
+                      <div
+                        key={pathology._id}
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                              <TestTube className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                {pathology.name}
+                              </h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {pathology.category}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full text-sm font-medium">
+                            ₹{pathology.discountedPrice || pathology.price}
+                          </span>
+                        </div>
+
+                        <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm line-clamp-2">
+                          {pathology.description}
+                        </p>
+
+                        <div className="flex items-center justify-between text-sm mb-4">
+                          <span className="text-gray-500 dark:text-gray-400">
+                            {pathology.place || "N/A"},{" "}
+                            {pathology.state || "N/A"}
+                          </span>
+                          {pathology.homeCollection && (
+                            <span className="text-blue-600 dark:text-blue-400 flex items-center">
+                              <Home className="w-4 h-4 mr-1" />
+                              Home Collection
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <button
+                            onClick={() => {
+                              const pathologyName = encodeURIComponent(
+                                pathology.name
+                                  .replace(/\s+/g, "-")
+                                  .toLowerCase()
+                              );
+                              const location = encodeURIComponent(
+                                pathology.place || pathology.state || "unknown"
+                              );
+                              // Pass ID as query parameter for better data retrieval
+                              router.push(
+                                `/pathology/${pathologyName}/${location}?id=${pathology._id}`
+                              );
+                            }}
+                            className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           )}
 
@@ -521,7 +680,7 @@ export default function SearchPage() {
               )}
 
               {/* Pharmacies */}
-              {searchType === "pharmacies" &&
+              {/* {searchType === "pharmacies" &&
                 results.pharmacies?.length > 0 && (
                   <section>
                     <h2 className="text-xl font-semibold mb-4">
@@ -539,9 +698,9 @@ export default function SearchPage() {
                       ))}
                     </div>
                   </section>
-                )}
+                )} */}
 
-              {/* Ambulances */}
+              {/* Ambulances - Specific search type */}
               {searchType === "ambulance" && results.ambulances?.length > 0 && (
                 <section>
                   <h2 className="text-xl font-semibold mb-4">
@@ -620,6 +779,89 @@ export default function SearchPage() {
                   </div>
                 </section>
               )}
+
+              {/* Pathologies */}
+              {searchType === "pathology" &&
+                results.pathologies?.length > 0 && (
+                  <section>
+                    <h2 className="text-xl font-semibold mb-4">
+                      Pathologies ({results.pathologies.length})
+                    </h2>
+                    <div
+                      className={`grid gap-6 ${
+                        viewMode === "grid"
+                          ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                          : "grid-cols-1"
+                      }`}
+                    >
+                      {results.pathologies.map((pathology) => (
+                        <div
+                          key={pathology._id}
+                          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                                <TestTube className="w-6 h-6 text-red-600" />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                  {pathology.name}
+                                </h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {pathology.category}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full text-sm font-medium">
+                              ₹{pathology.discountedPrice || pathology.price}
+                            </span>
+                          </div>
+
+                          <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm line-clamp-2">
+                            {pathology.description}
+                          </p>
+
+                          <div className="flex items-center justify-between text-sm mb-4">
+                            <span className="text-gray-500 dark:text-gray-400">
+                              {pathology.address?.city || "N/A"},{" "}
+                              {pathology.address?.state || "N/A"}
+                            </span>
+                            {pathology.homeCollection && (
+                              <span className="text-blue-600 dark:text-blue-400 flex items-center">
+                                <Home className="w-4 h-4 mr-1" />
+                                Home Collection
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <button
+                              onClick={() => {
+                                const pathologyName = encodeURIComponent(
+                                  pathology.name
+                                    .replace(/\s+/g, "-")
+                                    .toLowerCase()
+                                );
+                                const location = encodeURIComponent(
+                                  pathology.address?.city ||
+                                    pathology.address?.state ||
+                                    "unknown"
+                                );
+                                router.push(
+                                  `/pathology/${pathologyName}/${location}`
+                                );
+                              }}
+                              className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
             </>
           )}
 

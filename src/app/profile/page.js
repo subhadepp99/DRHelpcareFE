@@ -9,31 +9,32 @@ import {
   Camera,
   Save,
   Edit,
-  Calendar,
-  Heart,
   Settings,
   Upload,
   X,
+  Calendar,
+  Clock,
+  MapPin,
+  Stethoscope,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useAuthStore } from "@/store/authStore";
 import { useApi } from "@/hooks/useApi";
 import Header from "@/components/layout/Header";
-
 import Footer from "@/components/layout/Footer";
-import BookingModal from "@/components/modals/BookingModal";
 import toast from "react-hot-toast";
+import { getEntityImageUrl } from "@/utils/imageUtils";
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuthStore();
-  const { get, put } = useApi();
+  const { put, get } = useApi();
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
-  const [bookings, setBookings] = useState([]);
-  const [selectedBooking, setSelectedBooking] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
 
   const {
     register,
@@ -52,6 +53,10 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
+      console.log("User loaded in profile page:", user);
+      console.log("User ID (id):", user.id);
+      console.log("User ID (_id):", user._id);
+      console.log("User object keys:", Object.keys(user));
       reset({
         firstName: user.firstName,
         lastName: user.lastName,
@@ -60,40 +65,36 @@ export default function ProfilePage() {
         username: user.username,
       });
     }
-    fetchBookings();
   }, [user, reset]);
 
-  const fetchBookings = async () => {
+  // Fetch user bookings when bookings tab is selected
+  useEffect(() => {
+    if (activeTab === "bookings" && user) {
+      fetchUserBookings();
+    }
+  }, [activeTab, user]);
+
+  const fetchUserBookings = async () => {
     try {
-      const response = await get("/bookings/my-bookings");
-      const realBookings = response.data?.bookings || [];
+      setBookingsLoading(true);
+      const userId = user._id || user.id;
+      const response = await get(`/bookings/user/${userId}`);
 
-      // Transform API data to match the expected format
-      const transformedBookings = realBookings.map((booking) => ({
-        id: booking._id,
-        doctorName: `Dr. ${booking.doctor?.name || "Unknown"}`,
-        specialization: booking.doctor?.department || "General",
-        date: new Date(booking.appointmentDate).toLocaleDateString(),
-        time: booking.appointmentTime || "Time not specified",
-        status: booking.status || "pending",
-        fee: booking.doctor?.consultationFee || "Not specified",
-        symptoms: booking.symptoms || "Not specified",
-        diagnosis: booking.diagnosis || "Pending consultation",
-        prescription:
-          booking.prescription || "To be provided after consultation",
-        // Add original booking data for modal
-        originalData: booking,
-      }));
-
-      setBookings(transformedBookings);
+      if (response.data?.success) {
+        setBookings(response.data.bookings || []);
+      } else {
+        console.error("Failed to fetch bookings:", response.data?.message);
+        toast.error("Failed to fetch bookings");
+      }
     } catch (error) {
       console.error("Error fetching bookings:", error);
-      // Fallback to empty array if API fails
-      setBookings([]);
+      toast.error("Failed to fetch bookings");
+    } finally {
+      setBookingsLoading(false);
     }
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
       setProfileImage(file);
@@ -102,6 +103,73 @@ export default function ProfilePage() {
         setImagePreview(reader.result);
       };
       reader.readAsDataURL(file);
+
+      // Automatically update profile picture when image is selected
+      try {
+        setLoading(true);
+
+        // Check if user is loaded
+        if (!user) {
+          toast.error("User not loaded. Please refresh the page.");
+          return;
+        }
+
+        // Get the user ID (try _id first, then id)
+        const userId = user._id || user.id;
+        if (!userId) {
+          console.error("User ID not found:", user);
+          toast.error("User ID not found. Please log in again.");
+          return;
+        }
+
+        console.log("🔄 Auto-updating profile picture for user ID:", userId);
+        console.log("📁 File details:", {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        });
+
+        const formData = new FormData();
+        formData.append("profileImage", file);
+
+        const response = await put(`/users/${userId}`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        console.log("✅ Profile picture update response:", response);
+        console.log("📊 Response data:", response.data);
+        console.log(
+          "🖼️ New profile image URL:",
+          response.data?.data?.profileImageUrl
+        );
+
+        // Update user with new profile image URL
+        const updatedUserData = {
+          ...user,
+          profileImageUrl: response.data?.data?.profileImageUrl,
+        };
+
+        console.log("👤 Updated user data:", updatedUserData);
+
+        // Update the user state immediately
+        updateUser(updatedUserData);
+
+        // Clear preview states
+        setImagePreview(null);
+        setProfileImage(null);
+
+        toast.success("Profile picture updated successfully!");
+      } catch (error) {
+        console.error("❌ Profile picture update error:", error);
+        toast.error("Failed to update profile picture");
+        // Reset the image selection on error
+        setProfileImage(null);
+        setImagePreview(null);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -118,18 +186,50 @@ export default function ProfilePage() {
         formData.append("profileImage", profileImage);
       }
 
-      const response = await put(`/users/${user.id}`, formData, {
+      // Check if user is loaded
+      if (!user) {
+        toast.error("User not loaded. Please refresh the page.");
+        return;
+      }
+
+      // Get the user ID (try _id first, then id)
+      const userId = user._id || user.id;
+      if (!userId) {
+        console.error("User ID not found:", user);
+        toast.error("User ID not found. Please log in again.");
+        return;
+      }
+
+      console.log("Updating profile for user ID:", userId);
+
+      const apiUrl = `/users/${userId}`;
+      console.log("API URL:", apiUrl);
+
+      const response = await put(apiUrl, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
-      updateUser(data);
+      console.log("Profile update response:", response);
+      console.log("Response data:", response.data);
+
+      // Update user with both form data and new profile image URL if available
+      const updatedUserData = {
+        ...data,
+        profileImageUrl:
+          response.data?.data?.profileImageUrl ||
+          getEntityImageUrl(user, "profileImageUrl"),
+      };
+
+      console.log("Updated user data:", updatedUserData);
+      updateUser(updatedUserData);
       toast.success("Profile updated successfully!");
       setEditMode(false);
       setProfileImage(null);
       setImagePreview(null);
     } catch (error) {
+      console.error("Profile update error:", error);
       toast.error("Failed to update profile");
     } finally {
       setLoading(false);
@@ -139,22 +239,8 @@ export default function ProfilePage() {
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "bookings", label: "My Bookings", icon: Calendar },
-    { id: "favorites", label: "Favorites", icon: Heart },
     { id: "settings", label: "Settings", icon: Settings },
   ];
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "confirmed":
-        return "badge-primary";
-      case "completed":
-        return "badge-success";
-      case "cancelled":
-        return "badge-error";
-      default:
-        return "badge-secondary";
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -177,31 +263,56 @@ export default function ProfilePage() {
                             alt="Profile Preview"
                             className="w-full h-full object-cover"
                           />
-                        ) : user?.profileImage ? (
+                        ) : getEntityImageUrl(user, "profileImageUrl") ? (
                           <img
-                            src={user.profileImage}
+                            src={getEntityImageUrl(user, "profileImageUrl")}
                             alt="Profile"
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
+                              console.log(
+                                "Profile image failed to load:",
+                                e.target.src
+                              );
+                              e.target.style.display = "none";
+                              const fallback =
+                                e.target.parentElement.querySelector(
+                                  ".fallback-initials"
+                                );
+                              if (fallback) fallback.style.display = "flex";
+                            }}
+                            onLoad={(e) => {
+                              console.log(
+                                "Profile image loaded:",
+                                e.target.src
+                              );
                             }}
                           />
                         ) : (
-                          <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                          <span className="fallback-initials text-2xl font-bold text-primary-600 dark:text-primary-400 flex items-center justify-center w-full h-full">
                             {user?.firstName?.charAt(0)}
                             {user?.lastName?.charAt(0)}
                           </span>
                         )}
                       </div>
 
-                      <label className="absolute bottom-0 right-0 p-1 bg-primary-600 text-white rounded-full hover:bg-primary-700 cursor-pointer transition-colors">
-                        <Camera className="w-4 h-4" />
+                      <label
+                        className={`absolute bottom-0 right-0 p-1 rounded-full transition-colors ${
+                          loading
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-primary-600 hover:bg-primary-700 cursor-pointer"
+                        }`}
+                      >
+                        {loading ? (
+                          <div className="spinner w-4 h-4 border-white"></div>
+                        ) : (
+                          <Camera className="w-4 h-4 text-white" />
+                        )}
                         <input
                           type="file"
                           accept="image/*"
                           onChange={handleImageChange}
                           className="hidden"
+                          disabled={loading}
                         />
                       </label>
                     </div>
@@ -237,7 +348,7 @@ export default function ProfilePage() {
 
             {/* Main Content */}
             <div className="lg:col-span-3">
-              {/* Profile Tab with Better Padding */}
+              {/* Profile Tab */}
               {activeTab === "profile" && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -251,7 +362,7 @@ export default function ProfilePage() {
                       </h2>
                       <button
                         onClick={() => setEditMode(!editMode)}
-                        className="btn-secondary"
+                        className="btn-secondary flex items-center justify-center"
                       >
                         <Edit className="w-4 h-4 mr-2" />
                         {editMode ? "Cancel" : "Edit"}
@@ -352,7 +463,7 @@ export default function ProfilePage() {
                           <button
                             type="submit"
                             disabled={loading}
-                            className="btn-primary"
+                            className="btn-primary flex items-center justify-center"
                           >
                             {loading ? (
                               <div className="spinner mr-2"></div>
@@ -422,7 +533,7 @@ export default function ProfilePage() {
                 </motion.div>
               )}
 
-              {/* Enhanced Bookings Tab with Modal */}
+              {/* My Bookings Tab */}
               {activeTab === "bookings" && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -431,57 +542,97 @@ export default function ProfilePage() {
                 >
                   <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      My Appointments
+                      My Bookings
                     </h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      View all your appointment bookings
+                    </p>
                   </div>
 
                   <div className="p-6">
-                    {bookings.length === 0 ? (
+                    {bookingsLoading ? (
+                      <div className="flex justify-center items-center py-8">
+                        <div className="spinner w-8 h-8"></div>
+                      </div>
+                    ) : bookings.length === 0 ? (
                       <div className="text-center py-8">
                         <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                          No appointments yet
+                          No Bookings Found
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400">
-                          Book your first appointment to get started
+                          You haven't made any appointments yet.
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-4">
                         {bookings.map((booking) => (
                           <div
-                            key={booking.id}
-                            onClick={() => setSelectedBooking(booking)}
-                            className="flex items-center justify-between p-6 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-300 dark:hover:border-primary-600 cursor-pointer transition-colors"
+                            key={booking._id}
+                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                           >
-                            <div className="flex items-center space-x-4">
-                              <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                                <User className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                              </div>
-                              <div>
-                                <h4 className="font-medium text-gray-900 dark:text-white">
-                                  {booking.doctorName}
-                                </h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  {booking.specialization}
-                                </p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  {booking.date} at {booking.time}
-                                </p>
-                              </div>
-                            </div>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-3 mb-2">
+                                  <Stethoscope className="w-5 h-5 text-blue-600" />
+                                  <h4 className="font-medium text-gray-900 dark:text-white">
+                                    {booking.doctorName || "Dr. Unknown"}
+                                  </h4>
+                                  <span
+                                    className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                      booking.status === "confirmed"
+                                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                        : booking.status === "pending"
+                                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                        : booking.status === "completed"
+                                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                        : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                                    }`}
+                                  >
+                                    {booking.status?.charAt(0).toUpperCase() +
+                                      booking.status?.slice(1) || "Unknown"}
+                                  </span>
+                                </div>
 
-                            <div className="text-right">
-                              <span
-                                className={`badge ${getStatusColor(
-                                  booking.status
-                                )} mb-2`}
-                              >
-                                {booking.status}
-                              </span>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                ₹{booking.fee}
-                              </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                  <div className="flex items-center space-x-2">
+                                    <Calendar className="w-4 h-4" />
+                                    <span>
+                                      {booking.date || "Date not specified"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Clock className="w-4 h-4" />
+                                    <span>
+                                      {booking.time || "Time not specified"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <MapPin className="w-4 h-4" />
+                                    <span>
+                                      {booking.specialization ||
+                                        "Specialization not specified"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-medium">Fee:</span>
+                                    <span>
+                                      ₹{booking.fee || "Not specified"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {booking.symptoms && (
+                                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                    <p className="text-sm">
+                                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                                        Symptoms:
+                                      </span>{" "}
+                                      {booking.symptoms}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -490,123 +641,174 @@ export default function ProfilePage() {
                   </div>
                 </motion.div>
               )}
+
+              {/* Settings Tab */}
+              {activeTab === "settings" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="card"
+                >
+                  <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      Account Settings
+                    </h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Manage your account preferences and settings
+                    </p>
+                  </div>
+
+                  <div className="p-6 space-y-6">
+                    {/* Account Actions */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Account Actions
+                      </h3>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Deactivate Account */}
+                        <div className="p-4 border border-yellow-200 dark:border-yellow-700 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+                          <h4 className="font-medium text-yellow-800 dark:text-yellow-200 mb-2">
+                            Deactivate Account
+                          </h4>
+                          <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
+                            Temporarily disable your account. You can reactivate
+                            it later by logging in and confirming via OTP.
+                          </p>
+                          <button
+                            onClick={() => {
+                              if (
+                                confirm(
+                                  "Are you sure you want to deactivate your account? You can reactivate it later by logging in."
+                                )
+                              ) {
+                                // Call deactivate API
+                                console.log("Deactivating account...");
+                              }
+                            }}
+                            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                          >
+                            Deactivate Account
+                          </button>
+                        </div>
+
+                        {/* Delete Account */}
+                        <div className="p-4 border border-red-200 dark:border-red-700 rounded-lg bg-red-50 dark:bg-red-900/20">
+                          <h4 className="font-medium text-red-800 dark:text-red-200 mb-2">
+                            Delete Account
+                          </h4>
+                          <p className="text-sm text-red-700 dark:text-red-300 mb-3">
+                            Permanently delete your account. This action cannot
+                            be undone. Your data will be archived.
+                          </p>
+                          <button
+                            onClick={() => {
+                              if (
+                                confirm(
+                                  "Are you absolutely sure you want to delete your account? This action cannot be undone."
+                                )
+                              ) {
+                                if (
+                                  confirm(
+                                    "Final confirmation: This will permanently delete your account and archive your data. Continue?"
+                                  )
+                                ) {
+                                  // Call delete API
+                                  console.log("Deleting account...");
+                                }
+                              }
+                            }}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                          >
+                            Delete Account
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Privacy Settings */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Privacy Settings
+                      </h3>
+
+                      <div className="space-y-3">
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            defaultChecked={true}
+                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                          <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                            Allow notifications via email
+                          </span>
+                        </label>
+
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            defaultChecked={true}
+                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                          <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                            Allow notifications via SMS
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Theme Settings */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Theme Settings
+                      </h3>
+
+                      <div className="flex space-x-4">
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="theme"
+                            value="light"
+                            defaultChecked={true}
+                            className="text-primary-600 focus:ring-primary-500"
+                          />
+                          <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                            Light
+                          </span>
+                        </label>
+
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="theme"
+                            value="dark"
+                            className="text-primary-600 focus:ring-primary-500"
+                          />
+                          <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                            Dark
+                          </span>
+                        </label>
+
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="theme"
+                            value="auto"
+                            className="text-primary-600 focus:ring-primary-500"
+                          />
+                          <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                            Auto
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Booking Details Modal */}
-      {selectedBooking && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-              onClick={() => setSelectedBooking(null)}
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl transition-all w-full max-w-lg"
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Appointment Details
-                  </h3>
-                  <button
-                    onClick={() => setSelectedBooking(null)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white">
-                      {selectedBooking.doctorName}
-                    </h4>
-                    <p className="text-sm text-primary-600 dark:text-primary-400">
-                      {selectedBooking.specialization}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400">Date</p>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {selectedBooking.date}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400">Time</p>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {selectedBooking.time}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
-                      Status
-                    </p>
-                    <span
-                      className={`badge ${getStatusColor(
-                        selectedBooking.status
-                      )}`}
-                    >
-                      {selectedBooking.status}
-                    </span>
-                  </div>
-
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
-                      Consultation Fee
-                    </p>
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      ₹{selectedBooking.fee}
-                    </p>
-                  </div>
-
-                  {selectedBooking.symptoms && (
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">
-                        Symptoms
-                      </p>
-                      <p className="text-gray-900 dark:text-white">
-                        {selectedBooking.symptoms}
-                      </p>
-                    </div>
-                  )}
-
-                  {selectedBooking.diagnosis && (
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">
-                        Diagnosis
-                      </p>
-                      <p className="text-gray-900 dark:text-white">
-                        {selectedBooking.diagnosis}
-                      </p>
-                    </div>
-                  )}
-
-                  {selectedBooking.prescription && (
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">
-                        Prescription
-                      </p>
-                      <p className="text-gray-900 dark:text-white">
-                        {selectedBooking.prescription}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      )}
 
       {/* Add Footer */}
       <Footer />

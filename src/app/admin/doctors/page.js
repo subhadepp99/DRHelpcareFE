@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useApi } from "@/hooks/useApi";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, Eye } from "lucide-react";
 import Modal from "@/components/common/Modal";
+import DoctorScheduleModal from "@/components/modals/DoctorScheduleModal";
+import DoctorViewModal from "@/components/modals/DoctorViewModal";
 import toast from "react-hot-toast"; // Import toast
 
 const initialForm = {
@@ -15,20 +17,27 @@ const initialForm = {
   experience: "",
   licenseNumber: "",
   consultationFee: "",
+  doctorFees: "",
+  bio: "",
   state: "",
   city: "",
   imageUrl: "",
+  selectedClinics: [],
 };
 
 export default function AdminDoctorsPage() {
   const { get, post, put, del } = useApi();
   const [doctors, setDoctors] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [clinics, setClinics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false); // New state for form submission
   const [isDeleting, setIsDeleting] = useState(false); // New state for deletion
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
 
   // You can expand the form as required for your model
   const [form, setForm] = useState({
@@ -40,16 +49,21 @@ export default function AdminDoctorsPage() {
     experience: "",
     licenseNumber: "",
     consultationFee: "",
+    doctorFees: "",
+    bio: "",
     state: "",
     city: "",
     imageUrl: "", // Ensure imageUrl is always present
+    selectedClinics: [],
   });
 
   // Fetch doctors from the API using the Node backend endpoint
   const fetchDoctors = async () => {
     setLoading(true);
     try {
-      const res = await get("/doctors?populate=department"); // Add populate to get department names
+      const res = await get(
+        "/doctors?populate=department,clinicDetails.clinic"
+      ); // Add populate to get department names and clinic details
       setDoctors(res.data.doctors || res.data.data?.doctors || []);
     } catch (err) {
       console.error("Failed to fetch doctors:", err);
@@ -63,7 +77,7 @@ export default function AdminDoctorsPage() {
   // Fetch departments from the API
   const fetchDepartments = async () => {
     try {
-      const res = await get("/department");
+      const res = await get("/departments");
       const depts = res.data?.data?.departments || res.data?.departments || [];
       console.log("Fetched departments:", depts); // Debug departments
       setDepartments(depts);
@@ -74,9 +88,24 @@ export default function AdminDoctorsPage() {
     }
   };
 
+  // Fetch clinics from the API
+  const fetchClinics = async () => {
+    try {
+      const res = await get("/clinics");
+      const clinicList = res.data?.data?.clinics || res.data?.clinics || [];
+      console.log("Fetched clinics:", clinicList); // Debug clinics
+      setClinics(clinicList);
+    } catch (err) {
+      console.error("Failed to fetch clinics:", err);
+      toast.error("Failed to fetch clinics.");
+      setClinics([]);
+    }
+  };
+
   useEffect(() => {
     fetchDoctors();
     fetchDepartments();
+    fetchClinics();
   }, []);
 
   const openAddModal = () => {
@@ -90,9 +119,12 @@ export default function AdminDoctorsPage() {
       experience: "",
       licenseNumber: "",
       consultationFee: "",
+      doctorFees: "",
+      bio: "",
       state: "",
       city: "",
       imageUrl: "", // Ensure imageUrl is reset
+      selectedClinics: [],
     });
     setModalOpen(true);
   };
@@ -110,7 +142,13 @@ export default function AdminDoctorsPage() {
       experience: doc.experience || "",
       licenseNumber: doc.licenseNumber || "",
       consultationFee: doc.consultationFee || "",
+      doctorFees: doc.doctorFees || doc.consultationFee || "",
+      bio: doc.bio || "",
       imageUrl: doc.imageUrl || "",
+      selectedClinics:
+        doc.clinicDetails?.map((cd) => cd.clinic?._id || cd.clinic) ||
+        doc.clinics ||
+        [],
     });
     setModalOpen(true);
   };
@@ -153,6 +191,35 @@ export default function AdminDoctorsPage() {
     setForm({ ...form, [name]: value });
   };
 
+  const handleClinicChange = (clinicId) => {
+    setForm((prev) => ({
+      ...prev,
+      selectedClinics: prev.selectedClinics.includes(clinicId)
+        ? prev.selectedClinics.filter((id) => id !== clinicId)
+        : [...prev.selectedClinics, clinicId],
+    }));
+  };
+
+  const openScheduleModal = (doctor) => {
+    setSelectedDoctor(doctor);
+    setScheduleModalOpen(true);
+  };
+
+  const openViewModal = (doctor) => {
+    setSelectedDoctor(doctor);
+    setViewModalOpen(true);
+  };
+
+  const handleScheduleUpdate = (updatedSchedule) => {
+    setDoctors((prev) =>
+      prev.map((doc) =>
+        doc._id === selectedDoctor._id
+          ? { ...doc, bookingSchedule: updatedSchedule }
+          : doc
+      )
+    );
+  };
+
   async function handleSubmit(e) {
     e.preventDefault();
     setIsSubmitting(true); // Set submitting state
@@ -164,8 +231,25 @@ export default function AdminDoctorsPage() {
       ...form,
       experience: Number(form.experience),
       consultationFee: Number(form.consultationFee),
+      doctorFees: Number(form.doctorFees) || Number(form.consultationFee),
       imageUrl: form.imageUrl || "", // Always include imageUrl
     };
+
+    // Convert selected clinics to clinicDetails structure
+    if (form.selectedClinics && form.selectedClinics.length > 0) {
+      payload.clinicDetails = form.selectedClinics.map((clinicId, index) => {
+        const clinic = clinics.find((c) => c._id === clinicId);
+        return {
+          clinic: clinicId,
+          clinicName: clinic?.name || "",
+          clinicAddress: clinic?.address || "",
+          isPrimary: index === 0, // First clinic is primary
+          consultationFee: Number(form.consultationFee),
+          availableDays: [],
+          availableSlots: [],
+        };
+      });
+    }
 
     // Remove empty licenseNumber to avoid validation issues
     if (!payload.licenseNumber || payload.licenseNumber.trim() === "") {
@@ -257,6 +341,7 @@ export default function AdminDoctorsPage() {
               <th className="border p-2">Email</th>
               <th className="border p-2">Department</th>
               <th className="border p-2">Phone</th>
+              <th className="border p-2">Clinics</th>
               <th className="border p-2">Actions</th>
             </tr>
           </thead>
@@ -279,16 +364,78 @@ export default function AdminDoctorsPage() {
                     </div>
                   )}
                 </td>
-                <td className="border p-2">{doc.name}</td>
+                <td className="border p-2">
+                  <button
+                    onClick={() => openViewModal(doc)}
+                    className="text-left hover:text-primary-600 hover:underline cursor-pointer font-medium"
+                  >
+                    {doc.name}
+                  </button>
+                </td>
                 <td className="border p-2">{doc.email}</td>
                 <td className="border p-2">
                   {doc.department?.name || doc.department || "Unknown"}
                 </td>
                 <td className="border p-2">{doc.phone}</td>
+                <td className="border p-2">
+                  {doc.clinicDetails?.length > 0 ? (
+                    <div className="text-xs">
+                      {doc.clinicDetails.slice(0, 2).map((clinic, index) => (
+                        <div key={index} className="mb-1">
+                          {clinic.clinicName ||
+                            clinic.clinic?.name ||
+                            "Unknown Clinic"}
+                          {clinic.isPrimary && (
+                            <span className="text-blue-600 ml-1">
+                              (Primary)
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                      {doc.clinicDetails.length > 2 && (
+                        <span className="text-gray-500">
+                          +{doc.clinicDetails.length - 2} more
+                        </span>
+                      )}
+                    </div>
+                  ) : doc.clinics?.length > 0 ? (
+                    <div className="text-xs">
+                      {doc.clinics.slice(0, 2).map((clinic, index) => (
+                        <div key={index} className="mb-1">
+                          {typeof clinic === "object"
+                            ? clinic.name
+                            : "Clinic ID: " + clinic}
+                        </div>
+                      ))}
+                      {doc.clinics.length > 2 && (
+                        <span className="text-gray-500">
+                          +{doc.clinics.length - 2} more
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400">No clinics</span>
+                  )}
+                </td>
                 <td className="border p-2 space-x-2">
+                  <button
+                    onClick={() => openViewModal(doc)}
+                    className="p-1 hover:text-blue-600"
+                    title="View Details"
+                  >
+                    <Eye className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => openScheduleModal(doc)}
+                    className="p-1 hover:text-green-600"
+                    title="Manage Schedule"
+                  >
+                    <Calendar className="w-5 h-5" />
+                  </button>
                   <button
                     onClick={() => openEditModal(doc)}
                     className="p-1 hover:text-blue-600"
+                    title="Edit Doctor"
                   >
                     <Edit className="w-5 h-5" />
                   </button>
@@ -296,6 +443,7 @@ export default function AdminDoctorsPage() {
                     onClick={() => handleDelete(doc._id)}
                     className="p-1 hover:text-red-600"
                     disabled={isDeleting} // Disable delete button while deleting
+                    title="Delete Doctor"
                   >
                     {isDeleting ? (
                       "Deleting..."
@@ -493,6 +641,62 @@ export default function AdminDoctorsPage() {
                 onChange={handleChange}
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Doctor Fees (Primary)
+              </label>
+              <input
+                name="doctorFees"
+                type="number"
+                placeholder="Doctor Fees"
+                className="input-field"
+                value={form.doctorFees}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bio
+              </label>
+              <textarea
+                name="bio"
+                placeholder="Doctor's biography and experience"
+                className="input-field"
+                rows="3"
+                value={form.bio}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Select Clinics
+              </label>
+              <select
+                multiple
+                name="selectedClinics"
+                className="input-field min-h-32"
+                value={form.selectedClinics}
+                onChange={(e) => {
+                  const selectedOptions = Array.from(
+                    e.target.selectedOptions,
+                    (option) => option.value
+                  );
+                  setForm((prev) => ({
+                    ...prev,
+                    selectedClinics: selectedOptions,
+                  }));
+                }}
+              >
+                {clinics.map((clinic) => (
+                  <option key={clinic._id} value={clinic._id}>
+                    {clinic.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Hold Ctrl (or Cmd on Mac) to select multiple clinics
+              </p>
+            </div>
             {/* Doctor Photo Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -529,6 +733,25 @@ export default function AdminDoctorsPage() {
             </button>
           </form>
         </Modal>
+      )}
+
+      {/* Doctor Schedule Modal */}
+      {scheduleModalOpen && selectedDoctor && (
+        <DoctorScheduleModal
+          doctor={selectedDoctor}
+          isOpen={scheduleModalOpen}
+          onClose={() => setScheduleModalOpen(false)}
+          onScheduleUpdate={handleScheduleUpdate}
+        />
+      )}
+
+      {/* Doctor View Modal */}
+      {viewModalOpen && selectedDoctor && (
+        <DoctorViewModal
+          doctor={selectedDoctor}
+          isOpen={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+        />
       )}
     </div>
   );

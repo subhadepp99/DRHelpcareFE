@@ -129,19 +129,26 @@ export default function HomePage() {
       color: "bg-green-500",
       href: "/search?type=clinics",
     },
-    {
-      icon: Pill,
-      title: "Find Pharmacies",
-      description: "Locate pharmacies for medicines",
-      color: "bg-purple-500",
-      href: "/search?type=pharmacies",
-    },
+    // {
+    //   icon: Pill,
+    //   title: "Find Pharmacies",
+    //   description: "Locate pharmacies for medicines",
+    //   color: "bg-purple-500",
+    //   href: "/search?type=pharmacies",
+    // },
     {
       icon: TestTube,
       title: "Pathology Tests",
       description: "Book diagnostic tests and health packages",
       color: "bg-red-500",
       href: "/pathology",
+    },
+    {
+      icon: Truck,
+      title: "Ambulance Service",
+      description: "24/7 emergency ambulance services",
+      color: "bg-orange-500",
+      href: "/search?type=ambulance",
     },
   ];
 
@@ -435,7 +442,7 @@ export default function HomePage() {
             height={20}
             className="mr-2"
           />
-          Call Us
+          Call
         </a>
       </div>
 

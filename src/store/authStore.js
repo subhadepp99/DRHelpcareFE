@@ -50,7 +50,47 @@ export const useAuthStore = create((set, get) => ({
 
       const response = await api.post("/auth/login", payload);
 
-      const { token, user } = response.data.data;
+      console.log("API Response:", response.data);
+      console.log("Response structure:", {
+        hasData: !!response.data,
+        hasDataData: !!response.data?.data,
+        dataKeys: response.data ? Object.keys(response.data) : [],
+        dataDataKeys: response.data?.data
+          ? Object.keys(response.data.data)
+          : [],
+      });
+
+      // Handle different response structures
+      let token, user;
+      if (response.data?.data) {
+        // Standard structure: { data: { user: {...}, token: "...", refreshToken: "..." } }
+        token = response.data.data.token;
+        user = response.data.data.user;
+      } else if (response.data?.token && response.data?.user) {
+        // Direct structure: { token, user }
+        token = response.data.token;
+        user = response.data.user;
+      } else {
+        console.error("Unexpected response structure:", response.data);
+        throw new Error("Invalid response structure from server");
+      }
+
+      console.log("Extracted token and user:", {
+        token: !!token,
+        user: !!user,
+      });
+      console.log("User object:", user);
+
+      // Validate that we have the required data
+      if (!token || !user) {
+        console.error("Missing token or user data");
+        throw new Error("Invalid response: missing token or user data");
+      }
+
+      if (!user._id || !user.role) {
+        console.error("User object missing required fields:", user);
+        throw new Error("Invalid user data: missing required fields");
+      }
 
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));

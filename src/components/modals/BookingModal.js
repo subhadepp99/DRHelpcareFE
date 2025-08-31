@@ -36,36 +36,83 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
       phone: user?.phone || "",
       email: user?.email || "",
       reason: "",
-      paymentMethod: "card",
+      paymentMethod: "cash", // Changed default to cash
     },
   });
 
-  // Generate available dates (next 14 days)
-  const availableDates = Array.from({ length: 14 }, (_, i) => {
+  // Generate available dates based on doctor's schedule
+  const availableDates = Array.from({ length: 30 }, (_, i) => {
     const date = addDays(new Date(), i + 1);
+    const scheduleItem = doctor.bookingSchedule?.find((s) =>
+      isSameDay(new Date(s.date), date)
+    );
+    const isAvailable = scheduleItem ? scheduleItem.isAvailable : false;
+
     return {
       date,
-      available: true, // You can implement actual availability logic
+      available: isAvailable,
+      schedule: scheduleItem,
     };
   });
 
-  // Generate time slots
-  const timeSlots = [
-    "09:00",
-    "09:30",
-    "10:00",
-    "10:30",
-    "11:00",
-    "11:30",
-    "14:00",
-    "14:30",
-    "15:00",
-    "15:30",
-    "16:00",
-    "16:30",
-    "17:00",
-    "17:30",
-  ];
+  // Get time slots from doctor's schedule for selected date
+  const getTimeSlots = () => {
+    if (!selectedDate) return [];
+
+    const scheduleItem = doctor.bookingSchedule?.find((s) =>
+      isSameDay(new Date(s.date), selectedDate)
+    );
+
+    if (scheduleItem && scheduleItem.slots) {
+      return scheduleItem.slots
+        .filter(
+          (slot) => slot.isAvailable && slot.currentBookings < slot.maxBookings
+        )
+        .map((slot) => ({
+          time: slot.startTime,
+          endTime: slot.endTime,
+          available: true,
+          currentBookings: slot.currentBookings,
+          maxBookings: slot.maxBookings,
+        }));
+    }
+
+    // Fallback to default time slots if no schedule
+    return [
+      "09:00",
+      "09:30",
+      "10:00",
+      "10:30",
+      "11:00",
+      "11:30",
+      "14:00",
+      "14:30",
+      "15:00",
+      "15:30",
+      "16:00",
+      "16:30",
+      "17:00",
+      "17:30",
+    ].map((time) => ({
+      time,
+      endTime: addMinutes(time, 30),
+      available: true,
+      currentBookings: 0,
+      maxBookings: 1,
+    }));
+  };
+
+  const timeSlots = getTimeSlots();
+
+  const addMinutes = (time, minutes) => {
+    const [hours, mins] = time.split(":").map(Number);
+    const totalMinutes = hours * 60 + mins + minutes;
+    const newHours = Math.floor(totalMinutes / 60);
+    const newMins = totalMinutes % 60;
+    return `${newHours.toString().padStart(2, "0")}:${newMins
+      .toString()
+      .padStart(2, "0")}`;
+  };
 
   const handleDateSelect = (date) => {
     setSelectedDate(date);
@@ -214,7 +261,10 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                       {availableDates.map((dateItem, index) => (
                         <button
                           key={index}
-                          onClick={() => handleDateSelect(dateItem.date)}
+                          onClick={() =>
+                            dateItem.available &&
+                            handleDateSelect(dateItem.date)
+                          }
                           disabled={!dateItem.available}
                           className={`p-3 text-center rounded-lg border transition-colors ${
                             selectedDate &&
@@ -231,6 +281,11 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                           <div className="text-sm font-bold">
                             {format(dateItem.date, "d")}
                           </div>
+                          {!dateItem.available && (
+                            <div className="text-xs text-gray-400 mt-1">
+                              Unavailable
+                            </div>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -242,17 +297,24 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                         Select Time for {format(selectedDate, "MMMM d, yyyy")}
                       </h4>
                       <div className="grid grid-cols-4 gap-3">
-                        {timeSlots.map((time) => (
+                        {timeSlots.map((slot) => (
                           <button
-                            key={time}
-                            onClick={() => handleTimeSelect(time)}
+                            key={slot.time}
+                            onClick={() => handleTimeSelect(slot.time)}
                             className={`p-3 text-center rounded-lg border transition-colors ${
-                              selectedTime === time
+                              selectedTime === slot.time
                                 ? "bg-primary-600 text-white border-primary-600"
                                 : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
                             }`}
                           >
-                            {time}
+                            <div className="text-sm font-medium">
+                              {slot.time}
+                            </div>
+                            {slot.maxBookings > 1 && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {slot.currentBookings}/{slot.maxBookings} booked
+                              </div>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -312,18 +374,17 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email Address *
+                      Email Address (Optional)
                     </label>
                     <input
                       {...register("email", {
-                        required: "Email is required",
                         pattern: {
                           value: /^\S+@\S+$/i,
                           message: "Invalid email address",
                         },
                       })}
                       className="input-field"
-                      placeholder="Enter email address"
+                      placeholder="Enter email address (optional)"
                     />
                     {errors.email && (
                       <p className="mt-1 text-sm text-red-600">
@@ -373,6 +434,14 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">
+                          Department:
+                        </span>
+                        <span className="text-gray-900 dark:text-white">
+                          {doctor.department?.name || "Not specified"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">
                           Date:
                         </span>
                         <span className="text-gray-900 dark:text-white">
@@ -387,12 +456,26 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                           {selectedTime}
                         </span>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Consultation Fee:
+                        </span>
+                        <span className="text-gray-900 dark:text-white">
+                          ₹
+                          {doctor.doctorFees ||
+                            doctor.consultationFee ||
+                            "Not specified"}
+                        </span>
+                      </div>
                       <div className="flex justify-between font-medium text-lg pt-2 border-t border-gray-200 dark:border-gray-700">
                         <span className="text-gray-900 dark:text-white">
                           Total:
                         </span>
                         <span className="text-primary-600 dark:text-primary-400">
-                          ₹{doctor.consultationFee}
+                          ₹
+                          {doctor.doctorFees ||
+                            doctor.consultationFee ||
+                            "Not specified"}
                         </span>
                       </div>
                     </div>
@@ -404,44 +487,62 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                       Payment Method
                     </h5>
                     <div className="space-y-3">
-                      <label className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900">
+                      <label className="flex items-center p-3 border border-primary-200 dark:border-primary-700 rounded-lg cursor-pointer bg-primary-50 dark:bg-primary-900/20">
+                        <input
+                          {...register("paymentMethod")}
+                          type="radio"
+                          value="cash"
+                          className="text-primary-600"
+                          defaultChecked
+                        />
+                        <div className="w-5 h-5 mx-3 bg-green-600 rounded text-white text-xs flex items-center justify-center font-bold">
+                          ₹
+                        </div>
+                        <span className="text-primary-900 dark:text-primary-100 font-medium">
+                          Cash Payment (Default)
+                        </span>
+                      </label>
+                      <label className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-not-allowed bg-gray-100 dark:bg-gray-800 opacity-50">
                         <input
                           {...register("paymentMethod")}
                           type="radio"
                           value="card"
-                          className="text-primary-600"
+                          className="text-gray-400"
+                          disabled
                         />
                         <CreditCard className="w-5 h-5 mx-3 text-gray-400" />
-                        <span className="text-gray-900 dark:text-white">
-                          Credit/Debit Card
+                        <span className="text-gray-400 dark:text-gray-500">
+                          Credit/Debit Card (Coming Soon)
                         </span>
                       </label>
-                      <label className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900">
+                      <label className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-not-allowed bg-gray-100 dark:bg-gray-800 opacity-50">
                         <input
                           {...register("paymentMethod")}
                           type="radio"
                           value="upi"
-                          className="text-primary-600"
+                          className="text-gray-400"
+                          disabled
                         />
-                        <div className="w-5 h-5 mx-3 bg-primary-600 rounded text-white text-xs flex items-center justify-center font-bold">
+                        <div className="w-5 h-5 mx-3 bg-gray-400 rounded text-white text-xs flex items-center justify-center font-bold">
                           U
                         </div>
-                        <span className="text-gray-900 dark:text-white">
-                          UPI Payment
+                        <span className="text-gray-400 dark:text-gray-500">
+                          UPI Payment (Coming Soon)
                         </span>
                       </label>
-                      <label className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900">
+                      <label className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-not-allowed bg-gray-100 dark:bg-gray-800 opacity-50">
                         <input
                           {...register("paymentMethod")}
                           type="radio"
                           value="wallet"
-                          className="text-primary-600"
+                          className="text-gray-400"
+                          disabled
                         />
-                        <div className="w-5 h-5 mx-3 bg-green-600 rounded text-white text-xs flex items-center justify-center font-bold">
+                        <div className="w-5 h-5 mx-3 bg-gray-400 rounded text-white text-xs flex items-center justify-center font-bold">
                           W
                         </div>
-                        <span className="text-gray-900 dark:text-white">
-                          Digital Wallet
+                        <span className="text-gray-400 dark:text-gray-500">
+                          Digital Wallet (Coming Soon)
                         </span>
                       </label>
                     </div>
@@ -538,14 +639,14 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                   <button
                     onClick={handleSubmit(onSubmit)}
                     disabled={loading}
-                    className="btn-primary"
+                    className="btn-primary flex items-center justify-center"
                   >
                     {loading ? (
                       <div className="spinner mr-2"></div>
                     ) : (
                       <CreditCard className="w-4 h-4 mr-2" />
                     )}
-                    Confirm & Pay
+                    <span>Confirm & Pay</span>
                   </button>
                 )}
               </div>

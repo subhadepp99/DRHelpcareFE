@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, MapPin, Filter, Loader, X, Compass } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function SearchSection({
-  searchQuery,
-  setSearchQuery,
-  searchType,
-  setSearchType,
-  onSearch,
+  searchQuery = "",
+  setSearchQuery = () => {},
+  searchType = "all",
+  setSearchType = () => {},
+  onSearch = () => {},
 }) {
   const [showFilters, setShowFilters] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [filters, setFilters] = useState({
     specialization: "",
     experience: "",
@@ -20,11 +24,31 @@ export default function SearchSection({
     distance: "25",
   });
 
+  const searchRef = useRef(null);
+  const locationRef = useRef(null);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+      if (locationRef.current && !locationRef.current.contains(event.target)) {
+        setShowLocationSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const searchTypes = [
     { value: "all", label: "All", icon: "🔍" },
     { value: "doctors", label: "Doctors", icon: "👨‍⚕️" },
     { value: "clinics", label: "Clinics", icon: "🏥" },
-    { value: "pharmacies", label: "Pharmacies", icon: "💊" },
+    // { value: "pharmacies", label: "Pharmacies", icon: "💊" },
     { value: "ambulance", label: "Ambulance", icon: "🚑" },
   ];
 
@@ -69,340 +93,89 @@ export default function SearchSection({
     { value: "50", label: "50 km" },
   ];
 
-  // List of major locations in India (sample, can be expanded)
-  const locations = [
-    "Delhi",
-    "Mumbai",
-    "Bangalore",
-    "Hyderabad",
-    "Ahmedabad",
-    "Chennai",
-    "Kolkata",
-    "Pune",
-    "Jaipur",
-    "Lucknow",
-    "Kanpur",
-    "Nagpur",
-    "Indore",
-    "Bhopal",
-    "Patna",
-    "Ludhiana",
-    "Agra",
-    "Nashik",
-    "Vadodara",
-    "Faridabad",
-    "Meerut",
-    "Rajkot",
-    "Kalyan",
-    "Vasai",
-    "Varanasi",
-    "Srinagar",
-    "Aurangabad",
-    "Dhanbad",
-    "Amritsar",
-    "Navi Mumbai",
-    "Allahabad",
-    "Ranchi",
-    "Howrah",
-    "Coimbatore",
-    "Jabalpur",
-    "Gwalior",
-    "Vijayawada",
-    "Jodhpur",
-    "Madurai",
-    "Raipur",
-    "Kota",
-    "Guwahati",
-    "Chandigarh",
-    "Solapur",
-    "Hubli",
-    "Mysore",
-    "Tiruchirappalli",
-    "Bareilly",
-    "Aligarh",
-    "Tiruppur",
-    "Moradabad",
-    "Jalandhar",
-    "Bhubaneswar",
-    "Salem",
-    "Warangal",
-    "Guntur",
-    "Bhiwandi",
-    "Saharanpur",
-    "Gorakhpur",
-    "Bikaner",
-    "Amravati",
-    "Noida",
-    "Jamshedpur",
-    "Bhilai",
-    "Cuttack",
-    "Firozabad",
-    "Kochi",
-    "Nellore",
-    "Bhavnagar",
-    "Dehradun",
-    "Durgapur",
-    "Asansol",
-    "Rourkela",
-    "Nanded",
-    "Kolhapur",
-    "Ajmer",
-    "Akola",
-    "Gulbarga",
-    "Jamnagar",
-    "Ujjain",
-    "Loni",
-    "Siliguri",
-    "Jhansi",
-    "Ulhasnagar",
-    "Jammu",
-    "Sangli",
-    "Belgaum",
-    "Mangalore",
-    "Ambattur",
-    "Tirunelveli",
-    "Malegaon",
-    "Gaya",
-    "Jalgaon",
-    "Udaipur",
-    "Maheshtala",
-    "Davanagere",
-    "Kozhikode",
-    "Kurnool",
-    "Rajpur Sonarpur",
-    "Bokaro",
-    "South Dumdum",
-    "Bellary",
-    "Patiala",
-    "Gopalpur",
-    "Agartala",
-    "Bhagalpur",
-    "Muzaffarnagar",
-    "Bhatpara",
-    "Panihati",
-    "Latur",
-    "Dhule",
-    "Rohtak",
-    "Korba",
-    "Bhilwara",
-    "Berhampur",
-    "Muzaffarpur",
-    "Ahmednagar",
-    "Mathura",
-    "Kollam",
-    "Avadi",
-    "Kadapa",
-    "Anantapur",
-    "Kamarhati",
-    "Bilaspur",
-    "Sambalpur",
-    "Shahjahanpur",
-    "Satara",
-    "Bijapur",
-    "Rampur",
-    "Shivamogga",
-    "Chandrapur",
-    "Junagadh",
-    "Thrissur",
-    "Alwar",
-    "Bardhaman",
-    "Kulti",
-    "Nizamabad",
-    "Parbhani",
-    "Tumkur",
-    "Khammam",
-    "Ozhukarai",
-    "Bihar Sharif",
-    "Panipat",
-    "Darbhanga",
-    "Bally",
-    "Aizawl",
-    "Dewas",
-    "Ichalkaranji",
-    "Karnal",
-    "Bathinda",
-    "Jalna",
-    "Eluru",
-    "Barasat",
-    "Kirari Suleman Nagar",
-    "Purnia",
-    "Satna",
-    "Mau",
-    "Sonipat",
-    "Farrukhabad",
-    "Sagar",
-    "Rourkela Industrial Township",
-    "Durg",
-    "Imphal",
-    "Ratlam",
-    "Hapur",
-    "Arrah",
-    "Karimnagar",
-    "Anantapuram",
-    "Etawah",
-    "Ambarnath",
-    "North Dumdum",
-    "Bharatpur",
-    "Begusarai",
-    "New Delhi",
-    "Gandhidham",
-    "Baranagar",
-    "Tiruvottiyur",
-    "Puducherry",
-    "Sikar",
-    "Thoothukudi",
-    "Rewa",
-    "Mirzapur",
-    "Raichur",
-    "Pali",
-    "Ramagundam",
-    "Haridwar",
-    "Vijayanagaram",
-    "Tenali",
-    "Nagercoil",
-    "Sri Ganganagar",
-    "Karawal Nagar",
-    "Mango",
-    "Thanjavur",
-    "Bulandshahr",
-    "Uluberia",
-    "Katni",
-    "Sambhal",
-    "Singrauli",
-    "Nadiad",
-    "Secunderabad",
-    "Naihati",
-    "Yamunanagar",
-    "Bidhan Nagar",
-    "Pallavaram",
-    "Bidar",
-    "Munger",
-    "Panchkula",
-    "Burhanpur",
-    "Raurkela Industrial Township",
-    "Kharagpur",
-    "Dindigul",
-    "Gandhinagar",
-    "Hospet",
-    "Nangloi Jat",
-    "Malda",
-    "Ongole",
-    "Deoghar",
-    "Chapra",
-    "Haldia",
-    "Khandwa",
-    "Nandyal",
-    "Morena",
-    "Amroha",
-    "Anand",
-    "Bhind",
-    "Bhalswa Jahangir Pur",
-    "Madhyamgram",
-    "Bhiwani",
-    "Berhampore",
-    "Ambala",
-    "Morvi",
-    "Fatehpur",
-    "Raebareli",
-    "Chittoor",
-    "Bhusawal",
-    "Orai",
-    "Bahraich",
-    "Phusro",
-    "Vellore",
-    "Mehsana",
-    "Raiganj",
-    "Sirsa",
-    "Danapur",
-    "Serampore",
-    "Sultan Pur Majra",
-    "Guna",
-    "Jaunpur",
-    "Panvel",
-    "Shivpuri",
-    "Surendranagar Dudhrej",
-    "Unnao",
-    "Chinsurah",
-    "Alappuzha",
-    "Kottayam",
-    "Machilipatnam",
-    "Shimla",
-    "Adoni",
-    "Udupi",
-    "Katihar",
-    "Proddatur",
-    "Mahbubnagar",
-    "Bettiah",
-    "Kishanganj",
-    "Sopore",
-    "Hazaribagh",
-    "Palghar",
-    "Gopalganj",
-    "Sasaram",
-    "Hajipur",
-    "Port Blair",
-    "Karaikudi",
-    "Kishangarh",
-    "Gangtok",
-    "Dholpur",
-    "Bagalkot",
-    "Bongaigaon",
-    "North Lakhimpur",
-    "Goalpara",
-    "Dibrugarh",
-    "Tinsukia",
-    "Jorhat",
-    "Sivasagar",
-    "Silchar",
-    "Tezpur",
-    "Nagaon",
-    "Dhubri",
-    "Diphu",
-    "Karimganj",
-    "Hailakandi",
-    "Barpeta",
-    "Dhemaji",
-    "Golaghat",
-    "Morigaon",
-    "Nalbari",
-    "Sonitpur",
-    "Udalguri",
-    "Baksa",
-    "Chirang",
-    "Darrang",
-    "Kamrup",
-    "Kokrajhar",
-    "Lakhimpur",
-  ];
   const [locationInput, setLocationInput] = useState("");
-  const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState("");
 
-  // Filter locations for typeahead
+  // Handle location input change
   const handleLocationInput = (e) => {
     const value = e.target.value;
     setLocationInput(value);
     setSelectedLocation("");
-    if (value.length >= 2) {
-      setLocationSuggestions(
-        locations.filter((loc) =>
-          loc.toLowerCase().includes(value.toLowerCase())
-        )
-      );
-    } else {
-      setLocationSuggestions([]);
-    }
   };
+
   const handleLocationSelect = (loc) => {
     setLocationInput(loc);
     setSelectedLocation(loc);
-    setLocationSuggestions([]);
+    setShowLocationSuggestions(false);
+  };
+
+  // Fetch search suggestions when query is 3+ characters
+  const fetchSuggestions = async (query) => {
+    if (query.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/search/suggestions?q=${encodeURIComponent(query)}&type=${
+          searchType || "all"
+        }`
+      );
+      const data = await response.json();
+      setSuggestions(data.suggestions || []);
+      setShowSuggestions(true);
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      setSuggestions([]);
+    }
+  };
+
+  // Fetch location suggestions
+  const fetchLocationSuggestions = async () => {
+    try {
+      const response = await fetch("/api/search/locations");
+      const data = await response.json();
+      setLocationSuggestions(data.locations || []);
+      setShowLocationSuggestions(true);
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+      setLocationSuggestions([]);
+    }
+  };
+
+  // Handle search input change with debounced suggestions
+  const handleSearchChange = (value) => {
+    if (setSearchQuery) {
+      setSearchQuery(value);
+    }
+
+    // Always show suggestions, but fetch detailed results only for 3+ characters
+    if (value.length >= 3) {
+      fetchSuggestions(value);
+    } else if (value.length > 0) {
+      // For 1-2 characters, show basic suggestions
+      setSuggestions([
+        {
+          type: "info",
+          text: "Type at least 3 characters for detailed search",
+          subtext: "Quick search available",
+        },
+      ]);
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      onSearch({ selectedLocation });
+    if ((searchQuery || "").trim() && (searchQuery || "").length >= 3) {
+      if (onSearch) {
+        onSearch({ selectedLocation });
+      }
     }
   };
 
@@ -424,7 +197,7 @@ export default function SearchSection({
   const hasActiveFilters = Object.values(filters).some(
     (filter) => filter !== "" && filter !== "25"
   );
-  const isSearchDisabled = !searchQuery.trim() && !hasActiveFilters;
+  const isSearchDisabled = !(searchQuery || "").trim() && !hasActiveFilters;
 
   const specialtyPills = [
     "Dentist",
@@ -458,9 +231,9 @@ export default function SearchSection({
           {searchTypes.map((type) => (
             <button
               key={type.value}
-              onClick={() => setSearchType(type.value)}
+              onClick={() => setSearchType && setSearchType(type.value)}
               className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                searchType === type.value
+                (searchType || "all") === type.value
                   ? "bg-primary-600 text-white shadow-lg transform scale-105"
                   : "text-gray-600 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-900 hover:text-primary-600 dark:hover:text-primary-400"
               }`}
@@ -478,38 +251,121 @@ export default function SearchSection({
           {/* Main Search Bar (text) */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-2">
             <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex-1 relative">
+              <div className="flex-1 relative" ref={searchRef}>
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchQuery || ""}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  onFocus={() => {
+                    // Show suggestions immediately on focus
+                    if ((searchQuery || "").length >= 3) {
+                      fetchSuggestions(searchQuery || "");
+                    } else if ((searchQuery || "").length > 0) {
+                      setSuggestions([
+                        {
+                          type: "info",
+                          text: "Type at least 3 characters for detailed search",
+                          subtext: "Quick search available",
+                        },
+                      ]);
+                      setShowSuggestions(true);
+                    } else {
+                      setSuggestions([
+                        {
+                          type: "info",
+                          text: "Start typing to search",
+                          subtext: "3+ characters for detailed results",
+                        },
+                      ]);
+                      setShowSuggestions(true);
+                    }
+                  }}
                   placeholder={`Search for ${
-                    searchType === "all" ? "healthcare services" : searchType
+                    (searchType || "all") === "all"
+                      ? "healthcare services"
+                      : searchType || "all"
                   }...`}
                   className="w-full pl-10 pr-4 py-3 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
-                  minLength={3}
                 />
+
+                {/* Character count indicator */}
+                {(searchQuery || "").length > 0 && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        (searchQuery || "").length >= 3
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                      }`}
+                    >
+                      {(searchQuery || "").length}/3
+                    </span>
+                  </div>
+                )}
+
+                {/* Search Suggestions Dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 mt-1 max-h-60 overflow-y-auto">
+                    {suggestions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        className={`px-4 py-3 ${
+                          suggestion.type === "info"
+                            ? "cursor-default bg-blue-50 dark:bg-blue-900/20"
+                            : "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                        } border-b border-gray-100 dark:border-gray-600`}
+                        onClick={() => {
+                          if (suggestion.type !== "info" && setSearchQuery) {
+                            setSearchQuery(suggestion.text);
+                          }
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {suggestion.text}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {suggestion.subtext}{" "}
+                          {suggestion.type !== "info" && `• ${suggestion.type}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
+              {/* Help text for minimum characters */}
+              {(searchQuery || "").length > 0 &&
+                (searchQuery || "").length < 3 && (
+                  <div className="mt-2 text-sm text-yellow-600 dark:text-yellow-400">
+                    Quick search available. Type 3+ characters for detailed
+                    results.
+                  </div>
+                )}
+
               {/* Location Typeahead with Compass Icon */}
-              <div className="flex-1 relative">
+              <div className="flex-1 relative" ref={locationRef}>
                 <Compass className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   value={locationInput}
                   onChange={handleLocationInput}
+                  onFocus={fetchLocationSuggestions}
                   placeholder="Enter location (city, state, village)"
                   className="w-full pl-10 pr-4 py-3 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   autoComplete="off"
                 />
-                {locationSuggestions.length > 0 && (
+                {showLocationSuggestions && locationSuggestions.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 mt-1 max-h-48 overflow-y-auto">
                     {locationSuggestions.map((loc) => (
                       <li
                         key={loc}
                         className="px-4 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900"
-                        onClick={() => handleLocationSelect(loc)}
+                        onClick={() => {
+                          handleLocationSelect(loc);
+                          setShowLocationSuggestions(false);
+                        }}
                       >
                         {loc}
                       </li>
@@ -521,9 +377,18 @@ export default function SearchSection({
               {/* Search Button */}
               <button
                 type="submit"
-                className="group relative font-semibold px-8 py-3 rounded-lg transition-all duration-300 transform focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white hover:scale-105 hover:shadow-xl hover:shadow-primary-500/50"
+                disabled={!(searchQuery || "").trim()}
+                className={`group relative font-semibold px-8 py-3 rounded-lg transition-all duration-300 transform focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+                  (searchQuery || "").trim()
+                    ? (searchQuery || "").length >= 3
+                      ? "bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white hover:scale-105 hover:shadow-xl hover:shadow-primary-500/50"
+                      : "bg-yellow-500 hover:bg-yellow-600 text-white hover:scale-105"
+                    : "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                }`}
               >
-                Search
+                {(searchQuery || "").trim() && (searchQuery || "").length < 3
+                  ? "Quick Search"
+                  : "Search"}
               </button>
             </div>
           </div>
@@ -540,8 +405,9 @@ export default function SearchSection({
                   type="button"
                   className="px-3 py-1.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-primary-100 dark:hover:bg-primary-900 text-gray-700 dark:text-gray-200 hover:text-primary-700 dark:hover:text-primary-300"
                   onClick={() => {
-                    setSearchQuery(spec);
-                    onSearch({ selectedLocation });
+                    if (setSearchQuery) setSearchQuery(spec);
+                    if (onSearch && spec.length >= 3)
+                      onSearch({ selectedLocation });
                   }}
                 >
                   {spec}
@@ -560,7 +426,7 @@ export default function SearchSection({
                   onClick={() => {
                     setLocationInput(city);
                     setSelectedLocation(city);
-                    onSearch({ selectedLocation: city });
+                    if (onSearch) onSearch({ selectedLocation: city });
                   }}
                 >
                   {city}
@@ -618,7 +484,8 @@ export default function SearchSection({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Specialization Filter */}
-                  {(searchType === "all" || searchType === "doctors") && (
+                  {((searchType || "all") === "all" ||
+                    (searchType || "all") === "doctors") && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Specialization

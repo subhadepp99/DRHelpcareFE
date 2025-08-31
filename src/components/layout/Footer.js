@@ -24,7 +24,7 @@ export default function Footer() {
       { name: "Find Doctors", href: "/search?type=doctors" },
       { name: "Book Appointments", href: "/search" },
       { name: "Find Clinics", href: "/search?type=clinics" },
-      { name: "Find Pharmacies", href: "/search?type=pharmacies" },
+      // { name: "Find Pharmacies", href: "/search?type=pharmacies" },
       { name: "Health Records", href: "/profile" },
     ],
     company: [
@@ -51,7 +51,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-gray-900 text-white w-full mt-12">
+    <footer className="bg-gray-900 text-white w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
         <div className="py-12">

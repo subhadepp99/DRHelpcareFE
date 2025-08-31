@@ -1,17 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useApi } from "@/hooks/api";
+import { ArrowLeft, Search, X } from "lucide-react";
 import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import Head from "next/head";
 
 export default function DoctorProfilePage() {
   const { id } = useParams();
+  const router = useRouter();
   const { get } = useApi();
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [allDoctors, setAllDoctors] = useState([]);
+  const [allLocations, setAllLocations] = useState([]);
 
   useEffect(() => {
     if (!id) return;
@@ -31,6 +38,81 @@ export default function DoctorProfilePage() {
     fetchDoctor();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    fetchAllDoctorsAndLocations();
+  }, []);
+
+  const fetchAllDoctorsAndLocations = async () => {
+    try {
+      const doctorsResponse = await get("/doctors?limit=1000");
+      if (doctorsResponse.data?.data?.doctors) {
+        const doctors = doctorsResponse.data.data.doctors;
+        setAllDoctors(doctors);
+
+        // Extract unique locations
+        const locations = new Set();
+        doctors.forEach((doctor) => {
+          if (doctor.city) locations.add(doctor.city);
+          if (doctor.state) locations.add(doctor.state);
+          if (doctor.location) locations.add(doctor.location);
+        });
+        setAllLocations(Array.from(locations));
+      }
+    } catch (error) {
+      console.error("Error fetching doctors and locations:", error);
+    }
+  };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(true);
+      return;
+    }
+
+    const results = allDoctors.filter(
+      (doctor) =>
+        doctor.name?.toLowerCase().includes(query.toLowerCase()) ||
+        doctor.firstName?.toLowerCase().includes(query.toLowerCase()) ||
+        doctor.lastName?.toLowerCase().includes(query.toLowerCase()) ||
+        doctor.specialization?.toLowerCase().includes(query.toLowerCase()) ||
+        doctor.city?.toLowerCase().includes(query.toLowerCase()) ||
+        doctor.state?.toLowerCase().includes(query.toLowerCase()) ||
+        doctor.location?.toLowerCase().includes(query.toLowerCase())
+    );
+
+    setSearchResults(results);
+    setShowSearchResults(true);
+  };
+
+  const handleDoctorSelect = (selectedDoctor) => {
+    router.push(`/doctor/${selectedDoctor._id}`);
+    setShowSearchResults(false);
+  };
+
+  const handleLocationSelect = (location) => {
+    const results = allDoctors.filter(
+      (doctor) =>
+        doctor.city?.toLowerCase().includes(location.toLowerCase()) ||
+        doctor.state?.toLowerCase().includes(location.toLowerCase()) ||
+        doctor.location?.toLowerCase().includes(location.toLowerCase())
+    );
+
+    if (results.length === 1) {
+      // Single result - navigate directly to doctor details
+      router.push(`/doctor/${results[0]._id}`);
+    } else {
+      // Multiple results - navigate to search page with proper query
+      router.push(
+        `/search?q=${encodeURIComponent(
+          location
+        )}&type=doctors&location=${encodeURIComponent(location)}`
+      );
+    }
+    setShowSearchResults(false);
+  };
 
   if (loading)
     return (
@@ -114,47 +196,117 @@ export default function DoctorProfilePage() {
       </Head>
       <Header />
       {/* Breadcrumb Navigation */}
-      <nav
-        className="text-sm text-gray-500 dark:text-gray-400 py-4 px-4 max-w-4xl mx-auto"
-        aria-label="Breadcrumb"
-      >
-        <ol className="list-reset flex">
-          <li>
-            <a href="/" className="hover:text-primary-600">
-              Home
-            </a>
-            <span className="mx-2">/</span>
-          </li>
-          <li>
-            <a href="/search?type=doctors" className="hover:text-primary-600">
-              Doctors
-            </a>
-            <span className="mx-2">/</span>
-          </li>
-          <li>
-            <span
-              className="text-primary-600 font-semibold truncate max-w-xs"
-              title={
-                doctor.name ||
-                `${doctor.firstName || ""} ${doctor.lastName || ""}` ||
-                "Unknown Doctor"
-              }
-            >
-              {doctor.name ||
-                `${doctor.firstName || ""} ${doctor.lastName || ""}` ||
-                "Unknown Doctor"}
-            </span>
-          </li>
-        </ol>
-        <div className="mt-2">
-          <a
-            href="/search?type=doctors"
-            className="text-primary-600 hover:underline"
-          >
-            ← Back to Search
-          </a>
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <ol className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+            <li>
+              <button
+                onClick={() => router.back()}
+                className="flex items-center hover:text-primary-600 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back
+              </button>
+            </li>
+            <li>
+              <span className="mx-2">/</span>
+            </li>
+            <li>
+              <a
+                href="/search?type=doctors"
+                className="hover:text-primary-600 transition-colors"
+              >
+                Doctors
+              </a>
+            </li>
+            <li>
+              <span className="mx-2">/</span>
+            </li>
+            <li>
+              <span className="text-primary-600 font-medium truncate max-w-xs">
+                {doctor.name ||
+                  `${doctor.firstName || ""} ${doctor.lastName || ""}` ||
+                  "Unknown Doctor"}
+              </span>
+            </li>
+          </ol>
         </div>
       </nav>
+      {/* Custom Doctor Search */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              onFocus={() => setShowSearchResults(true)}
+              placeholder="Search for doctors or locations..."
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+            />
+            {showSearchResults &&
+              (searchResults.length > 0 || allLocations.length > 0) && (
+                <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 mt-1 max-h-96 overflow-y-auto">
+                  {searchQuery && searchResults.length > 0 && (
+                    <>
+                      <div className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
+                        Doctors
+                      </div>
+                      {searchResults.map((doctor) => (
+                        <div
+                          key={doctor._id}
+                          className="px-4 py-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-gray-100 dark:border-gray-600"
+                          onClick={() => handleDoctorSelect(doctor)}
+                        >
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {doctor.name ||
+                              `Dr. ${doctor.firstName || ""} ${
+                                doctor.lastName || ""
+                              }`}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {doctor.specialization || "General Medicine"} •{" "}
+                            {doctor.city ||
+                              doctor.location ||
+                              doctor.state ||
+                              "Location not specified"}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {!searchQuery && (
+                    <>
+                      <div className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
+                        Popular Locations
+                      </div>
+                      {allLocations.slice(0, 10).map((location) => (
+                        <div
+                          key={location}
+                          className="px-4 py-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-gray-100 dark:border-gray-600"
+                          onClick={() => handleLocationSelect(location)}
+                        >
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {location}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            {showSearchResults && (
+              <button
+                onClick={() => setShowSearchResults(false)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
       <div className="min-h-[70vh] flex flex-col justify-between max-w-4xl mx-auto px-4 py-6">
         <div>
           <div className="flex items-center space-x-6 flex-wrap">

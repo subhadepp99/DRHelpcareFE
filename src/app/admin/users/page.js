@@ -13,8 +13,11 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Upload,
+  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { getEntityImageUrl } from "@/utils/imageUtils";
 
 export default function UsersPage() {
   const { get, post, put, del, patch } = useApi();
@@ -33,7 +36,10 @@ export default function UsersPage() {
     lastName: "",
     phone: "",
     role: "user",
+    profileImage: null,
   });
+  const [profileImage, setProfileImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
   const [accessRequestData, setAccessRequestData] = useState({
     requestedRole: "admin",
     reason: "",
@@ -61,11 +67,30 @@ export default function UsersPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+
+      // Add all form fields
+      Object.keys(formData).forEach((key) => {
+        if (key === "profileImage") {
+          // Skip profileImage as it will be handled separately
+        } else if (key === "password" && !formData[key]) {
+          // Skip empty password
+        } else {
+          formDataToSend.append(key, formData[key]);
+        }
+      });
+
+      // Add profile image if selected
+      if (profileImage) {
+        formDataToSend.append("profileImage", profileImage);
+      }
+
       if (selectedUser) {
-        await put(`/users/${selectedUser._id}`, formData);
+        await put(`/users/${selectedUser._id}`, formDataToSend);
         toast.success("User updated successfully");
       } else {
-        await post("/users", formData);
+        await post("/users", formDataToSend);
         toast.success("User added successfully");
       }
       setShowAddModal(false);
@@ -104,21 +129,77 @@ export default function UsersPage() {
       lastName: user.lastName || "",
       phone: user.phone || "",
       role: user.role || "user",
+      profileImage: null,
     });
+    setProfileImage(null);
+    setImagePreview(user.profileImageUrl || "");
     setShowEditModal(true);
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
+    if (
+      !confirm(
+        "Are you absolutely sure you want to delete this user? This action cannot be undone."
+      )
+    )
+      return;
+    if (
+      !confirm(
+        "Final confirmation: This will permanently delete the user and archive their data. Continue?"
+      )
+    )
+      return;
 
     try {
       await del(`/users/${id}`);
-      toast.success("User deleted successfully");
+      toast.success("User deleted and archived successfully");
       fetchUsers();
     } catch (error) {
       toast.error("Failed to delete user");
       console.error("Error deleting user:", error);
     }
+  };
+
+  const handleDeactivate = async (userId) => {
+    if (!confirm("Are you sure you want to deactivate this user?")) return;
+    try {
+      await patch(`/users/${userId}/deactivate`);
+      toast.success("User deactivated successfully");
+      fetchUsers();
+    } catch (error) {
+      toast.error("Failed to deactivate user");
+      console.error("Error deactivating user:", error);
+    }
+  };
+
+  const handleReactivate = async (userId) => {
+    if (!confirm("Are you sure you want to reactivate this user?")) return;
+    try {
+      await patch(`/users/${userId}/reactivate`);
+      toast.success("User reactivated successfully");
+      fetchUsers();
+    } catch (error) {
+      toast.error("Failed to reactivate user");
+      console.error("Error reactivating user:", error);
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfileImage(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setProfileImage(null);
+    setImagePreview("");
+    setFormData((prev) => ({ ...prev, profileImage: null }));
   };
 
   const resetForm = () => {
@@ -130,7 +211,10 @@ export default function UsersPage() {
       lastName: "",
       phone: "",
       role: "user",
+      profileImage: null,
     });
+    setProfileImage(null);
+    setImagePreview("");
   };
 
   const getRoleColor = (role) => {
@@ -253,7 +337,22 @@ export default function UsersPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                          {user.profileImageUrl ? (
+                            <img
+                              src={getEntityImageUrl(user, "profileImageUrl")}
+                              alt={`${user.firstName} ${user.lastName}`}
+                              className="h-10 w-10 rounded-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = "none";
+                                e.target.nextSibling.style.display = "flex";
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className={`h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center ${
+                              user.profileImageUrl ? "hidden" : ""
+                            }`}
+                          >
                             <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                           </div>
                         </div>
@@ -305,6 +404,25 @@ export default function UsersPage() {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
+
+                        {user.isActive ? (
+                          <button
+                            onClick={() => handleDeactivate(user._id)}
+                            className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300"
+                            title="Deactivate User"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleReactivate(user._id)}
+                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                            title="Reactivate User"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                        )}
+
                         <button
                           onClick={() => handleDelete(user._id)}
                           className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
@@ -454,6 +572,43 @@ export default function UsersPage() {
                   />
                 </div>
               )}
+
+              {/* Profile Image Upload */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Profile Picture
+                </label>
+
+                {imagePreview && (
+                  <div className="relative inline-block">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-24 h-24 object-cover rounded-lg border"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-3">
+                  <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg border border-gray-300 flex items-center space-x-2">
+                    <Upload className="w-4 h-4" />
+                    <span>Upload Image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
 
               <div className="flex space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <button

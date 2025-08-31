@@ -474,13 +474,30 @@ export default function Pathology() {
                             )}
                         </div>
 
-                        <button
-                          onClick={() => handleCall()}
-                          className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm"
-                        >
-                          <Phone className="w-3 h-3" />
-                          <span>Book</span>
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              const testName = encodeURIComponent(
+                                test.name.replace(/\s+/g, "-").toLowerCase()
+                              );
+                              const location = encodeURIComponent(
+                                test.place || test.state || "unknown"
+                              );
+                              window.location.href = `/pathology/${testName}/${location}`;
+                            }}
+                            className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm"
+                          >
+                            <TestTube className="w-3 h-3" />
+                            <span>View Details</span>
+                          </button>
+                          <button
+                            onClick={() => handleCall()}
+                            className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm"
+                          >
+                            <Phone className="w-3 h-3" />
+                            <span>Book</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>

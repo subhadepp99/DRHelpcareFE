@@ -6,6 +6,7 @@ import { useApi } from "@/hooks/useApi";
 import Modal from "@/components/common/Modal";
 import StatesDropdown from "@/components/common/StatesDropdown";
 import toast from "react-hot-toast";
+import { getEntityImageUrl } from "@/utils/imageUtils";
 
 const initialForm = {
   name: "",
@@ -61,6 +62,40 @@ export default function AdminClinics() {
   };
 
   const openEdit = (clinic) => {
+    // Handle services and facilities properly - they might be arrays or JSON strings
+    let servicesStr = "";
+    let facilitiesStr = "";
+
+    if (clinic.services) {
+      if (Array.isArray(clinic.services)) {
+        servicesStr = clinic.services.join(", ");
+      } else if (typeof clinic.services === "string") {
+        try {
+          const parsed = JSON.parse(clinic.services);
+          servicesStr = Array.isArray(parsed)
+            ? parsed.join(", ")
+            : clinic.services;
+        } catch {
+          servicesStr = clinic.services;
+        }
+      }
+    }
+
+    if (clinic.facilities) {
+      if (Array.isArray(clinic.facilities)) {
+        facilitiesStr = clinic.facilities.join(", ");
+      } else if (typeof clinic.facilities === "string") {
+        try {
+          const parsed = JSON.parse(clinic.facilities);
+          facilitiesStr = Array.isArray(parsed)
+            ? parsed.join(", ")
+            : clinic.facilities;
+        } catch {
+          facilitiesStr = clinic.facilities;
+        }
+      }
+    }
+
     setForm({
       name: clinic.name || "",
       registrationNumber: clinic.registrationNumber || "",
@@ -71,8 +106,8 @@ export default function AdminClinics() {
       state: clinic.state || "",
       zipCode: clinic.zipCode || "",
       country: clinic.country || "India",
-      services: (clinic.services || []).join(", "),
-      facilities: (clinic.facilities || []).join(", "),
+      services: servicesStr,
+      facilities: facilitiesStr,
       imageUrl: clinic.imageUrl || "",
     });
     setEditing(clinic);
@@ -137,29 +172,41 @@ export default function AdminClinics() {
           .filter(Boolean)
       : [];
 
-    const payload = {
-      name: form.name,
-      registrationNumber: form.registrationNumber || undefined,
-      email: form.email,
-      phone: form.phone,
-      address: form.address,
-      place: form.place,
-      state: form.state,
-      zipCode: form.zipCode,
-      country: form.country,
-      services: servicesArray,
-      facilities: facilitiesArray,
-      imageUrl: form.imageUrl,
-    };
-
-    console.log("Submitting clinic payload:", payload); // Debug log
-
     try {
+      // Create FormData for file upload
+      const formData = new FormData();
+
+      // Add all form fields
+      formData.append("name", form.name);
+      if (form.registrationNumber)
+        formData.append("registrationNumber", form.registrationNumber);
+      formData.append("email", form.email);
+      formData.append("phone", form.phone);
+      formData.append("address", form.address);
+      formData.append("place", form.place);
+      formData.append("state", form.state);
+      formData.append("zipCode", form.zipCode);
+      formData.append("country", form.country);
+      formData.append("services", JSON.stringify(servicesArray));
+      formData.append("facilities", JSON.stringify(facilitiesArray));
+
+      // Add image file if selected
+      if (imageFile) {
+        formData.append("image", imageFile);
+      } else if (form.imageUrl) {
+        formData.append("imageUrl", form.imageUrl);
+      }
+
+      console.log(
+        "Submitting clinic with image:",
+        imageFile ? "File selected" : "URL only"
+      );
+
       if (editing) {
-        await put(`/clinics/${editing._id}`, payload);
+        await put(`/clinics/${editing._id}`, formData);
         toast.success("Clinic updated successfully!");
       } else {
-        await post("/clinics", payload);
+        await post("/clinics", formData);
         toast.success("Clinic added successfully!");
       }
       setModalOpen(false);
@@ -235,7 +282,7 @@ export default function AdminClinics() {
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                       {clinic.imageUrl ? (
                         <img
-                          src={clinic.imageUrl}
+                          src={getEntityImageUrl(clinic, "imageUrl")}
                           alt={clinic.name}
                           className="w-full h-full object-cover"
                         />

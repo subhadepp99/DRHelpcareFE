@@ -14,12 +14,12 @@ import {
   Moon,
   Sun,
   Heart,
-  Calendar,
-  Search,
   Phone,
+  Search,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuthStore } from "@/store/authStore";
+import { getEntityImageUrl } from "@/utils/imageUtils";
 
 export default function Header() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function Header() {
   const navigation = [
     { name: "Find Doctors", href: "/search?type=doctors" },
     { name: "Clinics", href: "/search?type=clinics" },
-    { name: "Pharmacies", href: "/search?type=pharmacies" },
+    // { name: "Pharmacies", href: "/search?type=pharmacies" },
     { name: "Pathology", href: "/pathology" },
     { name: "Ambulance", href: "/search?type=ambulance" },
     { name: "About", href: "/about" },
@@ -59,7 +59,7 @@ export default function Header() {
               />
             </div>
             <span className="text-xl font-bold text-gray-900 dark:text-white">
-              Dr Helpcare Pro
+              Dr Help
             </span>
           </Link>
           {/* Global Call & WhatsApp */}
@@ -98,9 +98,17 @@ export default function Header() {
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                 >
-                  <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
+                  {user?.profileImageUrl ? (
+                    <img
+                      src={getEntityImageUrl(user, "profileImageUrl")}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                  )}
                   <span className="text-gray-700 dark:text-gray-300 font-medium">
                     {user?.firstName}
                   </span>
@@ -121,14 +129,6 @@ export default function Header() {
                       >
                         <User className="w-4 h-4" />
                         <span>Profile</span>
-                      </Link>
-                      <Link
-                        href="/bookings"
-                        className="flex items-center space-x-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        <Calendar className="w-4 h-4" />
-                        <span>My Bookings</span>
                       </Link>
                       {user?.role === "admin" || user?.role === "superuser" ? (
                         <Link
