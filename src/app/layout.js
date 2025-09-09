@@ -42,6 +42,9 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="fast2sms" content="DWzgDv29YmgQMlIwX81jjuZiiMqsRo1J" />
+      </head>
       <body className={inter.className}>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider attribute="class" defaultTheme="light">
