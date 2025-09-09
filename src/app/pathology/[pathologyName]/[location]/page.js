@@ -22,8 +22,9 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useApi } from "@/hooks/useApi";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl } from "@/utils/imageUtils";
 import Image from "next/image";
+import FAQAccordion from "@/components/common/FAQAccordion";
 
 export default function PathologyDetailsPage() {
   const params = useParams();
@@ -47,7 +48,6 @@ export default function PathologyDetailsPage() {
         // If ID is provided, fetch directly by ID
         console.log("Fetching pathology details by ID:", pathologyId);
         const detailsResponse = await get(`/pathology/by-id/${pathologyId}`);
-        debugger;
         if (detailsResponse.data?.data[0].pathology) {
           setPathology(detailsResponse.data.data[0].pathology);
         } else {
@@ -190,7 +190,7 @@ export default function PathologyDetailsPage() {
       <main className="pt-20">
         {/* Breadcrumb */}
         <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
             <ol className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
               <li>
                 <button
@@ -222,28 +222,20 @@ export default function PathologyDetailsPage() {
           >
             {/* Hero Section */}
             <div className="relative h-64 md:h-80 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-800 dark:to-red-900">
-              {pathology.imageUrl ? (
+              {getImageUrl(pathology.imageUrl) ? (
                 <Image
                   src={getImageUrl(pathology.imageUrl)}
                   alt={pathology.name}
                   fill
                   className="object-cover"
-                  onError={(e) => {
-                    console.error("Image failed to load:", pathology.imageUrl);
-                    e.target.style.display = "none";
-                    e.target.nextSibling.style.display = "flex";
-                  }}
-                  onLoad={() => {
-                    console.log(
-                      "Image loaded successfully:",
-                      pathology.imageUrl
-                    );
-                  }}
+                  unoptimized
                 />
               ) : null}
               <div
                 className="absolute inset-0 flex items-center justify-center"
-                style={{ display: pathology.imageUrl ? "none" : "flex" }}
+                style={{
+                  display: getImageUrl(pathology.imageUrl) ? "none" : "flex",
+                }}
               >
                 <TestTube className="w-24 h-24 text-red-600 dark:text-red-400" />
               </div>
@@ -562,6 +554,12 @@ export default function PathologyDetailsPage() {
             </div>
           </motion.div>
         </div>
+        {/* FAQs */}
+        <FAQAccordion
+          entityType="pathology"
+          entityId={pathology?._id}
+          className="mt-6"
+        />
       </main>
 
       <Footer />

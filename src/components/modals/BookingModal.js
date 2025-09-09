@@ -24,6 +24,10 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
   const [selectedTime, setSelectedTime] = useState(null);
   const [loading, setLoading] = useState(false);
   const [bookingId, setBookingId] = useState(null);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpInput, setOtpInput] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [pendingForm, setPendingForm] = useState(null);
 
   const {
     register,
@@ -136,21 +140,44 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
   };
 
   const onSubmit = async (data) => {
+    // Open OTP modal (dummy OTP flow)
+    if (!data.phone?.trim()) {
+      toast.error("Phone is required");
+      return;
+    }
+    setPendingForm(data);
+    setOtpInput("");
+    setOtpError("");
+    setShowOtpModal(true);
+  };
+
+  const handleVerifyOtpAndBook = async () => {
     try {
+      setOtpError("");
+      // Dummy OTP check
+      if (otpInput.trim() !== "123456") {
+        setOtpError("Invalid OTP. Use 123456 for now.");
+        return;
+      }
       setLoading(true);
 
-      const bookingData = {
+      const phoneToUse = pendingForm.phone?.trim();
+      const bookingPayload = {
         doctorId: doctor._id,
-        patientId: user.id,
-        date: selectedDate,
-        time: selectedTime,
-        ...data,
+        appointmentDate: selectedDate,
+        appointmentTime: selectedTime,
+        patientDetails: {
+          patientName: pendingForm.patientName,
+          phone: phoneToUse,
+          email: pendingForm.email,
+        },
+        reasonForVisit: pendingForm.reason,
+        symptoms: pendingForm.reason,
+        paymentMethod: "cash",
       };
-
-      // Simulate booking API call
-      const response = await post("/bookings", bookingData);
-
-      setBookingId(response.data.bookingId || "BK" + Date.now());
+      const response = await post("/bookings", bookingPayload);
+      setShowOtpModal(false);
+      setBookingId(response.data.booking?._id || "BK" + Date.now());
       setStep(4);
       toast.success("Appointment booked successfully!");
     } catch (error) {
@@ -641,18 +668,62 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                     disabled={loading}
                     className="btn-primary flex items-center justify-center"
                   >
-                    {loading ? (
-                      <div className="spinner mr-2"></div>
-                    ) : (
-                      <CreditCard className="w-4 h-4 mr-2" />
-                    )}
-                    <span>Confirm & Pay</span>
+                    {loading ? <div className="spinner mr-2"></div> : null}
+                    <span>Confirm</span>
                   </button>
                 )}
               </div>
             </div>
           </motion.div>
         </div>
+        {/* OTP Modal */}
+        {showOtpModal && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
+            onClick={() => !loading && setShowOtpModal(false)}
+          >
+            <div
+              className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-sm p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Verify Phone
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Enter the 6-digit OTP sent to your phone. Use 123456 for now.
+              </p>
+              <input
+                value={otpInput}
+                onChange={(e) => setOtpInput(e.target.value)}
+                maxLength={6}
+                placeholder="123456"
+                className="input-field w-full mb-2"
+              />
+              {otpError && (
+                <div className="text-red-600 text-sm mb-2">{otpError}</div>
+              )}
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  className="btn-secondary"
+                  disabled={loading}
+                  onClick={() => setShowOtpModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  disabled={loading}
+                  onClick={handleVerifyOtpAndBook}
+                >
+                  {loading ? (
+                    <div className="spinner mr-2 inline-block"></div>
+                  ) : null}
+                  Confirm Booking
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AnimatePresence>
   );

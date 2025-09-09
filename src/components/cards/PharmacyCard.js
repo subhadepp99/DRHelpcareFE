@@ -145,7 +145,7 @@ export default function PharmacyCard({ pharmacy }) {
               e.stopPropagation();
               handleViewDetails();
             }}
-            className="flex-1 btn-secondary text-sm py-2"
+            className="flex-1 btn-secondary text-sm py-1.5"
           >
             View Details
           </button>
@@ -154,7 +154,7 @@ export default function PharmacyCard({ pharmacy }) {
               e.stopPropagation();
               // Handle contact
             }}
-            className="flex-1 btn-primary text-sm py-2"
+            className="flex-1 btn-primary text-sm py-1.5"
           >
             <Phone className="w-4 h-4 mr-1" />
             Contact

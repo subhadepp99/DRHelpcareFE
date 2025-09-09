@@ -8,6 +8,21 @@ module.exports = {
   darkMode: "class",
   theme: {
     extend: {
+      fontSize: {
+        xs: ["0.68rem", { lineHeight: "0.85rem" }], // 0.75rem -> 0.68rem (15% smaller)
+        sm: ["0.765rem", { lineHeight: "1.02rem" }], // 0.875rem -> 0.765rem
+        base: ["0.85rem", { lineHeight: "1.275rem" }], // 1rem -> 0.85rem
+        lg: ["0.935rem", { lineHeight: "1.36rem" }], // 1.125rem -> 0.935rem
+        xl: ["1.02rem", { lineHeight: "1.445rem" }], // 1.25rem -> 1.02rem
+        "2xl": ["1.19rem", { lineHeight: "1.53rem" }], // 1.5rem -> 1.19rem
+        "3xl": ["1.445rem", { lineHeight: "1.7rem" }], // 1.875rem -> 1.445rem
+        "4xl": ["1.7rem", { lineHeight: "1.87rem" }], // 2.25rem -> 1.7rem
+        "5xl": ["2.04rem", { lineHeight: "2.125rem" }], // 3rem -> 2.04rem
+        "6xl": ["2.38rem", { lineHeight: "2.38rem" }], // 3.75rem -> 2.38rem
+        "7xl": ["2.89rem", { lineHeight: "2.89rem" }], // 4.5rem -> 2.89rem
+        "8xl": ["3.4rem", { lineHeight: "3.4rem" }], // 6rem -> 3.4rem
+        "9xl": ["4.08rem", { lineHeight: "4.08rem" }], // 8rem -> 4.08rem
+      },
       colors: {
         primary: {
           50: "#f5f3ff", // Light purple

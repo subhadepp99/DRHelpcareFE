@@ -23,6 +23,7 @@ import ClinicCard from "@/components/cards/ClinicCard";
 import PharmacyCard from "@/components/cards/PharmacyCard";
 import SearchFilters from "@/components/search/SearchFilters";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
+import FAQAccordion from "@/components/common/FAQAccordion";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -43,7 +44,21 @@ export default function SearchPage() {
     fee: "",
     rating: "",
     distance: "",
+    department: searchParams.get("department") || "",
   });
+
+  // Debug department parameter
+  useEffect(() => {
+    const departmentParam = searchParams.get("department");
+    console.log(
+      "Search page loaded with department parameter:",
+      departmentParam
+    );
+    console.log(
+      "Decoded department:",
+      departmentParam ? decodeURIComponent(departmentParam) : "none"
+    );
+  }, [searchParams]);
 
   // Location typeahead
   const locations = [
@@ -96,6 +111,7 @@ export default function SearchPage() {
       console.log("Search query params:", queryParams.toString());
       console.log("Search type:", searchType);
       console.log("Search query:", searchQuery);
+      console.log("Department filter:", filters.department);
       const response = await get(`/search?${queryParams.toString()}`);
       console.log("Search response:", response.data);
       console.log("Search results:", response.data?.results);
@@ -128,9 +144,10 @@ export default function SearchPage() {
     if (searchQuery) params.set("q", searchQuery);
     if (searchType !== "all") params.set("type", searchType);
     if (selectedLocation) params.set("city", selectedLocation);
+    if (filters.department) params.set("department", filters.department);
     const newUrl = `/search${params.toString() ? `?${params.toString()}` : ""}`;
     router.replace(newUrl, { shallow: true });
-  }, [searchQuery, searchType, selectedLocation, router]);
+  }, [searchQuery, searchType, selectedLocation, filters.department, router]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -139,6 +156,13 @@ export default function SearchPage() {
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
+  };
+
+  // Normalize singular type names to results keys
+  const mapTypeToKey = (type) => {
+    if (type === "ambulance") return "ambulances";
+    if (type === "pathology") return "pathologies";
+    return type;
   };
 
   const getTotalResults = () => {
@@ -151,7 +175,8 @@ export default function SearchPage() {
         (results.pathologies?.length || 0)
       );
     }
-    return results[searchType]?.length || 0;
+    const key = mapTypeToKey(searchType);
+    return results[key]?.length || 0;
   };
 
   const searchTypes = [
@@ -176,7 +201,7 @@ export default function SearchPage() {
       <Header />
       {/* Breadcrumb Navigation */}
       <nav
-        className="text-sm text-gray-500 dark:text-gray-400 py-4 px-4 max-w-7xl mx-auto"
+        className="text-sm text-gray-500 dark:text-gray-400 py-4 px-4 max-w-7xl"
         aria-label="Breadcrumb"
       >
         <ol className="list-reset flex">
@@ -213,7 +238,7 @@ export default function SearchPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search for doctors, clinics, ambulances..."
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
                     aria-label="Search input"
                     minLength={3}
                   />
@@ -225,7 +250,7 @@ export default function SearchPage() {
                     value={locationInput}
                     onChange={handleLocationInput}
                     placeholder="Enter location (city, state, village)"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
                     autoComplete="off"
                   />
                   {locationSuggestions.length > 0 && (
@@ -242,7 +267,7 @@ export default function SearchPage() {
                     </ul>
                   )}
                 </div>
-                <button type="submit" className="btn-primary px-6 py-3">
+                <button type="submit" className="btn-primary px-6 py-2">
                   Search
                 </button>
               </div>
@@ -254,16 +279,16 @@ export default function SearchPage() {
                 <button
                   key={type.value}
                   onClick={() => setSearchType(type.value)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     searchType === type.value
                       ? "bg-primary-600 text-white"
                       : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
                 >
                   {type.icon} {type.label}
-                  {results[type.value] && (
+                  {results[mapTypeToKey(type.value)] && (
                     <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                      {results[type.value].length}
+                      {results[mapTypeToKey(type.value)].length}
                     </span>
                   )}
                 </button>
@@ -285,6 +310,14 @@ export default function SearchPage() {
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                     <MapPin className="w-4 h-4 mr-1" />
                     <span>{selectedLocation}</span>
+                  </div>
+                )}
+
+                {filters.department && (
+                  <div className="flex items-center text-sm text-primary-600 dark:text-primary-400">
+                    <span className="bg-primary-100 dark:bg-primary-900 px-2 py-1 rounded-full text-xs font-medium">
+                      Department: {decodeURIComponent(filters.department)}
+                    </span>
                   </div>
                 )}
 
@@ -442,7 +475,7 @@ export default function SearchPage() {
                                 `/clinic/${clinicName}/${location}?id=${clinic._id}`
                               );
                             }}
-                            className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
                           >
                             View Details
                           </button>
@@ -532,16 +565,26 @@ export default function SearchPage() {
                         </div>
 
                         <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                          <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center justify-between text-sm mb-3">
                             <span className="text-gray-600 dark:text-gray-400">
                               Location: {ambulance.location || "N/A"},{" "}
                               {ambulance.city || "N/A"}
                             </span>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() =>
+                                router.push(`/ambulance/${ambulance._id}`)
+                              }
+                              className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              View Details
+                            </button>
                             <button
                               onClick={() =>
                                 window.open(`tel:${ambulance.phone}`, "_blank")
                               }
-                              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
                             >
                               Call Now
                             </button>
@@ -623,7 +666,7 @@ export default function SearchPage() {
                                 `/pathology/${pathologyName}/${location}?id=${pathology._id}`
                               );
                             }}
-                            className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
                           >
                             View Details
                           </button>
@@ -759,16 +802,26 @@ export default function SearchPage() {
                         </div>
 
                         <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                          <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center justify-between text-sm mb-3">
                             <span className="text-gray-600 dark:text-gray-400">
                               Location: {ambulance.location || "N/A"},{" "}
                               {ambulance.city || "N/A"}
                             </span>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() =>
+                                router.push(`/ambulance/${ambulance._id}`)
+                              }
+                              className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              View Details
+                            </button>
                             <button
                               onClick={() =>
                                 window.open(`tel:${ambulance.phone}`, "_blank")
                               }
-                              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
                             >
                               Call Now
                             </button>
@@ -852,7 +905,7 @@ export default function SearchPage() {
                                   `/pathology/${pathologyName}/${location}`
                                 );
                               }}
-                              className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                              className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
                             >
                               View Details
                             </button>
@@ -876,6 +929,12 @@ export default function SearchPage() {
             </div>
           )}
         </div>
+        {/* FAQs for Doctor Search */}
+        {searchType === "doctors" && (
+          <div className="mt-10">
+            <FAQAccordion entityType="doctor_search" />
+          </div>
+        )}
       </main>
 
       <Footer />

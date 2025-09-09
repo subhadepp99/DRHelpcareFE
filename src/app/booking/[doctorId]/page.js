@@ -20,8 +20,9 @@ export default function BookingDirectPage() {
 
   const fetchDoctor = async () => {
     try {
-      const { data } = await get(`/doctors/${doctorId}`);
-      setDoctor(data);
+      const res = await get(`/doctors/${doctorId}`);
+      const doctorData = res.data?.data || res.data;
+      setDoctor(doctorData);
     } catch (e) {
       setError("Doctor not found");
       toast.error("Unable to fetch doctor");

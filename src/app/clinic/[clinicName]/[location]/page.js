@@ -16,14 +16,18 @@ import {
   ExternalLink,
   Search,
   X,
+  Share,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import ReactStars from "react-rating-stars-component";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useApi } from "@/hooks/useApi";
+import FAQAccordion from "@/components/common/FAQAccordion";
 
 import Image from "next/image";
+import { getImageUrl } from "@/utils/imageUtils";
 
 export default function ClinicDetailsPage() {
   const params = useParams();
@@ -249,6 +253,25 @@ export default function ClinicDetailsPage() {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      const url = typeof window !== "undefined" ? window.location.href : "";
+      const title = clinic?.name || "Clinic";
+      if (navigator.share) {
+        await navigator.share({
+          title,
+          text: `Check out ${title} on Dr Help`,
+          url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied to clipboard");
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
   const status = getCurrentStatus();
 
   if (apiLoading) {
@@ -297,7 +320,7 @@ export default function ClinicDetailsPage() {
       <main className="pt-20">
         {/* Breadcrumb */}
         <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
             <ol className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
               <li>
                 <button
@@ -331,7 +354,7 @@ export default function ClinicDetailsPage() {
                 onChange={(e) => handleSearch(e.target.value)}
                 onFocus={() => setShowSearchResults(true)}
                 placeholder="Search for clinics or locations..."
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
               />
               {showSearchResults &&
                 (searchResults.length > 0 || allLocations.length > 0) && (
@@ -399,31 +422,20 @@ export default function ClinicDetailsPage() {
           >
             {/* Hero Section */}
             <div className="relative h-64 md:h-80 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-800 dark:to-green-900">
-              {clinic.imageUrl ? (
+              {getImageUrl(clinic.imageUrl) ? (
                 <Image
-                  src={
-                    clinic.imageUrl.startsWith("http")
-                      ? clinic.imageUrl
-                      : `${process.env.NEXT_PUBLIC_API_URL || ""}${
-                          clinic.imageUrl
-                        }`
-                  }
+                  src={getImageUrl(clinic.imageUrl)}
                   alt={clinic.name}
                   fill
                   className="object-cover"
-                  onError={(e) => {
-                    console.error("Image failed to load:", clinic.imageUrl);
-                    e.target.style.display = "none";
-                    e.target.nextSibling.style.display = "flex";
-                  }}
-                  onLoad={() => {
-                    console.log("Image loaded successfully:", clinic.imageUrl);
-                  }}
+                  unoptimized
                 />
               ) : null}
               <div
                 className="absolute inset-0 flex items-center justify-center"
-                style={{ display: clinic.imageUrl ? "none" : "flex" }}
+                style={{
+                  display: getImageUrl(clinic.imageUrl) ? "none" : "flex",
+                }}
               >
                 <Building2 className="w-24 h-24 text-green-600 dark:text-green-400" />
               </div>
@@ -543,52 +555,83 @@ export default function ClinicDetailsPage() {
               </div>
 
               {/* Services & Facilities */}
-              {(clinic.services?.length > 0 ||
-                clinic.facilities?.length > 0) && (
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Services & Facilities
-                  </h3>
+              {(() => {
+                // Helper to normalize list values into clean string tags
+                const normalizeList = (value) => {
+                  let items = value;
+                  // Try to parse JSON if it's a string
+                  if (typeof items === "string") {
+                    const trimmed = items.trim();
+                    try {
+                      items = JSON.parse(trimmed);
+                    } catch {
+                      // Fallback: split by comma
+                      items = trimmed.split(",");
+                    }
+                  }
+                  // Ensure array
+                  if (!Array.isArray(items)) items = [items].filter(Boolean);
+                  // Flatten nested arrays
+                  items = items.flat ? items.flat() : items;
+                  // Map to strings and strip quotes/brackets/extra chars
+                  return items
+                    .map((it) =>
+                      String(it)
+                        .replace(/[\\\[\]\"']/g, "")
+                        .trim()
+                    )
+                    .filter((s) => s.length > 0);
+                };
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {clinic.services?.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
-                          Services
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {clinic.services.map((service, index) => (
-                            <span
-                              key={index}
-                              className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-sm rounded-full"
-                            >
-                              {service}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                const services = normalizeList(clinic.services || []);
+                const facilities = normalizeList(clinic.facilities || []);
 
-                    {clinic.facilities?.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
-                          Facilities
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {clinic.facilities.map((facility, index) => (
-                            <span
-                              key={index}
-                              className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full"
-                            >
-                              {facility}
-                            </span>
-                          ))}
+                return services.length > 0 || facilities.length > 0 ? (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                      Services & Facilities
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {services.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            Services
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {services.map((service, index) => (
+                              <span
+                                key={index}
+                                className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-sm rounded-full"
+                              >
+                                {service}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+
+                      {facilities.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            Facilities
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {facilities.map((facility, index) => (
+                              <span
+                                key={index}
+                                className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full"
+                              >
+                                {facility}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : null;
+              })()}
 
               {/* Operating Hours */}
               {/* Operating Hours - Commented Out */}
@@ -657,15 +700,9 @@ export default function ClinicDetailsPage() {
                             className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
                           >
                             <div className="flex items-center space-x-3 mb-3">
-                              {imageUrl ? (
+                              {getImageUrl(imageUrl) ? (
                                 <img
-                                  src={
-                                    imageUrl.startsWith("http")
-                                      ? imageUrl
-                                      : `${
-                                          process.env.NEXT_PUBLIC_API_URL || ""
-                                        }${imageUrl}`
-                                  }
+                                  src={getImageUrl(imageUrl)}
                                   alt={
                                     firstName && lastName
                                       ? `Dr. ${firstName} ${lastName}`
@@ -674,28 +711,16 @@ export default function ClinicDetailsPage() {
                                       : "Doctor"
                                   }
                                   className="w-12 h-12 rounded-full object-cover border-2 border-primary-200"
-                                  onError={(e) => {
-                                    console.error(
-                                      "Image failed to load:",
-                                      imageUrl
-                                    );
-                                    e.target.style.display = "none";
-                                    e.target.nextSibling.style.display = "flex";
-                                  }}
-                                  onLoad={() => {
-                                    console.log(
-                                      "Image loaded successfully:",
-                                      imageUrl
-                                    );
-                                  }}
                                 />
                               ) : null}
                               <div
                                 className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                                  imageUrl ? "hidden" : "flex"
+                                  getImageUrl(imageUrl) ? "hidden" : "flex"
                                 }`}
                                 style={{
-                                  display: imageUrl ? "none" : "flex",
+                                  display: getImageUrl(imageUrl)
+                                    ? "none"
+                                    : "flex",
                                 }}
                               >
                                 <Users className="w-6 h-6 text-primary-600" />
@@ -737,19 +762,29 @@ export default function ClinicDetailsPage() {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <button className="flex-1 bg-primary-600 hover:bg-primary-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                <button className="flex-1 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
                   <Calendar className="w-5 h-5 mr-2 inline" />
                   Book Appointment
                 </button>
                 {clinic.phone && (
-                  <button className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                  <button className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
                     <Phone className="w-5 h-5 mr-2 inline" />
                     Call Now
                   </button>
                 )}
+                <button
+                  onClick={handleShare}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                >
+                  <Share className="w-5 h-5 mr-2" /> Share
+                </button>
               </div>
             </div>
           </motion.div>
+        </div>
+        {/* FAQs */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+          <FAQAccordion entityType="clinic" entityId={clinic?._id} />
         </div>
       </main>
 

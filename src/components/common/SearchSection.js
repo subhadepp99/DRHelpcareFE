@@ -286,7 +286,7 @@ export default function SearchSection({
                       ? "healthcare services"
                       : searchType || "all"
                   }...`}
-                  className="w-full pl-10 pr-4 py-3 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-2 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
 
                 {/* Character count indicator */}
@@ -353,7 +353,7 @@ export default function SearchSection({
                   onChange={handleLocationInput}
                   onFocus={fetchLocationSuggestions}
                   placeholder="Enter location (city, state, village)"
-                  className="w-full pl-10 pr-4 py-3 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-2 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   autoComplete="off"
                 />
                 {showLocationSuggestions && locationSuggestions.length > 0 && (

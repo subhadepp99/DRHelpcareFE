@@ -264,6 +264,23 @@ export default function PathologyPage() {
     setFormData((prev) => ({ ...prev, imageUrl: "" }));
   };
 
+  // Inline row image change (multipart upload of only the image field)
+  const handleRowImageChange = async (pathology, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      await put(`/pathologies/${pathology._id}`, fd);
+      toast.success("Image updated");
+      // Optimistic update: refresh list or update local state
+      fetchPathologies();
+    } catch (err) {
+      console.error("Row image update failed", err);
+      toast.error("Failed to update image");
+    }
+  };
+
   const addTest = () => {
     const newTest = {
       name: "",
@@ -447,148 +464,130 @@ export default function PathologyPage() {
         </div>
       </div>
 
-      {/* Desktop Grid View */}
-      <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPathologies.map((pathology) => (
-          <div
-            key={pathology._id}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden transform hover:-translate-y-1"
-          >
-            {/* Pathology Image */}
-            <div className="relative h-48 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900 dark:to-indigo-900">
-              {pathology.imageUrl ? (
-                <img
-                  src={getEntityImageUrl(pathology, "imageUrl")}
-                  alt={pathology.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <TestTube className="w-16 h-16 text-blue-400 dark:text-blue-300" />
-                </div>
-              )}
-
-              {/* Action Buttons Overlay */}
-              <div className="absolute top-3 right-3 flex space-x-2">
-                <button
-                  onClick={() => handleEdit(pathology)}
-                  className="p-2 bg-white/90 dark:bg-gray-800/90 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg backdrop-blur-sm transition-colors"
-                  title="Edit"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(pathology._id)}
-                  className="p-2 bg-white/90 dark:bg-gray-800/90 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg backdrop-blur-sm transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Pathology Info */}
-            <div className="p-6">
-              <div className="mb-4">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  {pathology.name}
-                </h3>
-                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  <MapPin className="w-4 h-4" />
-                  <span>
-                    {pathology.place}, {pathology.state}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                  <Phone className="w-4 h-4" />
-                  <span>{pathology.phone}</span>
-                </div>
-              </div>
-
-              {/* Home Collection Badge */}
-              {pathology.homeCollection?.available && (
-                <div className="mb-4">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                    <Truck className="w-3 h-3 mr-1" />
-                    Home Collection Available
-                    {pathology.homeCollection.fee && (
-                      <span className="ml-1">
-                        (₹{pathology.homeCollection.fee})
-                      </span>
-                    )}
-                  </span>
-                </div>
-              )}
-
-              {/* Tests Packages */}
-              <div className="mb-4">
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
-                  Test Packages ({pathology.testsOffered?.length || 0})
-                </h4>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {pathology.testsOffered?.slice(0, 3).map((test, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {test.name}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {test.reportTime || "24h"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg font-bold text-primary-600 dark:text-primary-400">
-                            ₹{test.discountedPrice || test.price}
-                          </span>
-                          {test.discountedPrice &&
-                            test.discountedPrice < test.price && (
-                              <span className="text-sm text-gray-500 line-through">
-                                ₹{test.price}
-                              </span>
-                            )}
+      {/* Desktop Table View */}
+      <div className="hidden md:block bg-white dark:bg-gray-900 rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Image
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Location
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Contact
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Tests
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Home Collection
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredPathologies.map((pathology) => {
+                const imgSrc = getEntityImageUrl(pathology, "imageUrl");
+                return (
+                  <tr
+                    key={pathology._id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                          {imgSrc ? (
+                            <img
+                              src={imgSrc}
+                              alt={pathology.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <TestTube className="w-5 h-5 text-blue-400" />
+                          )}
                         </div>
-                        {test.discountValue && (
-                          <span className="text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 px-2 py-1 rounded-full">
-                            {test.discountType === "percentage"
-                              ? `${test.discountValue}% OFF`
-                              : `₹${test.discountValue} OFF`}
-                          </span>
-                        )}
+                        <label className="px-2 py-1.5 border text-xs rounded cursor-pointer hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
+                          Change
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleRowImageChange(pathology, e)}
+                          />
+                        </label>
                       </div>
-                    </div>
-                  ))}
-                  {pathology.testsOffered?.length > 3 && (
-                    <div className="text-center">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        +{pathology.testsOffered.length - 3} more tests
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleEdit(pathology)}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(pathology._id)}
-                  className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {pathology.name}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+                        {pathology.category}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                      {pathology.place}, {pathology.state}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-700 dark:text-gray-300">
+                        {pathology.phone}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {pathology.email}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
+                      {pathology.testsOffered?.length || 0}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {pathology.homeCollection?.available ? (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          Yes
+                          {pathology.homeCollection?.fee
+                            ? ` (₹${pathology.homeCollection.fee})`
+                            : ""}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                          No
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleEdit(pathology)}
+                          className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(pathology._id)}
+                          className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add/Edit Modal */}

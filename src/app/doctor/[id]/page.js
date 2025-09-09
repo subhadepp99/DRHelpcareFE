@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useApi } from "@/hooks/api";
-import { ArrowLeft, Search, X } from "lucide-react";
+import { ArrowLeft, Search, X, Share } from "lucide-react";
+import toast from "react-hot-toast";
 import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import Head from "next/head";
+import FAQAccordion from "@/components/common/FAQAccordion";
 
 export default function DoctorProfilePage() {
   const { id } = useParams();
@@ -114,10 +116,63 @@ export default function DoctorProfilePage() {
     setShowSearchResults(false);
   };
 
+  const handleShare = async () => {
+    try {
+      const url = typeof window !== "undefined" ? window.location.href : "";
+      const name =
+        doctor?.name || `${doctor?.firstName || ""} ${doctor?.lastName || ""}`;
+      if (navigator.share) {
+        await navigator.share({
+          title: `Dr. ${name}`,
+          text: `Check out Dr. ${name} on Dr Help`,
+          url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied to clipboard");
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
   if (loading)
     return (
       <>
         <Header />
+        {/* Breadcrumb Navigation */}
+        <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pt-16">
+          <div className="max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+            <ol className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+              <li>
+                <button
+                  onClick={() => router.back()}
+                  className="flex items-center hover:text-primary-600 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Back
+                </button>
+              </li>
+              <li>
+                <span className="mx-2">/</span>
+              </li>
+              <li>
+                <a
+                  href="/search?type=doctors"
+                  className="hover:text-primary-600 transition-colors"
+                >
+                  Doctors
+                </a>
+              </li>
+              <li>
+                <span className="mx-2">/</span>
+              </li>
+              <li>
+                <span className="text-primary-600 font-medium">Loading...</span>
+              </li>
+            </ol>
+          </div>
+        </nav>
         <div className="max-w-4xl mx-auto px-4 py-6">
           <p>Loading...</p>
         </div>
@@ -128,6 +183,41 @@ export default function DoctorProfilePage() {
     return (
       <>
         <Header />
+        {/* Breadcrumb Navigation */}
+        <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pt-16">
+          <div className="max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+            <ol className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+              <li>
+                <button
+                  onClick={() => router.back()}
+                  className="flex items-center hover:text-primary-600 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Back
+                </button>
+              </li>
+              <li>
+                <span className="mx-2">/</span>
+              </li>
+              <li>
+                <a
+                  href="/search?type=doctors"
+                  className="hover:text-primary-600 transition-colors"
+                >
+                  Doctors
+                </a>
+              </li>
+              <li>
+                <span className="mx-2">/</span>
+              </li>
+              <li>
+                <span className="text-primary-600 font-medium">
+                  Doctor Not Found
+                </span>
+              </li>
+            </ol>
+          </div>
+        </nav>
         <div className="max-w-4xl mx-auto px-4 py-6">
           <p>Doctor not found.</p>
         </div>
@@ -196,8 +286,8 @@ export default function DoctorProfilePage() {
       </Head>
       <Header />
       {/* Breadcrumb Navigation */}
-      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pt-16">
+        <div className="max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
           <ol className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
             <li>
               <button
@@ -234,7 +324,7 @@ export default function DoctorProfilePage() {
       </nav>
       {/* Custom Doctor Search */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -243,7 +333,7 @@ export default function DoctorProfilePage() {
               onChange={(e) => handleSearch(e.target.value)}
               onFocus={() => setShowSearchResults(true)}
               placeholder="Search for doctors or locations..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
             />
             {showSearchResults &&
               (searchResults.length > 0 || allLocations.length > 0) && (
@@ -381,12 +471,22 @@ export default function DoctorProfilePage() {
           <div className="mt-10 flex flex-col md:flex-row md:items-center md:space-x-8 space-y-4 md:space-y-0">
             <a
               href={`/booking/${doctor._id}`}
-              className="flex-1 btn-primary text-sm px-5 py-2.5 rounded-lg font-semibold shadow hover:shadow-lg transition w-full md:w-auto text-center inline-flex items-center justify-center"
+              className="flex-1 btn-primary text-sm px-5 py-2 rounded-lg font-semibold shadow hover:shadow-lg transition w-full md:w-auto text-center inline-flex items-center justify-center"
             >
               <span className="flex items-center justify-center">Book Now</span>
             </a>
+            <button
+              onClick={handleShare}
+              className="flex-1 md:flex-none inline-flex items-center justify-center px-5 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+            >
+              <Share className="w-4 h-4 mr-2" /> Share
+            </button>
           </div>
         </div>
+      </div>
+      {/* FAQs */}
+      <div className="max-w-4xl mx-auto px-4">
+        <FAQAccordion entityType="doctor" entityId={doctor?._id} />
       </div>
       <Footer />
     </>

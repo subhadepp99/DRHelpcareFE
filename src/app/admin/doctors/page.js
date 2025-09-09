@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useApi } from "@/hooks/useApi";
-import { Plus, Edit, Trash2, Calendar, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, Eye, HelpCircle } from "lucide-react";
 import Modal from "@/components/common/Modal";
 import DoctorScheduleModal from "@/components/modals/DoctorScheduleModal";
 import DoctorViewModal from "@/components/modals/DoctorViewModal";
+import FAQModal from "@/components/modals/FAQModal";
 import toast from "react-hot-toast"; // Import toast
 
 const initialForm = {
@@ -37,6 +38,7 @@ export default function AdminDoctorsPage() {
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [faqModalOpen, setFaqModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
 
   // You can expand the form as required for your model
@@ -208,6 +210,11 @@ export default function AdminDoctorsPage() {
   const openViewModal = (doctor) => {
     setSelectedDoctor(doctor);
     setViewModalOpen(true);
+  };
+
+  const openFaqModal = (doctor) => {
+    setSelectedDoctor(doctor);
+    setFaqModalOpen(true);
   };
 
   const handleScheduleUpdate = (updatedSchedule) => {
@@ -431,6 +438,13 @@ export default function AdminDoctorsPage() {
                     title="Manage Schedule"
                   >
                     <Calendar className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => openFaqModal(doc)}
+                    className="p-1 hover:text-purple-600"
+                    title="Manage FAQs"
+                  >
+                    <HelpCircle className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => openEditModal(doc)}
@@ -751,6 +765,17 @@ export default function AdminDoctorsPage() {
           doctor={selectedDoctor}
           isOpen={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
+        />
+      )}
+
+      {/* FAQ Management Modal */}
+      {faqModalOpen && selectedDoctor && (
+        <FAQModal
+          isOpen={faqModalOpen}
+          onClose={() => setFaqModalOpen(false)}
+          entityType="doctor"
+          entityId={selectedDoctor._id}
+          entityName={selectedDoctor.name}
         />
       )}
     </div>

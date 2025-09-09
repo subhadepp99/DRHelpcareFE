@@ -51,6 +51,13 @@ export default function HomePage() {
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [departmentScrollPosition, setDepartmentScrollPosition] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [isDoctorDragging, setIsDoctorDragging] = useState(false);
+  const [doctorStartX, setDoctorStartX] = useState(0);
+  const [doctorScrollLeft, setDoctorScrollLeft] = useState(0);
 
   useEffect(() => {
     fetchFeaturedDoctors();
@@ -58,15 +65,7 @@ export default function HomePage() {
     fetchTestPackages();
   }, []);
 
-  // Auto-slide for cards
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide(
-        (prev) => (prev + 1) % Math.ceil(featuredDoctors.length / 4)
-      );
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [featuredDoctors.length]);
+  // Auto-slide for cards - removed since we're using manual dragging
 
   const fetchFeaturedDoctors = async () => {
     try {
@@ -82,7 +81,7 @@ export default function HomePage() {
   const fetchDepartments = async () => {
     try {
       const response = await get("/departments/public"); // departments contain pic, details, heading, and linked doctors
-      setDepartments(response.data.departments || []);
+      setDepartments(response.data.data.departments || []);
     } catch (error) {
       setDepartments([]);
     }
@@ -163,6 +162,80 @@ export default function HomePage() {
     window.open(`tel:${phoneNumber}`, "_blank");
   };
 
+  // Department drag handlers
+  const handleDepartmentMouseDown = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - e.currentTarget.offsetLeft);
+    setScrollLeft(e.currentTarget.scrollLeft);
+  };
+
+  const handleDepartmentMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDepartmentMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleDepartmentMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - e.currentTarget.offsetLeft;
+    const walk = (x - startX) * 2;
+    e.currentTarget.scrollLeft = scrollLeft - walk;
+  };
+
+  const scrollDepartmentLeft = () => {
+    const container = document.getElementById("department-container");
+    if (container) {
+      container.scrollLeft -= 300;
+    }
+  };
+
+  const scrollDepartmentRight = () => {
+    const container = document.getElementById("department-container");
+    if (container) {
+      container.scrollLeft += 300;
+    }
+  };
+
+  // Doctor drag handlers
+  const handleDoctorMouseDown = (e) => {
+    setIsDoctorDragging(true);
+    setDoctorStartX(e.pageX - e.currentTarget.offsetLeft);
+    setDoctorScrollLeft(e.currentTarget.scrollLeft);
+  };
+
+  const handleDoctorMouseLeave = () => {
+    setIsDoctorDragging(false);
+  };
+
+  const handleDoctorMouseUp = () => {
+    setIsDoctorDragging(false);
+  };
+
+  const handleDoctorMouseMove = (e) => {
+    if (!isDoctorDragging) return;
+    e.preventDefault();
+    const x = e.pageX - e.currentTarget.offsetLeft;
+    const walk = (x - doctorStartX) * 2;
+    e.currentTarget.scrollLeft = doctorScrollLeft - walk;
+  };
+
+  const scrollDoctorLeft = () => {
+    const container = document.getElementById("doctor-container");
+    if (container) {
+      container.scrollLeft -= 320; // Width of one doctor card + gap
+    }
+  };
+
+  const scrollDoctorRight = () => {
+    const container = document.getElementById("doctor-container");
+    if (container) {
+      container.scrollLeft += 320; // Width of one doctor card + gap
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 relative">
       <Header />
@@ -195,13 +268,62 @@ export default function HomePage() {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
               Our Departments
             </h2>
-
-            <div className="overflow-x-auto scrollbar-hide pb-2">
-              <div className="flex gap-4 min-w-fit">
-                {departments.map((dept) => (
-                  <DepartmentCard key={dept._id} department={dept} />
-                ))}
+            <div className="relative">
+              <div
+                id="department-container"
+                className="overflow-x-auto scrollbar-hide pb-2 cursor-grab active:cursor-grabbing"
+                onMouseDown={handleDepartmentMouseDown}
+                onMouseLeave={handleDepartmentMouseLeave}
+                onMouseUp={handleDepartmentMouseUp}
+                onMouseMove={handleDepartmentMouseMove}
+                style={{ userSelect: "none" }}
+              >
+                <div className="flex gap-4 min-w-fit">
+                  {departments.map(
+                    (dept) => (
+                      console.log(dept),
+                      (<DepartmentCard key={dept._id} department={dept} />)
+                    )
+                  )}
+                </div>
               </div>
+              {/* Scroll indicators */}
+              <button
+                onClick={scrollDepartmentLeft}
+                className="absolute top-1/2 -translate-y-1/2 left-0 w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors z-10"
+              >
+                <svg
+                  className="w-4 h-4 text-gray-600 dark:text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={scrollDepartmentRight}
+                className="absolute top-1/2 -translate-y-1/2 right-0 w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors z-10"
+              >
+                <svg
+                  className="w-4 h-4 text-gray-600 dark:text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
         </section>
@@ -340,13 +462,18 @@ export default function HomePage() {
               </p>
             </motion.div>
 
-            <div className="relative overflow-hidden">
+            <div className="relative">
               <div
-                className="flex transition-transform duration-1000 ease-in-out"
-                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                id="doctor-container"
+                className="overflow-x-auto scrollbar-hide pb-2 cursor-grab active:cursor-grabbing"
+                onMouseDown={handleDoctorMouseDown}
+                onMouseLeave={handleDoctorMouseLeave}
+                onMouseUp={handleDoctorMouseUp}
+                onMouseMove={handleDoctorMouseMove}
+                style={{ userSelect: "none" }}
               >
-                <div className="flex gap-4 min-w-full">
-                  {featuredDoctors.slice(0, 4).map((doctor, index) => (
+                <div className="flex gap-4 min-w-fit">
+                  {featuredDoctors.map((doctor, index) => (
                     <motion.div
                       key={doctor._id}
                       initial={{ opacity: 0, y: 20 }}
@@ -362,45 +489,44 @@ export default function HomePage() {
                     </motion.div>
                   ))}
                 </div>
-                {featuredDoctors.length > 4 && (
-                  <div className="flex gap-4 min-w-full">
-                    {featuredDoctors.slice(4, 8).map((doctor, index) => (
-                      <motion.div
-                        key={doctor._id}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: index * 0.1 }}
-                        className="flex-none w-80"
-                      >
-                        <DoctorCard
-                          doctor={doctor}
-                          showRating={true}
-                          onBook={() => bookAppointment(doctor)}
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
               </div>
-
-              {/* Slider Indicators */}
-              {featuredDoctors.length > 4 && (
-                <div className="flex justify-center mt-6 space-x-2">
-                  {Array.from({
-                    length: Math.ceil(featuredDoctors.length / 4),
-                  }).map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentSlide(index)}
-                      className={`w-3 h-3 rounded-full transition-colors duration-200 ${
-                        index === currentSlide
-                          ? "bg-primary-600"
-                          : "bg-gray-300 dark:bg-gray-600"
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
+              {/* Scroll indicators */}
+              <button
+                onClick={scrollDoctorLeft}
+                className="absolute top-1/2 -translate-y-1/2 left-0 w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors z-10"
+              >
+                <svg
+                  className="w-4 h-4 text-gray-600 dark:text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={scrollDoctorRight}
+                className="absolute top-1/2 -translate-y-1/2 right-0 w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors z-10"
+              >
+                <svg
+                  className="w-4 h-4 text-gray-600 dark:text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
         </section>
@@ -414,37 +540,7 @@ export default function HomePage() {
         />
       )}
 
-      {/* Floating Call & WhatsApp Buttons (global) */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-4 items-end">
-        <a
-          href="https://wa.me/919674243119"
-          className="inline-flex items-center px-4 py-3 rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 transition-all duration-300 hover:scale-110"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            src="/watsapp.png"
-            alt="WhatsApp"
-            width={20}
-            height={20}
-            className="mr-2"
-          />
-          WhatsApp
-        </a>
-        <a
-          href="tel:+919674243119"
-          className="inline-flex items-center px-4 py-3 rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-600 transition-all duration-300 hover:scale-110"
-        >
-          <Image
-            src="/Call.png"
-            alt="Call"
-            width={20}
-            height={20}
-            className="mr-2"
-          />
-          Call
-        </a>
-      </div>
+      {/* Floating Call & WhatsApp Buttons removed as requested */}
 
       <div className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -494,7 +590,7 @@ export default function HomePage() {
 
               {/* Notify Me Button */}
               <div className="mt-6">
-                <button className="bg-primary-600 hover:bg-primary-700 text-white font-medium px-8 py-3 rounded-lg transition-colors duration-200 flex items-center space-x-2 mx-auto">
+                <button className="bg-primary-600 hover:bg-primary-700 text-white font-medium px-8 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2 mx-auto">
                   <Download className="w-5 h-5" />
                   <span>Notify Me When Available</span>
                 </button>

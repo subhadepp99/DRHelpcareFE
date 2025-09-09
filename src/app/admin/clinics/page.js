@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Upload, X } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, X, HelpCircle } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import Modal from "@/components/common/Modal";
 import StatesDropdown from "@/components/common/StatesDropdown";
+import FAQModal from "@/components/modals/FAQModal";
 import toast from "react-hot-toast";
 import { getEntityImageUrl } from "@/utils/imageUtils";
 
@@ -32,6 +33,8 @@ export default function AdminClinics() {
   const [form, setForm] = useState(initialForm);
   const [editing, setEditing] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [faqModalOpen, setFaqModalOpen] = useState(false);
+  const [selectedClinic, setSelectedClinic] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
 
@@ -59,6 +62,11 @@ export default function AdminClinics() {
     setImageFile(null);
     setImagePreview("");
     setModalOpen(true);
+  };
+
+  const openFaqModal = (clinic) => {
+    setSelectedClinic(clinic);
+    setFaqModalOpen(true);
   };
 
   const openEdit = (clinic) => {
@@ -310,6 +318,13 @@ export default function AdminClinics() {
                   <td className="border border-gray-300 p-3">
                     <div className="flex space-x-2">
                       <button
+                        onClick={() => openFaqModal(clinic)}
+                        className="text-purple-600 hover:text-purple-800 p-1 rounded hover:bg-purple-50"
+                        title="Manage FAQs"
+                      >
+                        <HelpCircle className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => openEdit(clinic)}
                         className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50"
                         title="Edit"
@@ -497,6 +512,17 @@ export default function AdminClinics() {
             </button>
           </form>
         </Modal>
+      )}
+
+      {/* FAQ Management Modal */}
+      {faqModalOpen && selectedClinic && (
+        <FAQModal
+          isOpen={faqModalOpen}
+          onClose={() => setFaqModalOpen(false)}
+          entityType="clinic"
+          entityId={selectedClinic._id}
+          entityName={selectedClinic.name}
+        />
       )}
     </div>
   );

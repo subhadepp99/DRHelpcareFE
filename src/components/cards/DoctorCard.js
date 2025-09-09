@@ -195,7 +195,7 @@ export default function DoctorCard({
               e.stopPropagation();
               handleViewDetails();
             }}
-            className="flex-1 btn-secondary text-sm py-2"
+            className="flex-1 btn-secondary text-sm py-1.5"
           >
             View Details
           </button>
@@ -204,7 +204,7 @@ export default function DoctorCard({
               e.stopPropagation();
               handleBooking();
             }}
-            className="flex-1 btn-primary text-sm py-2"
+            className="flex-1 btn-primary text-sm py-1.5"
           >
             Book Appointment
           </button>

@@ -118,25 +118,51 @@ export default function ClinicCard({ clinic }) {
         {/* Services & Doctor Count */}
         <div className="mb-4 space-y-3">
           {/* Services */}
-          {clinic.services && clinic.services.length > 0 && (
-            <div>
-              <div className="flex flex-wrap gap-1">
-                {clinic.services.slice(0, 3).map((service, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full"
-                  >
-                    {service}
-                  </span>
-                ))}
-                {clinic.services.length > 3 && (
-                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">
-                    +{clinic.services.length - 3} more
-                  </span>
-                )}
+          {(() => {
+            // Normalize services to clean string tags (strip quotes/brackets/backslashes)
+            const normalizeList = (value) => {
+              let items = value;
+              if (typeof items === "string") {
+                const trimmed = items.trim();
+                try {
+                  items = JSON.parse(trimmed);
+                } catch {
+                  items = trimmed.split(",");
+                }
+              }
+              if (!Array.isArray(items)) items = [items].filter(Boolean);
+              items = items.flat ? items.flat() : items;
+              return items
+                .map((it) =>
+                  String(it)
+                    .replace(/[\\\[\]\"']/g, "")
+                    .trim()
+                )
+                .filter((s) => s.length > 0);
+            };
+
+            const services = normalizeList(clinic.services || []);
+
+            return services.length > 0 ? (
+              <div>
+                <div className="flex flex-wrap gap-1">
+                  {services.slice(0, 3).map((service, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full"
+                    >
+                      {service}
+                    </span>
+                  ))}
+                  {services.length > 3 && (
+                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">
+                      +{services.length - 3} more
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            ) : null;
+          })()}
 
           {/* Doctor Count */}
           <div className="flex items-center text-gray-600 dark:text-gray-400">
@@ -167,7 +193,7 @@ export default function ClinicCard({ clinic }) {
               e.stopPropagation();
               handleViewDetails();
             }}
-            className="flex-1 btn-secondary text-sm py-2"
+            className="flex-1 btn-secondary text-sm py-1.5"
           >
             View Details
           </button>
@@ -176,7 +202,7 @@ export default function ClinicCard({ clinic }) {
               e.stopPropagation();
               // Handle contact
             }}
-            className="flex-1 btn-primary text-sm py-2 flex items-center justify-center"
+            className="flex-1 btn-primary text-sm py-1.5 flex items-center justify-center"
           >
             <Phone className="w-4 h-4 mr-1" />
             Contact

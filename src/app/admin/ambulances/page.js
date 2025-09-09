@@ -1,9 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Upload, X, Search } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Upload,
+  X,
+  Search,
+  HelpCircle,
+} from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import Modal from "@/components/common/Modal";
+import FAQModal from "@/components/modals/FAQModal";
 import toast from "react-hot-toast";
 
 const initialForm = {
@@ -28,6 +37,8 @@ export default function AmbulancesPage() {
   const [form, setForm] = useState(initialForm);
   const [editing, setEditing] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [faqModalOpen, setFaqModalOpen] = useState(false);
+  const [selectedAmbulance, setSelectedAmbulance] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,6 +71,11 @@ export default function AmbulancesPage() {
     setSelectedImage(null);
     setImagePreview("");
     setModalOpen(true);
+  };
+
+  const openFaqModal = (ambulance) => {
+    setSelectedAmbulance(ambulance);
+    setFaqModalOpen(true);
   };
 
   const openEdit = (ambulance) => {
@@ -299,6 +315,13 @@ export default function AmbulancesPage() {
                   <td className="border border-gray-300 p-3">
                     <div className="flex space-x-2">
                       <button
+                        onClick={() => openFaqModal(ambulance)}
+                        className="text-purple-600 hover:text-purple-800 p-1 rounded hover:bg-purple-50"
+                        title="Manage FAQs"
+                      >
+                        <HelpCircle className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => openEdit(ambulance)}
                         className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50"
                         title="Edit"
@@ -476,6 +499,17 @@ export default function AmbulancesPage() {
             </button>
           </form>
         </Modal>
+      )}
+
+      {/* FAQ Management Modal */}
+      {faqModalOpen && selectedAmbulance && (
+        <FAQModal
+          isOpen={faqModalOpen}
+          onClose={() => setFaqModalOpen(false)}
+          entityType="ambulance"
+          entityId={selectedAmbulance._id}
+          entityName={selectedAmbulance.name}
+        />
       )}
     </div>
   );

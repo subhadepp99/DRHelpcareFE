@@ -202,7 +202,7 @@ export default function DoctorScheduleModal({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl transition-all w-full max-w-6xl max-h-[90vh]"
+            className="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl transition-all w-full max-w-7xl h-[92vh] flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -222,9 +222,9 @@ export default function DoctorScheduleModal({
               </button>
             </div>
 
-            <div className="flex h-[calc(90vh-120px)]">
+            <div className="flex flex-1 overflow-hidden">
               {/* Calendar Section */}
-              <div className="w-2/3 p-6 border-r border-gray-200 dark:border-gray-700">
+              <div className="w-2/3 p-6 border-r border-gray-200 dark:border-gray-700 overflow-auto">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-lg font-medium text-gray-900 dark:text-white">
                     {format(currentMonth, "MMMM yyyy")}
@@ -342,7 +342,7 @@ export default function DoctorScheduleModal({
               </div>
 
               {/* Schedule Details Section */}
-              <div className="w-1/3 p-6">
+              <div className="w-1/3 p-6 overflow-auto">
                 {selectedDate ? (
                   <div>
                     <div className="flex items-center justify-between mb-4">

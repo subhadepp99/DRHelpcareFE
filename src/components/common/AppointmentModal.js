@@ -81,7 +81,7 @@ export default function AppointmentModal({ doctor, onClose }) {
             placeholder="Notes (optional)"
             className="input-field"
           />
-          <button type="submit" className="btn-primary w-full py-2">
+          <button type="submit" className="btn-primary w-full py-1.5">
             Book Appointment
           </button>
         </form>

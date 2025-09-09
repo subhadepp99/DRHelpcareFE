@@ -200,8 +200,53 @@ export default function Header() {
                     {item.name}
                   </Link>
                 ))}
-                {/* Global Call & WhatsApp for mobile */}
-                <div className="flex items-center space-x-2 pt-4"></div>
+                {/* Auth actions on mobile */}
+                {!isAuthenticated ? (
+                  <div className="flex items-center justify-start gap-3 pt-2">
+                    <Link
+                      href="/login"
+                      className="text-gray-700 dark:text-gray-200 hover:text-primary-600 font-medium"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="btn-primary px-4 py-1.5"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Sign Up
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="pt-2">
+                    <Link
+                      href="/profile"
+                      className="block text-gray-700 dark:text-gray-200 hover:text-primary-600 font-medium mb-2"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Profile
+                    </Link>
+                    {(user?.role === "admin" || user?.role === "superuser") && (
+                      <Link
+                        href="/admin"
+                        className="block text-gray-700 dark:text-gray-200 hover:text-primary-600 font-medium mb-2"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Admin Panel
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsMenuOpen(false);
+                      }}
+                      className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 w-full text-left px-0 font-medium"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

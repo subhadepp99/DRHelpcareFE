@@ -14,6 +14,7 @@ import {
   Home,
 } from "lucide-react";
 import Image from "next/image";
+import { getImageUrl } from "@/utils/imageUtils";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
@@ -117,7 +118,7 @@ export default function Pathology() {
                   <input
                     type="text"
                     placeholder="Search for tests, packages, or categories..."
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:text-white text-base"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:text-white text-base"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -168,9 +169,17 @@ export default function Pathology() {
                       className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all duration-300"
                     >
                       <div className="relative h-32 bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-800 dark:to-primary-900">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Package className="w-12 h-12 text-primary-600 dark:text-primary-400" />
-                        </div>
+                        {getImageUrl(pkg.imageUrl) ? (
+                          <img
+                            src={getImageUrl(pkg.imageUrl)}
+                            alt={pkg.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Package className="w-12 h-12 text-primary-600 dark:text-primary-400" />
+                          </div>
+                        )}
                         {pkg.discountedPrice &&
                           pkg.discountedPrice < pkg.price && (
                             <div className="absolute top-2 right-2">
@@ -209,7 +218,7 @@ export default function Pathology() {
                         </div>
                         <button
                           onClick={() => handleCall()}
-                          className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 text-sm"
+                          className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-1.5 px-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 text-sm"
                         >
                           <Phone className="w-3 h-3" />
                           <span>Book Package</span>
@@ -237,9 +246,17 @@ export default function Pathology() {
                           className="flex-none w-64 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all duration-300"
                         >
                           <div className="relative h-32 bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-800 dark:to-primary-900">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Package className="w-12 h-12 text-primary-600 dark:text-primary-400" />
-                            </div>
+                            {getImageUrl(pkg.imageUrl) ? (
+                              <img
+                                src={getImageUrl(pkg.imageUrl)}
+                                alt={pkg.name}
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Package className="w-12 h-12 text-primary-600 dark:text-primary-400" />
+                              </div>
+                            )}
                             {pkg.discountedPrice &&
                               pkg.discountedPrice < pkg.price && (
                                 <div className="absolute top-2 right-2">
@@ -278,7 +295,7 @@ export default function Pathology() {
                             </div>
                             <button
                               onClick={() => handleCall()}
-                              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 text-sm"
+                              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-1.5 px-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 text-sm"
                             >
                               <Phone className="w-3 h-3" />
                               <span>Book Package</span>
@@ -422,8 +439,16 @@ export default function Pathology() {
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <TestTube className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-primary-100 dark:bg-primary-900 flex items-center justify-center flex-shrink-0">
+                            {getImageUrl(test.imageUrl) ? (
+                              <img
+                                src={getImageUrl(test.imageUrl)}
+                                alt={test.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <TestTube className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
@@ -485,14 +510,14 @@ export default function Pathology() {
                               );
                               window.location.href = `/pathology/${testName}/${location}`;
                             }}
-                            className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm"
+                            className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-1.5 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm"
                           >
                             <TestTube className="w-3 h-3" />
                             <span>View Details</span>
                           </button>
                           <button
                             onClick={() => handleCall()}
-                            className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm"
+                            className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-1.5 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm"
                           >
                             <Phone className="w-3 h-3" />
                             <span>Book</span>

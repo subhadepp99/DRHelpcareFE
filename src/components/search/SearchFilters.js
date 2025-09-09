@@ -24,6 +24,7 @@ export default function SearchFilters({
       fee: "",
       rating: "",
       distance: "",
+      department: "",
     };
     setLocalFilters(emptyFilters);
     onFiltersChange(emptyFilters);
@@ -70,6 +71,27 @@ export default function SearchFilters({
       </div>
 
       <div className="space-y-6">
+        {/* Department Filter - Only show for doctors search */}
+        {(searchType === "all" || searchType === "doctors") &&
+          localFilters.department && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Department
+              </label>
+              <div className="flex items-center justify-between p-3 bg-primary-50 dark:bg-primary-900 rounded-lg">
+                <span className="text-sm text-primary-700 dark:text-primary-300 font-medium">
+                  {decodeURIComponent(localFilters.department)}
+                </span>
+                <button
+                  onClick={() => handleFilterChange("department", "")}
+                  className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
         {/* Distance */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">

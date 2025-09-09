@@ -17,16 +17,16 @@
 @layer components {
   /* Purple-themed buttons */
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 shadow-lg hover:shadow-primary-500/25;
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-1.5 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 shadow-lg hover:shadow-primary-500/25;
   }
 
   .btn-secondary {
-    @apply bg-primary-100 hover:bg-primary-200 text-primary-800 dark:bg-primary-900 dark:text-primary-200 font-medium py-2 px-4 rounded-lg transition-all duration-200 border border-primary-300 dark:border-primary-700;
+    @apply bg-primary-100 hover:bg-primary-200 text-primary-800 dark:bg-primary-900 dark:text-primary-200 font-medium py-1.5 px-4 rounded-lg transition-all duration-200 border border-primary-300 dark:border-primary-700;
   }
 
   /* Purple-accented input fields */
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-all duration-200;
+    @apply w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-all duration-200;
   }
 
   /* Cards with purple accents */
@@ -105,11 +105,11 @@
 
 /* Button styles */
 .btn-primary {
-  @apply bg-primary-600 hover:bg-primary-700 text-white font-medium px-6 py-3 rounded-lg transition-colors duration-200;
+  @apply bg-primary-600 hover:bg-primary-700 text-white font-medium px-6 py-2 rounded-lg transition-colors duration-200;
 }
 
 .btn-secondary {
-  @apply bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium px-6 py-3 rounded-lg transition-colors duration-200;
+  @apply bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium px-6 py-2 rounded-lg transition-colors duration-200;
 }
 
 /* Card styles */
@@ -123,7 +123,7 @@
 
 /* Input styles */
 .input-field {
-  @apply w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-colors duration-200;
+  @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-colors duration-200;
 }
 
 /* Badge styles */
