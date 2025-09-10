@@ -36,7 +36,7 @@ export default function BookingDirectPage() {
     <BookingModal
       doctor={doctor}
       isOpen={true}
-      onClose={() => router.push(`/`)} // Change navigation to home on close
+      onClose={() => router.push(`/`)}
     />
   );
 }

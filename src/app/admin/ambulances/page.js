@@ -141,24 +141,50 @@ export default function AmbulancesPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const payload = {
-      name: form.name,
-      vehicleNumber: form.vehicleNumber,
-      driverName: form.driverName,
-      driverPhone: form.driverPhone,
-      phone: form.phone,
-      location: form.location,
-      city: form.city,
-      isAvailable: form.isAvailable,
-      imageUrl: form.imageUrl,
-    };
+    // If a file is selected, send multipart/form-data; else send JSON
+    let useFormData = !!selectedImage;
+    let payload;
+    if (useFormData) {
+      payload = new FormData();
+      payload.append("name", form.name);
+      payload.append("vehicleNumber", form.vehicleNumber);
+      payload.append("driverName", form.driverName);
+      payload.append("driverPhone", form.driverPhone);
+      payload.append("phone", form.phone);
+      payload.append("location", form.location);
+      payload.append("city", form.city);
+      payload.append("isAvailable", String(form.isAvailable));
+      if (selectedImage) payload.append("image", selectedImage);
+      if (form.imageUrl && !selectedImage)
+        payload.append("imageUrl", form.imageUrl);
+    } else {
+      payload = {
+        name: form.name,
+        vehicleNumber: form.vehicleNumber,
+        driverName: form.driverName,
+        driverPhone: form.driverPhone,
+        phone: form.phone,
+        location: form.location,
+        city: form.city,
+        isAvailable: form.isAvailable,
+        imageUrl: form.imageUrl,
+      };
+    }
 
     try {
       if (editing) {
-        await put(`/ambulances/${editing._id}`, payload);
+        await put(`/ambulances/${editing._id}`, payload, {
+          headers: useFormData
+            ? { "Content-Type": "multipart/form-data" }
+            : undefined,
+        });
         toast.success("Ambulance updated successfully!");
       } else {
-        await post("/ambulances", payload);
+        await post("/ambulances", payload, {
+          headers: useFormData
+            ? { "Content-Type": "multipart/form-data" }
+            : undefined,
+        });
         toast.success("Ambulance added successfully!");
       }
       setModalOpen(false);
@@ -263,7 +289,9 @@ export default function AmbulancesPage() {
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                       {ambulance.imageUrl ? (
                         <img
-                          src={ambulance.imageUrl}
+                          src={require("@/utils/imageUtils").getImageUrl(
+                            ambulance.imageUrl
+                          )}
                           alt={ambulance.name}
                           className="w-full h-full object-cover"
                         />

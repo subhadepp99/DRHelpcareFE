@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -16,12 +16,22 @@ import { useApi } from "@/hooks/useApi";
 import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
 
-export default function BookingModal({ doctor, isOpen, onClose }) {
-  const { post } = useApi();
+export default function BookingModal({
+  doctor,
+  clinic = null,
+  allowDoctorSelect = false,
+  isOpen,
+  onClose,
+}) {
+  const { post, get } = useApi();
   const { user } = useAuthStore();
   const [step, setStep] = useState(1); // 1: Date/Time, 2: Details, 3: Payment, 4: Confirmation
+  const [selectedClinicId, setSelectedClinicId] = useState(clinic?._id || null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [doctorPickerOpen, setDoctorPickerOpen] = useState(false);
+  const [availableDateSet, setAvailableDateSet] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [bookingId, setBookingId] = useState(null);
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -44,69 +54,107 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
     },
   });
 
-  // Generate available dates based on doctor's schedule
+  // Generate next 30 days; enable only dates returned by availability API
   const availableDates = Array.from({ length: 30 }, (_, i) => {
     const date = addDays(new Date(), i + 1);
-    const scheduleItem = doctor.bookingSchedule?.find((s) =>
-      isSameDay(new Date(s.date), date)
-    );
-    const isAvailable = scheduleItem ? scheduleItem.isAvailable : false;
-
-    return {
-      date,
-      available: isAvailable,
-      schedule: scheduleItem,
-    };
+    const key = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+      .toISOString()
+      .slice(0, 10);
+    return { date, available: availableDateSet.has(key) };
   });
 
-  // Get time slots from doctor's schedule for selected date
-  const getTimeSlots = () => {
-    if (!selectedDate) return [];
-
-    const scheduleItem = doctor.bookingSchedule?.find((s) =>
-      isSameDay(new Date(s.date), selectedDate)
-    );
-
-    if (scheduleItem && scheduleItem.slots) {
-      return scheduleItem.slots
-        .filter(
-          (slot) => slot.isAvailable && slot.currentBookings < slot.maxBookings
-        )
-        .map((slot) => ({
-          time: slot.startTime,
-          endTime: slot.endTime,
-          available: true,
-          currentBookings: slot.currentBookings,
-          maxBookings: slot.maxBookings,
-        }));
+  // If doctor has clinics and none selected, preselect first clinic ONCE (don't override user's General choice)
+  const preselectedClinicRef = useRef(false);
+  useEffect(() => {
+    if (preselectedClinicRef.current) return;
+    if (doctor?.clinicDetails?.length > 0 && !selectedClinicId) {
+      const first = doctor.clinicDetails[0];
+      const cid = first?.clinic?._id || first?.clinic;
+      if (cid) {
+        setSelectedClinicId(String(cid));
+        preselectedClinicRef.current = true;
+      }
     }
+  }, [doctor, selectedClinicId]);
 
-    // Fallback to default time slots if no schedule
-    return [
-      "09:00",
-      "09:30",
-      "10:00",
-      "10:30",
-      "11:00",
-      "11:30",
-      "14:00",
-      "14:30",
-      "15:00",
-      "15:30",
-      "16:00",
-      "16:30",
-      "17:00",
-      "17:30",
-    ].map((time) => ({
-      time,
-      endTime: addMinutes(time, 30),
-      available: true,
-      currentBookings: 0,
-      maxBookings: 1,
-    }));
-  };
+  // Fetch range availability (clinic-aware) for calendar dates
+  useEffect(() => {
+    const fetchDateAvailability = async () => {
+      if (!doctor) return;
+      try {
+        const startDate = new Date();
+        const endDate = addDays(new Date(), 30);
+        const q = new URLSearchParams({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        });
+        if (selectedClinicId) q.set("clinicId", selectedClinicId);
+        const res = await get(
+          `/doctors/${doctor._id}/availability?${q.toString()}`,
+          { silent: true }
+        );
+        const availability =
+          res?.data?.data?.availability || res?.data?.availability || [];
+        const setDates = new Set();
+        for (const day of availability) {
+          const slots = Array.isArray(day?.slots) ? day.slots : [];
+          const hasSlot = slots.some(
+            (sl) =>
+              sl?.available !== false &&
+              (sl?.currentBookings || 0) < (sl?.maxBookings || 1)
+          );
+          if (day?.date && hasSlot) {
+            const d = new Date(day.date);
+            const key = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+              .toISOString()
+              .slice(0, 10);
+            setDates.add(key);
+          }
+        }
+        setAvailableDateSet(setDates);
+        // Clear selected date if it's no longer available
+        if (selectedDate) {
+          const skey = new Date(
+            selectedDate.getFullYear(),
+            selectedDate.getMonth(),
+            selectedDate.getDate()
+          )
+            .toISOString()
+            .slice(0, 10);
+          if (!setDates.has(skey)) {
+            setSelectedDate(null);
+            setSelectedTime(null);
+            setAvailableSlots([]);
+          }
+        }
+      } catch (e) {
+        setAvailableDateSet(new Set());
+      }
+    };
+    fetchDateAvailability();
+  }, [doctor, selectedClinicId, get]);
 
-  const timeSlots = getTimeSlots();
+  // Fetch slots from API when date or clinic changes
+  useEffect(() => {
+    const fetchSlots = async () => {
+      if (!doctor || !selectedDate) return;
+      try {
+        const q = new URLSearchParams({ date: selectedDate.toISOString() });
+        if (selectedClinicId) q.set("clinicId", selectedClinicId);
+        const res = await get(
+          `/doctors/${doctor._id}/availability?${q.toString()}`,
+          { silent: true }
+        );
+        const slots = (res?.data?.data?.slots || res?.data?.slots || []).filter(
+          (s) => s?.available !== false
+        );
+        setAvailableSlots(slots);
+      } catch (e) {
+        setAvailableSlots([]);
+      }
+    };
+    fetchSlots();
+  }, [doctor, selectedDate, selectedClinicId, get]);
 
   const addMinutes = (time, minutes) => {
     const [hours, mins] = time.split(":").map(Number);
@@ -164,6 +212,7 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
       const phoneToUse = pendingForm.phone?.trim();
       const bookingPayload = {
         doctorId: doctor._id,
+        clinicId: selectedClinicId || undefined,
         appointmentDate: selectedDate,
         appointmentTime: selectedTime,
         patientDetails: {
@@ -273,13 +322,42 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
 
             {/* Content */}
             <div className="p-6 min-h-[400px]">
-              {/* Step 1: Date & Time Selection */}
+              {/* Step 1: Clinic (if any) + Date & Time Selection */}
               {step === 1 && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="space-y-6"
                 >
+                  {doctor?.clinicDetails?.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        Select Clinic
+                      </h4>
+                      <select
+                        className="input-field"
+                        value={selectedClinicId || ""}
+                        onChange={(e) => {
+                          const val = e.target.value || null;
+                          setSelectedClinicId(val);
+                          // Reset selection when changing clinic/general
+                          setSelectedDate(null);
+                          setSelectedTime(null);
+                          setAvailableSlots([]);
+                        }}
+                      >
+                        <option value="">General</option>
+                        {doctor.clinicDetails.map((cd) => (
+                          <option
+                            key={cd.clinic?._id || cd.clinic}
+                            value={cd.clinic?._id || cd.clinic}
+                          >
+                            {cd.clinicName || cd.clinic?.name || "Clinic"}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                       Select Date
@@ -324,7 +402,7 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                         Select Time for {format(selectedDate, "MMMM d, yyyy")}
                       </h4>
                       <div className="grid grid-cols-4 gap-3">
-                        {timeSlots.map((slot) => (
+                        {availableSlots.map((slot) => (
                           <button
                             key={slot.time}
                             onClick={() => handleTimeSelect(slot.time)}
@@ -483,6 +561,20 @@ export default function BookingModal({ doctor, isOpen, onClose }) {
                           {selectedTime}
                         </span>
                       </div>
+                      {selectedClinicId && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Clinic:
+                          </span>
+                          <span className="text-gray-900 dark:text-white">
+                            {doctor?.clinicDetails?.find(
+                              (cd) =>
+                                (cd.clinic?._id || cd.clinic) ===
+                                selectedClinicId
+                            )?.clinicName || "Selected Clinic"}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">
                           Consultation Fee:

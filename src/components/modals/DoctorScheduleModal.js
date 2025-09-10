@@ -13,11 +13,19 @@ export default function DoctorScheduleModal({
   onClose,
   onScheduleUpdate,
 }) {
-  const { put } = useApi();
+  const { put, get } = useApi();
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [schedule, setSchedule] = useState([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedClinicId, setSelectedClinicId] = useState(
+    doctor?.clinicDetails?.[0]
+      ? String(
+          doctor.clinicDetails[0].clinic?._id || doctor.clinicDetails[0].clinic
+        )
+      : ""
+  );
+  const [scheduleDrafts, setScheduleDrafts] = useState({}); // key: clinicId or 'general' -> schedule array
 
   // Generate calendar dates for current month
   const generateCalendarDates = () => {
@@ -71,11 +79,54 @@ export default function DoctorScheduleModal({
     "17:30",
   ];
 
+  // Seed drafts from doctor when modal opens or doctor changes
   useEffect(() => {
-    if (doctor && doctor.bookingSchedule) {
-      setSchedule(doctor.bookingSchedule);
-    }
+    if (!doctor) return;
+    const nextDrafts = {};
+    nextDrafts["general"] = Array.isArray(doctor.bookingSchedule)
+      ? doctor.bookingSchedule
+      : [];
+    (doctor.clinicDetails || []).forEach((cd) => {
+      const key = String(cd.clinic?._id || cd.clinic);
+      nextDrafts[key] = Array.isArray(cd.clinicSchedule)
+        ? cd.clinicSchedule
+        : [];
+    });
+    setScheduleDrafts(nextDrafts);
+    const currentKey = selectedClinicId || "general";
+    setSchedule(nextDrafts[currentKey] || []);
+    setSelectedDate(null);
   }, [doctor]);
+
+  // Load schedule when clinic selection changes, preserving previous draft
+  const handleClinicChange = (newClinicId) => {
+    const currentKey = selectedClinicId || "general";
+    setScheduleDrafts((prev) => ({
+      ...prev,
+      [currentKey]: Array.isArray(schedule) ? schedule : [],
+    }));
+    setSelectedClinicId(newClinicId);
+    setSelectedDate(null);
+    const targetKey = newClinicId || "general";
+    setSchedule((prev) => {
+      // will be replaced by effect below via scheduleDrafts update
+      return Array.isArray(scheduleDrafts[targetKey])
+        ? scheduleDrafts[targetKey]
+        : [];
+    });
+  };
+
+  useEffect(() => {
+    const key = selectedClinicId || "general";
+    if (
+      scheduleDrafts &&
+      Object.prototype.hasOwnProperty.call(scheduleDrafts, key)
+    ) {
+      const next = scheduleDrafts[key];
+      setSchedule(Array.isArray(next) ? next : []);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClinicId, scheduleDrafts]);
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
@@ -155,11 +206,53 @@ export default function DoctorScheduleModal({
   const saveSchedule = async () => {
     try {
       setLoading(true);
-      await put(`/doctors/${doctor._id}`, { bookingSchedule: schedule });
+      if (selectedClinicId) {
+        await put(
+          `/doctors/${doctor._id}/clinics/${selectedClinicId}/schedule`,
+          {
+            clinicSchedule: schedule,
+          }
+        );
+      } else {
+        await put(`/doctors/${doctor._id}/schedule`, {
+          bookingSchedule: schedule,
+        });
+      }
       toast.success("Schedule saved successfully");
       if (onScheduleUpdate) {
-        onScheduleUpdate(schedule);
+        onScheduleUpdate({
+          scope: selectedClinicId ? "clinic" : "general",
+          clinicId: selectedClinicId || null,
+          schedule,
+        });
       }
+      // update local drafts so switching back keeps saved data
+      const key = selectedClinicId || "general";
+      setScheduleDrafts((prev) => ({
+        ...prev,
+        [key]: Array.isArray(schedule) ? schedule : [],
+      }));
+      // refresh from server to ensure consistent state
+      try {
+        const res = await get(`/doctors/${doctor._id}`, { silent: true });
+        const payload = res?.data;
+        const fresh = payload?.data || payload?.doctor || payload || null;
+        if (fresh) {
+          const nextDrafts = {};
+          nextDrafts["general"] = Array.isArray(fresh.bookingSchedule)
+            ? fresh.bookingSchedule
+            : [];
+          (fresh.clinicDetails || []).forEach((cd) => {
+            const ckey = String(cd.clinic?._id || cd.clinic);
+            nextDrafts[ckey] = Array.isArray(cd.clinicSchedule)
+              ? cd.clinicSchedule
+              : [];
+          });
+          setScheduleDrafts(nextDrafts);
+          const currentKey = selectedClinicId || "general";
+          setSchedule(nextDrafts[currentKey] || []);
+        }
+      } catch {}
     } catch (error) {
       toast.error("Failed to save schedule");
     } finally {
@@ -213,6 +306,26 @@ export default function DoctorScheduleModal({
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Set availability and time slots for specific dates
                 </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {doctor?.clinicDetails?.length > 0 && (
+                  <select
+                    className="input-field"
+                    value={selectedClinicId}
+                    onChange={(e) => handleClinicChange(e.target.value)}
+                    title="Select Clinic (empty = General schedule)"
+                  >
+                    <option value="">General</option>
+                    {doctor.clinicDetails.map((cd) => (
+                      <option
+                        key={String(cd.clinic?._id || cd.clinic)}
+                        value={String(cd.clinic?._id || cd.clinic)}
+                      >
+                        {cd.clinicName || cd.clinic?.name || "Clinic"}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
               <button
                 onClick={onClose}

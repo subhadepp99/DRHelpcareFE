@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useApi } from "@/hooks/useApi";
 import { Calendar, Clock, MapPin, User, Phone, Mail } from "lucide-react";
+import BookingDetailsModal from "@/components/modals/BookingDetailsModal";
 import Header from "@/components/layout/Header";
 import toast from "react-hot-toast";
 
@@ -12,6 +13,8 @@ export default function BookingsPage() {
   const { get } = useApi();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -100,7 +103,11 @@ export default function BookingsPage() {
             {bookings.map((booking) => (
               <div
                 key={booking._id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 cursor-pointer hover:shadow"
+                onClick={() => {
+                  setSelectedBookingId(booking._id);
+                  setDetailsOpen(true);
+                }}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
@@ -163,6 +170,14 @@ export default function BookingsPage() {
           </div>
         )}
       </div>
+      {detailsOpen && selectedBookingId && (
+        <BookingDetailsModal
+          bookingId={selectedBookingId}
+          isOpen={detailsOpen}
+          onClose={() => setDetailsOpen(false)}
+          onChanged={fetchBookings}
+        />
+      )}
     </div>
   );
 }

@@ -22,6 +22,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useApi } from "@/hooks/useApi";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import BookingDetailsModal from "@/components/modals/BookingDetailsModal";
 import toast from "react-hot-toast";
 import { getEntityImageUrl } from "@/utils/imageUtils";
 
@@ -35,6 +36,8 @@ export default function ProfilePage() {
   const [imagePreview, setImagePreview] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
 
   const {
     register,
@@ -569,7 +572,11 @@ export default function ProfilePage() {
                         {bookings.map((booking) => (
                           <div
                             key={booking._id}
-                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                            onClick={() => {
+                              setSelectedBookingId(booking._id);
+                              setDetailsOpen(true);
+                            }}
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
@@ -808,6 +815,14 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+        {detailsOpen && selectedBookingId && (
+          <BookingDetailsModal
+            bookingId={selectedBookingId}
+            isOpen={detailsOpen}
+            onClose={() => setDetailsOpen(false)}
+            onChanged={fetchUserBookings}
+          />
+        )}
       </div>
 
       {/* Add Footer */}

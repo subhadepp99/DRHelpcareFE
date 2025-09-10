@@ -23,6 +23,7 @@ import ReactStars from "react-rating-stars-component";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
+import BookingModal from "@/components/modals/BookingModal";
 import { useApi } from "@/hooks/useApi";
 import FAQAccordion from "@/components/common/FAQAccordion";
 
@@ -41,6 +42,8 @@ export default function ClinicDetailsPage() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [allClinics, setAllClinics] = useState([]);
   const [allLocations, setAllLocations] = useState([]);
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
 
   useEffect(() => {
     if (params.clinicName && params.location) {
@@ -753,6 +756,18 @@ export default function ClinicDetailsPage() {
                                 Available: {doctorInfo.availableDays.join(", ")}
                               </p>
                             )}
+
+                            <div className="mt-3">
+                              <button
+                                onClick={() => {
+                                  setSelectedDoctor(doctor);
+                                  setBookingOpen(true);
+                                }}
+                                className="btn-primary w-full"
+                              >
+                                Book with this Doctor
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -762,7 +777,10 @@ export default function ClinicDetailsPage() {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <button className="flex-1 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                <button
+                  onClick={() => setBookingOpen(true)}
+                  className="flex-1 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
                   <Calendar className="w-5 h-5 mr-2 inline" />
                   Book Appointment
                 </button>
@@ -789,6 +807,18 @@ export default function ClinicDetailsPage() {
       </main>
 
       <Footer />
+      {bookingOpen && (
+        <BookingModal
+          doctor={selectedDoctor || clinic.doctors?.[0]?.doctor || null}
+          clinic={clinic}
+          allowDoctorSelect={true}
+          isOpen={bookingOpen}
+          onClose={() => {
+            setBookingOpen(false);
+            setSelectedDoctor(null);
+          }}
+        />
+      )}
     </div>
   );
 }
