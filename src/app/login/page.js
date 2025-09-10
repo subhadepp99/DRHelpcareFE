@@ -84,7 +84,11 @@ export default function LoginPage() {
         if (role === "user") {
           router.push("/");
           toast.success("Login successful!");
-        } else if (["admin", "superuser"].includes(role)) {
+        } else if (
+          ["admin", "superuser", "masteruser", "doctor", "clinic"].includes(
+            role
+          )
+        ) {
           toast.success("Redirecting to admin panel...");
           router.push("/admin");
         } else {
@@ -146,7 +150,11 @@ export default function LoginPage() {
           console.log("Redirecting user to home page");
           router.push("/");
           toast.success("Login successful!");
-        } else if (["admin", "superuser"].includes(result.user.role)) {
+        } else if (
+          ["admin", "superuser", "masteruser", "doctor", "clinic"].includes(
+            result.user.role
+          )
+        ) {
           console.log("Redirecting admin to admin panel");
           toast.success("Redirecting to admin panel...");
           router.push("/admin");
