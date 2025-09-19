@@ -37,15 +37,25 @@ export default function AdminClinics() {
   const [selectedClinic, setSelectedClinic] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchClinics();
   }, []);
 
-  async function fetchClinics() {
+  // Live search with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchClinics(search.trim());
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  async function fetchClinics(term = "") {
     setFetching(true);
     try {
-      const res = await get("/clinics?limit=1000");
+      const qs = term ? `&search=${encodeURIComponent(term)}` : "";
+      const res = await get(`/clinics?limit=1000${qs}`);
       setClinics(res.data.clinics || res.data.data?.clinics || []);
     } catch (err) {
       console.error("Failed to fetch clinics:", err);
@@ -232,8 +242,19 @@ export default function AdminClinics() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Clinics Management</h1>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-3">
+        <div className="flex items-center gap-3 flex-1">
+          <h1 className="text-2xl font-semibold">Clinics Management</h1>
+          <div className="flex items-center gap-2 ml-auto md:ml-6">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, phone, email or place"
+              className="input-field w-56 md:w-72"
+            />
+          </div>
+        </div>
         <button
           onClick={openAdd}
           className="btn-primary flex items-center space-x-2"

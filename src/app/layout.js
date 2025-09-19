@@ -31,6 +31,9 @@ export default function RootLayout({ children }) {
   if (!mounted) {
     return (
       <html lang="en">
+        <head>
+          <meta name="fast2sms" content="pdVH66wTFsGd4GOM811gavI2ReWPGnpq" />
+        </head>
         <body className={inter.className}>
           <div className="min-h-screen flex items-center justify-center">
             <div className="spinner w-8 h-8"></div>
@@ -43,7 +46,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="fast2sms" content="DWzgDv29YmgQMlIwX81jjuZiiMqsRo1J" />
+        <meta name="fast2sms" content="pdVH66wTFsGd4GOM811gavI2ReWPGnpq" />
       </head>
       <body className={inter.className}>
         <QueryClientProvider client={queryClient}>

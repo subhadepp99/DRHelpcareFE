@@ -20,6 +20,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import DoctorCard from "@/components/cards/DoctorCard";
 import ClinicCard from "@/components/cards/ClinicCard";
+import AmbulanceCard from "@/components/cards/AmbulanceCard";
 import PharmacyCard from "@/components/cards/PharmacyCard";
 import SearchFilters from "@/components/search/SearchFilters";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -46,6 +47,8 @@ export default function SearchPage() {
     distance: "",
     department: searchParams.get("department") || "",
   });
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
 
   // Debug department parameter
   useEffect(() => {
@@ -60,43 +63,66 @@ export default function SearchPage() {
     );
   }, [searchParams]);
 
-  // Location typeahead
-  const locations = [
-    "Delhi",
-    "Mumbai",
-    "Bangalore",
-    "Hyderabad",
-    "Ahmedabad",
-    "Chennai",
-    "Kolkata",
-    "Pune",
-    "Jaipur",
-    "Lucknow",
-  ]; // trimmed list for brevity
+  // Location typeahead (dynamic from backend)
+  const [allLocations, setAllLocations] = useState([]);
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [locationInput, setLocationInput] = useState(
     searchParams.get("city") || ""
   );
-  const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState("");
 
   const handleLocationInput = (e) => {
     const value = e.target.value;
     setLocationInput(value);
     setSelectedLocation("");
-    if (value.length >= 2) {
-      setLocationSuggestions(
-        locations.filter((loc) =>
-          loc.toLowerCase().includes(value.toLowerCase())
-        )
-      );
-    } else {
-      setLocationSuggestions([]);
+    if (allLocations.length === 0) return; // wait for fetch on focus or mount
+    if (value.trim().length === 0) {
+      setLocationSuggestions(allLocations);
+      return;
     }
+    const filtered = allLocations.filter((loc) =>
+      String(loc).toLowerCase().includes(value.toLowerCase())
+    );
+    setLocationSuggestions(filtered);
   };
   const handleLocationSelect = (loc) => {
     setLocationInput(loc);
     setSelectedLocation(loc);
     setLocationSuggestions([]);
+  };
+
+  // Fetch search suggestions when query is 3+ characters
+  const fetchSuggestions = async (query) => {
+    if (!query || query.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/search/suggestions?q=${encodeURIComponent(query)}&type=${
+          searchType || "all"
+        }`
+      );
+      debugger;
+      const data = await res.json();
+      setSuggestions(data.suggestions || []);
+      setShowSuggestions(true);
+    } catch (e) {
+      console.error("Suggestion fetch failed", e);
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+    if (value.length >= 3) {
+      fetchSuggestions(value);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
   };
 
   const performSearch = useCallback(async () => {
@@ -107,12 +133,14 @@ export default function SearchPage() {
         sort: sortBy,
         ...filters,
       });
-      if (selectedLocation) queryParams.set("city", selectedLocation);
+      const cityParam = (selectedLocation || locationInput || "").trim();
+      if (cityParam) queryParams.set("city", cityParam);
       console.log("Search query params:", queryParams.toString());
       console.log("Search type:", searchType);
       console.log("Search query:", searchQuery);
       console.log("Department filter:", filters.department);
       const response = await get(`/search?${queryParams.toString()}`);
+      debugger;
       console.log("Search response:", response.data);
       console.log("Search results:", response.data?.results);
       console.log("Ambulance results:", response.data?.results?.ambulances);
@@ -124,11 +152,14 @@ export default function SearchPage() {
   }, [searchQuery, searchType, sortBy, filters, selectedLocation, get]);
 
   useEffect(() => {
-    // Always perform search when a specific type is selected, or when there's a search query
-    if (searchQuery.trim() || searchType !== "all") {
+    // Auto-search only when query has 3+ characters or when a specific type is selected
+    if (
+      searchQuery.trim().length >= 3 ||
+      searchType !== "all" ||
+      locationInput ||
+      selectedLocation
+    ) {
       performSearch();
-    } else {
-      setResults({});
     }
   }, [performSearch]);
 
@@ -143,11 +174,50 @@ export default function SearchPage() {
     const params = new URLSearchParams();
     if (searchQuery) params.set("q", searchQuery);
     if (searchType !== "all") params.set("type", searchType);
-    if (selectedLocation) params.set("city", selectedLocation);
+    const cityParam = (selectedLocation || locationInput || "").trim();
+    if (cityParam) params.set("city", cityParam);
     if (filters.department) params.set("department", filters.department);
     const newUrl = `/search${params.toString() ? `?${params.toString()}` : ""}`;
     router.replace(newUrl, { shallow: true });
-  }, [searchQuery, searchType, selectedLocation, filters.department, router]);
+  }, [
+    searchQuery,
+    searchType,
+    selectedLocation,
+    locationInput,
+    filters.department,
+    router,
+  ]);
+
+  // Initialize selectedLocation from URL on first load
+  useEffect(() => {
+    const initialCity = searchParams.get("city");
+    if (initialCity) {
+      setSelectedLocation(initialCity);
+      setLocationInput(initialCity);
+    }
+    // Preload locations list
+    (async () => {
+      try {
+        const res = await fetch("/api/search/locations");
+        const data = await res.json();
+        const list = Array.isArray(data.locations) ? data.locations : [];
+        setAllLocations(list);
+        // Initialize suggestions based on initial input
+        const base = (initialCity || locationInput || "").trim();
+        if (base) {
+          const filtered = list.filter((loc) =>
+            String(loc).toLowerCase().includes(base.toLowerCase())
+          );
+          setLocationSuggestions(filtered);
+        } else {
+          setLocationSuggestions(list);
+        }
+      } catch (e) {
+        setAllLocations([]);
+        setLocationSuggestions([]);
+      }
+    })();
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -185,7 +255,7 @@ export default function SearchPage() {
     { value: "clinics", label: "Clinics", icon: "🏥" },
     // { value: "pharmacies", label: "Pharmacies", icon: "💊" },
     { value: "ambulance", label: "Ambulance", icon: "🚑" },
-    // { value: "pathology", label: "Pathology", icon: "⚕️" },
+    { value: "pathology", label: "Pathology", icon: "⚕️" },
   ];
 
   const sortOptions = [
@@ -236,12 +306,53 @@ export default function SearchPage() {
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search for doctors, clinics, ambulances..."
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    onFocus={() => {
+                      if ((searchQuery || "").length >= 3) {
+                        fetchSuggestions(searchQuery || "");
+                      } else {
+                        setShowSuggestions(false);
+                      }
+                    }}
+                    placeholder="Search for doctors, clinics, departments, pathologies, ambulance..."
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
                     aria-label="Search input"
-                    minLength={3}
                   />
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10 mt-1 max-h-60 overflow-y-auto">
+                      {suggestions.map((s, idx) => (
+                        <div
+                          key={idx}
+                          className={`px-4 py-2 ${
+                            s.type === "info"
+                              ? "cursor-default bg-blue-50 dark:bg-blue-900/20"
+                              : "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                          } border-b border-gray-100 dark:border-gray-600`}
+                          onClick={() => {
+                            if (s.type !== "info") {
+                              if (s.type === "department" && s.value) {
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  department: encodeURIComponent(s.value),
+                                }));
+                              }
+                              setSearchQuery(s.text || "");
+                              setShowSuggestions(false);
+                              performSearch();
+                            }
+                          }}
+                        >
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {s.text}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {s.subtext}{" "}
+                            {s.type && s.type !== "info" ? `• ${s.type}` : ""}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 relative">
                   <Compass className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -520,77 +631,10 @@ export default function SearchPage() {
                     }`}
                   >
                     {results.ambulances.map((ambulance) => (
-                      <div
+                      <AmbulanceCard
                         key={ambulance._id}
-                        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
-                              <span className="text-2xl">🚑</span>
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                {ambulance.name}
-                              </h3>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Vehicle: {ambulance.vehicleNumber}
-                              </p>
-                            </div>
-                          </div>
-                          <span
-                            className={`px-3 py-1 rounded-full text-sm font-medium ${
-                              ambulance.isAvailable
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                            }`}
-                          >
-                            {ambulance.isAvailable
-                              ? "Available"
-                              : "Unavailable"}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              Driver: {ambulance.driverName}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              Phone: {ambulance.phone}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                          <div className="flex items-center justify-between text-sm mb-3">
-                            <span className="text-gray-600 dark:text-gray-400">
-                              Location: {ambulance.location || "N/A"},{" "}
-                              {ambulance.city || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() =>
-                                router.push(`/ambulance/${ambulance._id}`)
-                              }
-                              className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                            >
-                              View Details
-                            </button>
-                            <button
-                              onClick={() =>
-                                window.open(`tel:${ambulance.phone}`, "_blank")
-                              }
-                              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                            >
-                              Call Now
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                        ambulance={ambulance}
+                      />
                     ))}
                   </div>
                 </section>
@@ -612,7 +656,7 @@ export default function SearchPage() {
                     {results.pathologies.map((pathology) => (
                       <div
                         key={pathology._id}
-                        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow min-h-[300px] flex flex-col"
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center space-x-3">
@@ -650,7 +694,7 @@ export default function SearchPage() {
                           )}
                         </div>
 
-                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-auto">
                           <button
                             onClick={() => {
                               const pathologyName = encodeURIComponent(
@@ -666,7 +710,7 @@ export default function SearchPage() {
                                 `/pathology/${pathologyName}/${location}?id=${pathology._id}`
                               );
                             }}
-                            className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                            className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors block"
                           >
                             View Details
                           </button>
@@ -757,77 +801,10 @@ export default function SearchPage() {
                     }`}
                   >
                     {results.ambulances.map((ambulance) => (
-                      <div
+                      <AmbulanceCard
                         key={ambulance._id}
-                        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
-                              <span className="text-2xl">🚑</span>
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                {ambulance.name}
-                              </h3>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Vehicle: {ambulance.vehicleNumber}
-                              </p>
-                            </div>
-                          </div>
-                          <span
-                            className={`px-3 py-1 rounded-full text-sm font-medium ${
-                              ambulance.isAvailable
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                            }`}
-                          >
-                            {ambulance.isAvailable
-                              ? "Available"
-                              : "Unavailable"}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              Driver: {ambulance.driverName}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              Phone: {ambulance.phone}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                          <div className="flex items-center justify-between text-sm mb-3">
-                            <span className="text-gray-600 dark:text-gray-400">
-                              Location: {ambulance.location || "N/A"},{" "}
-                              {ambulance.city || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() =>
-                                router.push(`/ambulance/${ambulance._id}`)
-                              }
-                              className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                            >
-                              View Details
-                            </button>
-                            <button
-                              onClick={() =>
-                                window.open(`tel:${ambulance.phone}`, "_blank")
-                              }
-                              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                            >
-                              Call Now
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                        ambulance={ambulance}
+                      />
                     ))}
                   </div>
                 </section>
@@ -850,7 +827,7 @@ export default function SearchPage() {
                       {results.pathologies.map((pathology) => (
                         <div
                           key={pathology._id}
-                          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
+                          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow min-h-[300px] flex flex-col"
                         >
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center space-x-3">
@@ -888,7 +865,7 @@ export default function SearchPage() {
                             )}
                           </div>
 
-                          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-auto">
                             <button
                               onClick={() => {
                                 const pathologyName = encodeURIComponent(
@@ -902,10 +879,10 @@ export default function SearchPage() {
                                     "unknown"
                                 );
                                 router.push(
-                                  `/pathology/${pathologyName}/${location}`
+                                  `/pathology/${pathologyName}/${location}?id=${pathology._id}`
                                 );
                               }}
-                              className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                              className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors block"
                             >
                               View Details
                             </button>

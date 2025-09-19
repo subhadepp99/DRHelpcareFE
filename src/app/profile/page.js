@@ -599,6 +599,23 @@ export default function ProfilePage() {
                                     {booking.status?.charAt(0).toUpperCase() +
                                       booking.status?.slice(1) || "Unknown"}
                                   </span>
+                                  {(() => {
+                                    try {
+                                      const dt = new Date(
+                                        `${booking.date || ""}T${
+                                          booking.time || "00:00"
+                                        }`
+                                      );
+                                      if (dt < new Date()) {
+                                        return (
+                                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                                            Expired
+                                          </span>
+                                        );
+                                      }
+                                    } catch (e) {}
+                                    return null;
+                                  })()}
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400">

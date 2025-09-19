@@ -25,6 +25,7 @@ import {
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import SearchSection from "@/components/common/SearchSection";
+import HeroCarousel from "@/components/common/HeroCarousel";
 import ServiceCard from "@/components/cards/ServiceCard";
 import DoctorCard from "@/components/cards/DoctorCard";
 import DepartmentCard from "@/components/cards/DepartmentCard";
@@ -81,8 +82,18 @@ export default function HomePage() {
   const fetchDepartments = async () => {
     try {
       const response = await get("/departments/public"); // departments contain pic, details, heading, and linked doctors
-      setDepartments(response.data.data.departments || []);
+      const departmentsData = response.data.data.departments || [];
+      console.log(
+        "Home Page: Fetched departments:",
+        departmentsData.map((d) => ({
+          name: d.name,
+          imageUrl: d.imageUrl,
+          hasImage: !!d.imageUrl,
+        }))
+      );
+      setDepartments(departmentsData);
     } catch (error) {
+      console.error("Home Page: Error fetching departments:", error);
       setDepartments([]);
     }
   };
@@ -240,8 +251,8 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 relative">
       <Header />
 
-      {/* Hero Section */}
-      <section className="relative z-40 overflow-hidden pt-20 pb-12">
+      {/* Hero Section (Search then Carousel) */}
+      <section className="relative z-40 overflow-hidden pt-20 pb-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -258,6 +269,9 @@ export default function HomePage() {
               onSearch={handleSearch}
             />
           </motion.div>
+          <div className="mt-4 sm:mt-6">
+            <HeroCarousel />
+          </div>
         </div>
       </section>
 

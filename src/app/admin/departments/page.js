@@ -14,7 +14,7 @@ import {
   Upload,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getImageUrl } from "@/utils/imageUtils";
+import { getEntityImageUrl } from "@/utils/imageUtils";
 
 export default function DepartmentsPage() {
   const { get, post, put, del } = useApi();
@@ -161,32 +161,27 @@ export default function DepartmentsPage() {
     }
   };
 
-  const syncDepartmentDoctors = async () => {
-    try {
-      const response = await post("/departments/sync-doctors");
-      toast.success(
-        response.data.message || "Department doctors synced successfully"
-      );
-      fetchDepartments(); // Refresh the list
-    } catch (error) {
-      toast.error("Failed to sync department doctors");
-      console.error("Error syncing department doctors:", error);
-    }
-  };
-
   // Row image change handler (upload immediately)
   const handleRowImageInputChange = async (department, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const data = new FormData();
+      // Include all required department fields
       data.append("name", department.name);
       data.append("heading", department.heading || department.name);
       data.append("description", department.description || "");
       data.append("specialization", department.specialization || "General");
+
+      // Include existing department data to preserve other fields
+      if (department.state) data.append("state", department.state);
+      if (department.city) data.append("city", department.city);
+
+      // Add the new image file
       data.append("image", file);
+
       await put(`/departments/${department._id}`, data);
-      toast.success("Image updated");
+      toast.success("Image updated successfully");
       fetchDepartments();
     } catch (err) {
       console.error("Row image upload failed", err);
@@ -259,13 +254,6 @@ export default function DepartmentsPage() {
                 <Plus className="w-5 h-5" />
                 Add Department
               </button>
-              <button
-                onClick={syncDepartmentDoctors}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-              >
-                <Stethoscope className="w-5 h-5" />
-                Sync Doctors
-              </button>
             </>
           )}
         </div>
@@ -311,7 +299,14 @@ export default function DepartmentsPage() {
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredDepartments.map((department) => {
-                const imgSrc = getImageUrl(department.imageUrl);
+                const imgSrc = getEntityImageUrl(department);
+                console.log(
+                  "Admin Departments Table: Department:",
+                  department.name,
+                  "Image URL:",
+                  imgSrc
+                );
+
                 return (
                   <tr
                     key={department._id}
@@ -319,16 +314,39 @@ export default function DepartmentsPage() {
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center relative">
                           {imgSrc ? (
-                            <img
-                              src={imgSrc}
-                              alt={department.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.style.display = "none";
-                              }}
-                            />
+                            <>
+                              <img
+                                src={imgSrc}
+                                alt={department.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  console.error(
+                                    "Admin Departments: Image failed to load:",
+                                    imgSrc
+                                  );
+                                  const target = e.target;
+                                  const fallback = target.nextSibling;
+                                  if (target && fallback) {
+                                    target.style.display = "none";
+                                    fallback.style.display = "flex";
+                                  }
+                                }}
+                                onLoad={() => {
+                                  console.log(
+                                    "Admin Departments: Image loaded successfully:",
+                                    imgSrc
+                                  );
+                                }}
+                              />
+                              <div
+                                className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800"
+                                style={{ display: "none" }}
+                              >
+                                <ImageIcon className="w-5 h-5 text-gray-400" />
+                              </div>
+                            </>
                           ) : (
                             <ImageIcon className="w-5 h-5 text-gray-400" />
                           )}

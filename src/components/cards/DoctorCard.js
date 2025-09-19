@@ -18,14 +18,38 @@ export default function DoctorCard({
   const [imageError, setImageError] = useState(false);
 
   const handleViewDetails = () => {
-    router.push(`/doctor/${doctor._id}`);
+    const deptName =
+      (typeof doctor.department === "object" && doctor.department?.name) ||
+      doctor.department ||
+      "general";
+    const slugify = (str) =>
+      String(str)
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-");
+    const nameSlug = slugify(doctor.name || "doctor");
+    const deptSlug = slugify(deptName);
+    router.push(`/doctor/${doctor._id}/${nameSlug}/${deptSlug}`);
   };
 
   const handleBooking = () => {
     if (onBook) {
       onBook();
     } else {
-      router.push(`/doctor/${doctor._id}?tab=booking`);
+      const deptName =
+        (typeof doctor.department === "object" && doctor.department?.name) ||
+        doctor.department ||
+        "general";
+      const slugify = (str) =>
+        String(str)
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9\s-]/g, "")
+          .replace(/\s+/g, "-");
+      const nameSlug = slugify(doctor.name || "doctor");
+      const deptSlug = slugify(deptName);
+      router.push(`/doctor/${doctor._id}/${nameSlug}/${deptSlug}?tab=booking`);
     }
   };
 

@@ -49,6 +49,8 @@ export default function BookingModal({
       patientName: `${user?.firstName} ${user?.lastName}` || "",
       phone: user?.phone || "",
       email: user?.email || "",
+      age: "",
+      gender: "",
       reason: "",
       paymentMethod: "cash", // Changed default to cash
     },
@@ -219,6 +221,11 @@ export default function BookingModal({
           patientName: pendingForm.patientName,
           phone: phoneToUse,
           email: pendingForm.email,
+          age:
+            pendingForm.age !== undefined && pendingForm.age !== ""
+              ? Number(pendingForm.age)
+              : undefined,
+          gender: pendingForm.gender || undefined,
         },
         reasonForVisit: pendingForm.reason,
         symptoms: pendingForm.reason,
@@ -496,6 +503,41 @@ export default function BookingModal({
                         {errors.email.message}
                       </p>
                     )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Sex
+                      </label>
+                      <select {...register("gender")} className="input-field">
+                        <option value="">Select</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Age
+                      </label>
+                      <input
+                        {...register("age", {
+                          validate: (v) =>
+                            v === "" ||
+                            (!isNaN(Number(v)) && Number(v) >= 0) ||
+                            "Age must be a non-negative number",
+                        })}
+                        className="input-field"
+                        placeholder="Enter age"
+                        inputMode="numeric"
+                      />
+                      {errors.age && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.age.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div>

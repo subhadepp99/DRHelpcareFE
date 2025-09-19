@@ -120,12 +120,12 @@ export const getImageUrl = (imagePath) => {
     return imagePath;
   }
 
-  // Get the API URL from environment or default to localhost:5000
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  // Get the API URL strictly from environment
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
   // Remove leading slash if present and construct full URL
   const cleanPath = imagePath.startsWith("/") ? imagePath.slice(1) : imagePath;
-  const fullUrl = `${apiUrl}/${cleanPath}`;
+  const fullUrl = apiUrl ? `${apiUrl}/${cleanPath}` : `/${cleanPath}`;
 
   console.log("Image URL construction:", { imagePath, apiUrl, fullUrl });
 

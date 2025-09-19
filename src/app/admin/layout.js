@@ -19,6 +19,7 @@ import {
   ChevronDown,
   User,
   Truck,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getEntityImageUrl } from "@/utils/imageUtils";
@@ -49,6 +50,7 @@ export default function AdminLayout({ children }) {
     // { name: "Pharmacies", href: "/admin/pharmacies", icon: Pill },
     { name: "Pathology", href: "/admin/pathology", icon: TestTube },
     { name: "Ambulances", href: "/admin/ambulances", icon: Truck },
+    { name: "Banners", href: "/admin/banners", icon: ImageIcon },
     { name: "Patients", href: "/admin/patients", icon: UserPlus },
     { name: "Users", href: "/admin/users", icon: Users },
     ...(user?.role === "superuser" || user?.role === "masteruser"

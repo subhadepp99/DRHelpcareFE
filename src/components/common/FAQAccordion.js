@@ -44,8 +44,8 @@ export default function FAQAccordion({
   }
 
   return (
-    <section className={`mt-8 ${className}`}>
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+    <section className={`mt-8 mb-12 ${className}`}>
+      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
         FAQs
       </h3>
       {loading && (
@@ -54,12 +54,12 @@ export default function FAQAccordion({
         </p>
       )}
 
-      <div className="divide-y divide-gray-200 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="space-y-4">
         {faqs.map((faq, idx) => (
-          <div key={faq._id} className="">
+          <div key={faq._id} className="rounded-lg overflow-hidden shadow-sm">
             <button
               onClick={() => toggle(idx)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="w-full flex items-center justify-between px-4 py-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
             >
               <span className="text-left font-medium text-gray-900 dark:text-white mr-3">
                 {faq.question}

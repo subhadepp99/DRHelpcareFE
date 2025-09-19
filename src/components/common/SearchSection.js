@@ -16,6 +16,7 @@ export default function SearchSection({
   const [suggestions, setSuggestions] = useState([]);
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [allLocations, setAllLocations] = useState([]);
   const [filters, setFilters] = useState({
     specialization: "",
     experience: "",
@@ -101,6 +102,15 @@ export default function SearchSection({
     const value = e.target.value;
     setLocationInput(value);
     setSelectedLocation("");
+    if (allLocations.length === 0) return;
+    if (value.trim().length === 0) {
+      setLocationSuggestions(allLocations);
+      return;
+    }
+    const filtered = allLocations.filter((loc) =>
+      String(loc).toLowerCase().includes(value.toLowerCase())
+    );
+    setLocationSuggestions(filtered);
   };
 
   const handleLocationSelect = (loc) => {
@@ -123,6 +133,7 @@ export default function SearchSection({
           searchType || "all"
         }`
       );
+      debugger;
       const data = await response.json();
       setSuggestions(data.suggestions || []);
       setShowSuggestions(true);
@@ -137,7 +148,19 @@ export default function SearchSection({
     try {
       const response = await fetch("/api/search/locations");
       const data = await response.json();
-      setLocationSuggestions(data.locations || []);
+      debugger;
+      const list = Array.isArray(data.locations) ? data.locations : [];
+      setAllLocations(list);
+      // Initialize suggestion list based on current input
+      const base = (locationInput || "").trim();
+      if (base) {
+        const filtered = list.filter((loc) =>
+          String(loc).toLowerCase().includes(base.toLowerCase())
+        );
+        setLocationSuggestions(filtered);
+      } else {
+        setLocationSuggestions(list);
+      }
       setShowLocationSuggestions(true);
     } catch (error) {
       console.error("Error fetching locations:", error);
@@ -151,19 +174,9 @@ export default function SearchSection({
       setSearchQuery(value);
     }
 
-    // Always show suggestions, but fetch detailed results only for 3+ characters
+    // Fetch suggestions only for 3+ characters; otherwise hide suggestions
     if (value.length >= 3) {
       fetchSuggestions(value);
-    } else if (value.length > 0) {
-      // For 1-2 characters, show basic suggestions
-      setSuggestions([
-        {
-          type: "info",
-          text: "Type at least 3 characters for detailed search",
-          subtext: "Quick search available",
-        },
-      ]);
-      setShowSuggestions(true);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -258,27 +271,10 @@ export default function SearchSection({
                   value={searchQuery || ""}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   onFocus={() => {
-                    // Show suggestions immediately on focus
                     if ((searchQuery || "").length >= 3) {
                       fetchSuggestions(searchQuery || "");
-                    } else if ((searchQuery || "").length > 0) {
-                      setSuggestions([
-                        {
-                          type: "info",
-                          text: "Type at least 3 characters for detailed search",
-                          subtext: "Quick search available",
-                        },
-                      ]);
-                      setShowSuggestions(true);
                     } else {
-                      setSuggestions([
-                        {
-                          type: "info",
-                          text: "Start typing to search",
-                          subtext: "3+ characters for detailed results",
-                        },
-                      ]);
-                      setShowSuggestions(true);
+                      setShowSuggestions(false);
                     }
                   }}
                   placeholder={`Search for ${
@@ -288,21 +284,6 @@ export default function SearchSection({
                   }...`}
                   className="w-full pl-10 pr-4 py-2 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
-
-                {/* Character count indicator */}
-                {(searchQuery || "").length > 0 && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        (searchQuery || "").length >= 3
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                      }`}
-                    >
-                      {(searchQuery || "").length}/3
-                    </span>
-                  </div>
-                )}
 
                 {/* Search Suggestions Dropdown */}
                 {showSuggestions && suggestions.length > 0 && (
@@ -335,14 +316,7 @@ export default function SearchSection({
                 )}
               </div>
 
-              {/* Help text for minimum characters */}
-              {(searchQuery || "").length > 0 &&
-                (searchQuery || "").length < 3 && (
-                  <div className="mt-2 text-sm text-yellow-600 dark:text-yellow-400">
-                    Quick search available. Type 3+ characters for detailed
-                    results.
-                  </div>
-                )}
+              {/* Removed helper text and counters for minimum characters */}
 
               {/* Location Typeahead with Compass Icon */}
               <div className="flex-1 relative" ref={locationRef}>

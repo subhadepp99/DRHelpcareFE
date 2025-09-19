@@ -183,7 +183,7 @@ export default function Footer() {
           >
             {/* Copyright */}
             <div className="text-gray-400 text-sm mb-4 sm:mb-0">
-              © {currentYear} DrHelpcare Pro. All rights reserved.
+              © {currentYear} DrHelp. All rights reserved.
             </div>
 
             <div className="text-gray-400 text-sm mb-4 sm:mb-0">

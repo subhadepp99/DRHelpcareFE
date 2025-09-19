@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useApi } from "@/hooks/api";
-import { ArrowLeft, Search, X, Share } from "lucide-react";
+import { ArrowLeft, Search, X, Share2 } from "lucide-react";
 import toast from "react-hot-toast";
 import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
@@ -397,90 +397,265 @@ export default function DoctorProfilePage() {
           </div>
         </div>
       </div>
-      <div className="min-h-[70vh] flex flex-col justify-between max-w-4xl mx-auto px-4 py-6">
-        <div>
-          <div className="flex items-center space-x-6 flex-wrap">
-            <div className="relative flex flex-col items-center">
-              {getImageSrc() ? (
-                <img
-                  src={getImageSrc()}
-                  alt={
-                    doctor.name ||
+      {/* Modern Doctor Profile Layout */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+          {/* Hero Section with Gradient Background */}
+          <div className="relative bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 h-48 md:h-56">
+            <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+            <div className="relative z-10 h-full flex items-center justify-center">
+              <div className="text-center text-white">
+                <h1 className="text-4xl md:text-5xl font-bold mb-2">
+                  Dr.{" "}
+                  {doctor.name ||
                     `${doctor.firstName || ""} ${doctor.lastName || ""}` ||
-                    "Doctor"
-                  }
-                  className="w-24 h-24 rounded-full object-cover border-4 border-primary-600"
-                />
-              ) : (
-                <div className="w-24 h-24 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold text-4xl">
-                  {initials}
-                </div>
-              )}
-              {/* Small Call/WhatsApp Buttons */}
-              <div className="flex flex-col items-center gap-2 mt-2">
-                {doctor.phone && (
-                  <a
-                    href={`tel:${doctor.phone}`}
-                    className="inline-flex items-center px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition"
-                  >
-                    Call
-                  </a>
-                )}
-                {doctor.phone && (
-                  <a
-                    href={`https://wa.me/${doctor.phone}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition"
-                  >
-                    WhatsApp
-                  </a>
-                )}
-              </div>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">
-                {doctor.name ||
-                  `${doctor.firstName || ""} ${doctor.lastName || ""}` ||
-                  "Unknown Doctor"}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                {doctor.specialization || "Specialist"}
-              </p>
-              <p className="mb-2">{doctor.qualification || ""}</p>
-              <p>Experience: {doctor.experience || 0} years</p>
-              <p>Consultation Fee: ₹{doctor.consultationFee || 0}</p>
-              <p>Email: {doctor.email || "N/A"}</p>
-              <p>Phone: {doctor.phone || "N/A"}</p>
-              {doctor.address && (
-                <p>
-                  Address:{" "}
-                  {typeof doctor.address === "string"
-                    ? doctor.address
-                    : doctor.address.fullAddress ||
-                      `${doctor.address.city || ""} ${
-                        doctor.address.state || ""
-                      }`}
+                    "Unknown Doctor"}
+                </h1>
+                <p className="text-xl opacity-90">
+                  {doctor.specialization || "Medical Specialist"}
                 </p>
-              )}
-              {doctor.bio && <p className="mt-2 text-gray-700">{doctor.bio}</p>}
+                {/* Department Name */}
+                <p className="text-lg opacity-80 mt-1">
+                  Department:{" "}
+                  {typeof doctor.department === "object"
+                    ? doctor.department?.name || "General Medicine"
+                    : doctor.department || "General Medicine"}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Booking Section */}
-          <div className="mt-10 flex flex-col md:flex-row md:items-center md:space-x-8 space-y-4 md:space-y-0">
-            <a
-              href={`/booking/${doctor._id}`}
-              className="flex-1 btn-primary text-sm px-5 py-2 rounded-lg font-semibold shadow hover:shadow-lg transition w-full md:w-auto text-center inline-flex items-center justify-center"
-            >
-              <span className="flex items-center justify-center">Book Now</span>
-            </a>
-            <button
-              onClick={handleShare}
-              className="flex-1 md:flex-none inline-flex items-center justify-center px-5 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-            >
-              <Share className="w-4 h-4 mr-2" /> Share
-            </button>
+          {/* Main Content */}
+          <div className="relative -mt-16 z-20 px-6 md:px-8 pb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column - Photo and Quick Actions */}
+              <div className="lg:col-span-1">
+                <div className="bg-white dark:bg-gray-700 rounded-2xl shadow-lg p-6 text-center">
+                  {/* Doctor Photo */}
+                  <div className="relative mb-6">
+                    {getImageSrc() ? (
+                      <img
+                        src={getImageSrc()}
+                        alt={
+                          doctor.name ||
+                          `${doctor.firstName || ""} ${
+                            doctor.lastName || ""
+                          }` ||
+                          "Doctor"
+                        }
+                        className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg mx-auto"
+                      />
+                    ) : (
+                      <div className="w-32 h-32 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold text-4xl mx-auto shadow-lg">
+                        {initials}
+                      </div>
+                    )}
+                    {/* Online Status Indicator */}
+                    <div className="absolute bottom-2 right-1/2 transform translate-x-16 w-6 h-6 bg-green-500 rounded-full border-4 border-white shadow-md"></div>
+                  </div>
+
+                  {/* Quick Action Buttons */}
+                  <div className="space-y-3">
+                    {doctor.phone && (
+                      <a
+                        href={`tel:${doctor.phone}`}
+                        className="w-full inline-flex items-center justify-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                      >
+                        📞 Call Now
+                      </a>
+                    )}
+                    {doctor.phone && (
+                      <a
+                        href={`https://wa.me/${doctor.phone}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                      >
+                        💬 WhatsApp
+                      </a>
+                    )}
+                    <button
+                      onClick={handleShare}
+                      className="w-full inline-flex items-center justify-center px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                    >
+                      <Share2 className="w-5 h-5 mr-2" /> Share Profile
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Details */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Basic Information Card */}
+                <div className="bg-white dark:bg-gray-700 rounded-2xl shadow-lg p-6">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                    👨‍⚕️ About Doctor
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24">
+                          Qualification:
+                        </span>
+                        <span className="text-gray-900 dark:text-white">
+                          {doctor.qualification || "Not specified"}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24">
+                          Experience:
+                        </span>
+                        <span className="text-gray-900 dark:text-white">
+                          {doctor.experience || 0} years
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24">
+                          Consultation:
+                        </span>
+                        <span className="text-primary-600 font-bold">
+                          ₹{doctor.consultationFee || doctor.doctorFees || 0}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-start">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24 mt-1">
+                          Location:
+                        </span>
+                        <div className="text-gray-900 dark:text-white">
+                          {/* Display full address from database */}
+                          {(() => {
+                            const addressParts = [];
+                            // Add street address if available
+                            if (doctor.address?.street) {
+                              addressParts.push(doctor.address.street);
+                            }
+                            // Add city
+                            const city = doctor.city || doctor.address?.city;
+                            if (city) {
+                              addressParts.push(city);
+                            }
+                            // Add state
+                            const state = doctor.state || doctor.address?.state;
+                            if (state) {
+                              addressParts.push(state);
+                            }
+                            // Add zip code if available
+                            if (doctor.address?.zipCode) {
+                              addressParts.push(doctor.address.zipCode);
+                            }
+                            // Add country if different from default
+                            if (
+                              doctor.address?.country &&
+                              doctor.address.country !== "India"
+                            ) {
+                              addressParts.push(doctor.address.country);
+                            }
+
+                            return addressParts.length > 0
+                              ? addressParts.join(", ")
+                              : "Not specified";
+                          })()}
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24 mt-1">
+                          Specialty:
+                        </span>
+                        <span className="text-gray-900 dark:text-white">
+                          {doctor.specialization || "General Medicine"}
+                        </span>
+                      </div>
+                      <div className="flex items-start">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24 mt-1">
+                          Department:
+                        </span>
+                        <span className="text-gray-900 dark:text-white">
+                          {typeof doctor.department === "object"
+                            ? doctor.department?.name || "General Medicine"
+                            : doctor.department || "General Medicine"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bio Section */}
+                  {doctor.bio && (
+                    <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                        Biography
+                      </h3>
+                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {doctor.bio}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Clinic Information Card */}
+                {doctor.clinicDetails && doctor.clinicDetails.length > 0 && (
+                  <div className="bg-white dark:bg-gray-700 rounded-2xl shadow-lg p-6">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                      🏥 Associated Clinics
+                    </h2>
+
+                    <div className="space-y-4">
+                      {doctor.clinicDetails.map((clinicDetail, index) => (
+                        <div
+                          key={index}
+                          className="border border-gray-200 dark:border-gray-600 rounded-xl p-4 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900 dark:text-white">
+                                {clinicDetail.clinicName ||
+                                  clinicDetail.clinic?.name ||
+                                  "Clinic"}
+                                {clinicDetail.isPrimary && (
+                                  <span className="ml-2 px-2 py-1 bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 rounded-full text-xs font-medium">
+                                    Primary
+                                  </span>
+                                )}
+                              </h3>
+                              {clinicDetail.clinicAddress && (
+                                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+                                  {clinicDetail.clinicAddress}
+                                </p>
+                              )}
+                              {clinicDetail.consultationFee && (
+                                <p className="text-primary-600 font-medium text-sm mt-1">
+                                  Consultation: ₹{clinicDetail.consultationFee}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Book Appointment CTA */}
+                <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl shadow-lg p-6 text-center text-white">
+                  <h3 className="text-2xl font-bold mb-4">
+                    Ready to Book an Appointment?
+                  </h3>
+                  <p className="text-primary-100 mb-6">
+                    Get expert medical care from Dr.{" "}
+                    {doctor.name || doctor.firstName || "this specialist"}
+                  </p>
+                  <a
+                    href={`/booking/${doctor._id}`}
+                    className="inline-flex items-center px-8 py-4 bg-white text-primary-600 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                  >
+                    📅 Book Appointment Now
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

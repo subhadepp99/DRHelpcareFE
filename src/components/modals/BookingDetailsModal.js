@@ -70,6 +70,21 @@ export default function BookingDetailsModal({
   const clinic = booking?.clinic;
   const doctor = booking?.doctor;
   const patient = booking?.patient;
+  const isPast = (() => {
+    try {
+      if (!booking) return false;
+      const dt = new Date(booking.appointmentDate);
+      if (booking.appointmentTime) {
+        const [h, m] = String(booking.appointmentTime)
+          .split(":")
+          .map((v) => parseInt(v, 10) || 0);
+        dt.setHours(h, m, 0, 0);
+      }
+      return new Date() > dt;
+    } catch (e) {
+      return false;
+    }
+  })();
 
   return (
     <AnimatePresence>
@@ -221,22 +236,24 @@ export default function BookingDetailsModal({
               <button onClick={onClose} className="btn-secondary">
                 Close
               </button>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleReschedule}
-                  disabled={working || loading}
-                  className="btn-secondary"
-                >
-                  Reschedule
-                </button>
-                <button
-                  onClick={handleCancel}
-                  disabled={working || loading}
-                  className="btn-primary"
-                >
-                  Cancel Booking
-                </button>
-              </div>
+              {!isPast && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleReschedule}
+                    disabled={working || loading}
+                    className="btn-secondary"
+                  >
+                    Reschedule
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    disabled={working || loading}
+                    className="btn-primary"
+                  >
+                    Cancel Booking
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>

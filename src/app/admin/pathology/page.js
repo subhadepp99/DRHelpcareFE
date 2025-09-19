@@ -30,29 +30,27 @@ export default function PathologyPage() {
   const [selectedPathology, setSelectedPathology] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
-    description: "",
+    testCode: "",
     category: "",
+    sampleType: "",
+    description: "",
     price: "",
-    licenseNumber: "",
-    email: "",
-    phone: "",
+    turnaroundTime: "24 hours",
+    preparation: "",
+    isPackage: false,
+    isActive: true,
+    imageUrl: "",
+    components: [],
     address: "",
     place: "",
     state: "",
     zipCode: "",
     country: "India",
-    servicesOffered: [],
-    testsOffered: [],
-    is24Hours: false,
-    imageUrl: "",
     homeCollection: {
       available: false,
       fee: 0,
       areas: [],
-      timing: {
-        start: "",
-        end: "",
-      },
+      timing: { start: "", end: "" },
     },
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,18 +86,47 @@ export default function PathologyPage() {
       // Add all form fields
       Object.keys(formData).forEach((key) => {
         if (key === "homeCollection") {
+          // Flatten nested homeCollection fields
+          const hc = formData.homeCollection || {};
+          // available
+          if (typeof hc.available !== "undefined") {
+            formDataToSend.append(
+              "homeCollection[available]",
+              String(!!hc.available)
+            );
+          }
+          // fee
+          if (typeof hc.fee !== "undefined") {
+            formDataToSend.append(
+              "homeCollection[fee]",
+              String(Number(hc.fee) || 0)
+            );
+          }
+          // areas (append multiple values if provided)
+          if (Array.isArray(hc.areas)) {
+            hc.areas
+              .filter((a) => a && a.trim())
+              .forEach((area) =>
+                formDataToSend.append("homeCollection[areas]", area.trim())
+              );
+          }
+          // timing
+          if (hc.timing && (hc.timing.start || hc.timing.end)) {
+            if (hc.timing.start !== undefined) {
+              formDataToSend.append(
+                "homeCollection[timing][start]",
+                hc.timing.start || ""
+              );
+            }
+            if (hc.timing.end !== undefined) {
+              formDataToSend.append(
+                "homeCollection[timing][end]",
+                hc.timing.end || ""
+              );
+            }
+          }
+        } else if (key === "components") {
           formDataToSend.append(key, JSON.stringify(formData[key]));
-        } else if (key === "testsOffered") {
-          formDataToSend.append(key, JSON.stringify(formData[key]));
-        } else if (key === "servicesOffered") {
-          formDataToSend.append(key, JSON.stringify(formData[key]));
-        } else if (key === "imageUrl") {
-          // Skip imageUrl as it will be handled by the backend
-        } else if (
-          key === "licenseNumber" &&
-          (!formData[key] || formData[key].trim() === "")
-        ) {
-          // Skip empty license numbers to avoid duplicate key errors
         } else {
           formDataToSend.append(key, formData[key]);
         }
@@ -115,20 +142,13 @@ export default function PathologyPage() {
       // Additional debugging for required fields
       console.log("Required fields check:");
       console.log("- name:", formData.name);
-      console.log("- description:", formData.description);
       console.log("- category:", formData.category);
       console.log("- price:", formData.price);
-      console.log("- email:", formData.email);
-      console.log("- phone:", formData.phone);
+      console.log("- sampleType:", formData.sampleType);
       console.log("- address:", formData.address);
       console.log("- place:", formData.place);
       console.log("- state:", formData.state);
       console.log("- zipCode:", formData.zipCode);
-
-      // Add image file if selected
-      if (selectedImage) {
-        formDataToSend.append("image", selectedImage);
-      }
 
       // Add image file if selected
       if (selectedImage) {
@@ -171,29 +191,27 @@ export default function PathologyPage() {
     setSelectedPathology(pathology);
     setFormData({
       name: pathology.name || "",
-      description: pathology.description || "",
+      testCode: pathology.testCode || "",
       category: pathology.category || "",
+      sampleType: pathology.sampleType || "",
+      description: pathology.description || "",
       price: pathology.price || "",
-      licenseNumber: pathology.licenseNumber || "",
-      email: pathology.email || "",
-      phone: pathology.phone || "",
+      turnaroundTime: pathology.turnaroundTime || "24 hours",
+      preparation: pathology.preparation || "",
+      isPackage: pathology.isPackage || false,
+      isActive: pathology.isActive || true,
+      imageUrl: pathology.imageUrl || "",
+      components: pathology.components || [],
       address: pathology.address || "",
       place: pathology.place || "",
       state: pathology.state || "",
       zipCode: pathology.zipCode || "",
       country: pathology.country || "India",
-      servicesOffered: pathology.servicesOffered || [],
-      testsOffered: pathology.testsOffered || [],
-      is24Hours: pathology.is24Hours || false,
-      imageUrl: pathology.imageUrl || "",
       homeCollection: pathology.homeCollection || {
         available: false,
         fee: 0,
         areas: [],
-        timing: {
-          start: "",
-          end: "",
-        },
+        timing: { start: "", end: "" },
       },
     });
     setImagePreview(pathology.imageUrl || null);
@@ -217,29 +235,27 @@ export default function PathologyPage() {
   const resetForm = () => {
     setFormData({
       name: "",
-      description: "",
+      testCode: "",
       category: "",
+      sampleType: "",
+      description: "",
       price: "",
-      licenseNumber: "",
-      email: "",
-      phone: "",
+      turnaroundTime: "24 hours",
+      preparation: "",
+      isPackage: false,
+      isActive: true,
+      imageUrl: "",
+      components: [],
       address: "",
       place: "",
       state: "",
       zipCode: "",
       country: "India",
-      servicesOffered: [],
-      testsOffered: [],
-      is24Hours: false,
-      imageUrl: "",
       homeCollection: {
         available: false,
         fee: 0,
         areas: [],
-        timing: {
-          start: "",
-          end: "",
-        },
+        timing: { start: "", end: "" },
       },
     });
     setSelectedImage(null);
@@ -281,52 +297,42 @@ export default function PathologyPage() {
     }
   };
 
-  const addTest = () => {
-    const newTest = {
+  const addComponent = () => {
+    const newComponent = {
       name: "",
-      category: "",
-      price: 0,
-      discountedPrice: 0,
-      discountType: "flat",
-      discountValue: 0,
-      requiresPrescription: false,
-      imageUrl: "",
-      description: "",
-      preparationInstructions: "",
-      reportTime: "",
-      isHomeCollection: false,
-      homeCollectionFee: 0,
+      unit: "",
+      referenceRange: "",
     };
     setFormData({
       ...formData,
-      testsOffered: [...formData.testsOffered, newTest],
+      components: [...formData.components, newComponent],
     });
   };
 
-  const removeTest = (index) => {
-    const newTests = formData.testsOffered.filter((_, i) => i !== index);
-    setFormData({ ...formData, testsOffered: newTests });
+  const removeComponent = (index) => {
+    const newComponents = formData.components.filter((_, i) => i !== index);
+    setFormData({ ...formData, components: newComponents });
   };
 
-  const updateTest = (index, field, value) => {
-    const newTests = [...formData.testsOffered];
-    newTests[index] = { ...newTests[index], [field]: value };
-    setFormData({ ...formData, testsOffered: newTests });
+  const updateComponent = (index, field, value) => {
+    const newComponents = [...formData.components];
+    newComponents[index] = { ...newComponents[index], [field]: value };
+    setFormData({ ...formData, components: newComponents });
   };
 
-  const handleTestImageChange = (index, e) => {
+  const handleComponentImageChange = (index, e) => {
     const file = e.target.files[0];
     if (file) {
-      const newTests = [...formData.testsOffered];
-      newTests[index].imageUrl = URL.createObjectURL(file);
-      setFormData({ ...formData, testsOffered: newTests });
+      const newComponents = [...formData.components];
+      newComponents[index].imageUrl = URL.createObjectURL(file);
+      setFormData({ ...formData, components: newComponents });
     }
   };
 
-  const removeTestImage = (index) => {
-    const newTests = [...formData.testsOffered];
-    newTests[index].imageUrl = "";
-    setFormData({ ...formData, testsOffered: newTests });
+  const removeComponentImage = (index) => {
+    const newComponents = [...formData.components];
+    newComponents[index].imageUrl = "";
+    setFormData({ ...formData, components: newComponents });
   };
 
   const filteredPathologies = (pathologies || []).filter(
@@ -433,7 +439,7 @@ export default function PathologyPage() {
                   {/* Tests Count */}
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {pathology.testsOffered?.length || 0} Tests
+                      {pathology.components?.length || 0} Tests
                     </span>
                     {pathology.homeCollection?.available && (
                       <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded-full">
@@ -480,10 +486,10 @@ export default function PathologyPage() {
                   Location
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Contact
+                  Sample Type
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Tests
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Price
                 </th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Home Collection
@@ -539,16 +545,11 @@ export default function PathologyPage() {
                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                       {pathology.place}, {pathology.state}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-gray-700 dark:text-gray-300">
-                        {pathology.phone}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {pathology.email}
-                      </div>
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                      {pathology.sampleType}
                     </td>
-                    <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
-                      {pathology.testsOffered?.length || 0}
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                      ₹{pathology.price}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {pathology.homeCollection?.available ? (
@@ -653,6 +654,22 @@ export default function PathologyPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Sample Type *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.sampleType}
+                    onChange={(e) =>
+                      setFormData({ ...formData, sampleType: e.target.value })
+                    }
+                    className="input-field w-full"
+                    placeholder="Blood, Urine, etc."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Price *
                   </label>
                   <input
@@ -666,56 +683,6 @@ export default function PathologyPage() {
                     }
                     className="input-field w-full"
                     placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    License Number
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.licenseNumber}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        licenseNumber: e.target.value,
-                      })
-                    }
-                    className="input-field w-full"
-                    placeholder="Optional"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    className="input-field w-full"
-                    placeholder="email@example.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Phone *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    className="input-field w-full"
-                    placeholder="Phone number"
                   />
                 </div>
               </div>
@@ -858,17 +825,34 @@ export default function PathologyPage() {
                   <label className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={formData.is24Hours}
+                      checked={formData.isPackage}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          is24Hours: e.target.checked,
+                          isPackage: e.target.checked,
                         })
                       }
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                      24/7 Service Available
+                      Package Test
+                    </span>
+                  </label>
+
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.isActive}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          isActive: e.target.checked,
+                        })
+                      }
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                      Active
                     </span>
                   </label>
 
@@ -950,14 +934,14 @@ export default function PathologyPage() {
                   </h4>
                   <button
                     type="button"
-                    onClick={addTest}
+                    onClick={addComponent}
                     className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
                   >
                     Add Test
                   </button>
                 </div>
 
-                {formData.testsOffered.map((test, index) => (
+                {formData.components.map((component, index) => (
                   <div
                     key={index}
                     className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg space-y-4"
@@ -968,7 +952,7 @@ export default function PathologyPage() {
                       </h5>
                       <button
                         type="button"
-                        onClick={() => removeTest(index)}
+                        onClick={() => removeComponent(index)}
                         className="text-red-600 hover:text-red-800"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -983,9 +967,9 @@ export default function PathologyPage() {
                         <input
                           type="text"
                           required
-                          value={test.name}
+                          value={component.name}
                           onChange={(e) =>
-                            updateTest(index, "name", e.target.value)
+                            updateComponent(index, "name", e.target.value)
                           }
                           className="input-field w-full"
                           placeholder="Test name"
@@ -998,9 +982,9 @@ export default function PathologyPage() {
                         </label>
                         <input
                           type="text"
-                          value={test.category}
+                          value={component.category}
                           onChange={(e) =>
-                            updateTest(index, "category", e.target.value)
+                            updateComponent(index, "category", e.target.value)
                           }
                           className="input-field w-full"
                           placeholder="Blood, Urine, etc."
@@ -1014,9 +998,9 @@ export default function PathologyPage() {
                         <input
                           type="number"
                           required
-                          value={test.price}
+                          value={component.price}
                           onChange={(e) =>
-                            updateTest(
+                            updateComponent(
                               index,
                               "price",
                               parseFloat(e.target.value) || 0
@@ -1029,87 +1013,73 @@ export default function PathologyPage() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Discount Type
-                        </label>
-                        <select
-                          value={test.discountType}
-                          onChange={(e) =>
-                            updateTest(index, "discountType", e.target.value)
-                          }
-                          className="input-field w-full"
-                        >
-                          <option value="flat">Flat Amount</option>
-                          <option value="percentage">Percentage</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Discount Value
+                          Sample Type
                         </label>
                         <input
-                          type="number"
-                          value={test.discountValue}
+                          type="text"
+                          value={component.sampleType}
                           onChange={(e) =>
-                            updateTest(
-                              index,
-                              "discountValue",
-                              parseFloat(e.target.value) || 0
-                            )
+                            updateComponent(index, "sampleType", e.target.value)
                           }
                           className="input-field w-full"
-                          placeholder="0"
+                          placeholder="Blood, Urine, etc."
                         />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Report Time
+                          Turnaround Time
                         </label>
                         <input
                           type="text"
-                          value={test.reportTime}
+                          value={component.turnaroundTime}
                           onChange={(e) =>
-                            updateTest(index, "reportTime", e.target.value)
+                            updateComponent(
+                              index,
+                              "turnaroundTime",
+                              e.target.value
+                            )
                           }
                           className="input-field w-full"
                           placeholder="24 hours, Same day"
                         />
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Description
-                        </label>
-                        <textarea
-                          value={test.description}
-                          onChange={(e) =>
-                            updateTest(index, "description", e.target.value)
-                          }
-                          className="input-field w-full"
-                          rows={2}
-                          placeholder="Test description"
-                        />
-                      </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Preparation Instructions
+                          Preparation
                         </label>
                         <textarea
-                          value={test.preparationInstructions}
+                          value={component.preparation}
                           onChange={(e) =>
-                            updateTest(
+                            updateComponent(
                               index,
-                              "preparationInstructions",
+                              "preparation",
                               e.target.value
                             )
                           }
                           className="input-field w-full"
                           rows={2}
                           placeholder="Patient preparation instructions"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Reference Range
+                        </label>
+                        <input
+                          type="text"
+                          value={component.referenceRange}
+                          onChange={(e) =>
+                            updateComponent(
+                              index,
+                              "referenceRange",
+                              e.target.value
+                            )
+                          }
+                          className="input-field w-full"
+                          placeholder="Normal: 0-100, Abnormal: >100"
                         />
                       </div>
                     </div>
@@ -1124,14 +1094,16 @@ export default function PathologyPage() {
                           <input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => handleTestImageChange(index, e)}
+                            onChange={(e) =>
+                              handleComponentImageChange(index, e)
+                            }
                             className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-300"
                           />
                         </div>
-                        {test.imageUrl && (
+                        {component.imageUrl && (
                           <button
                             type="button"
-                            onClick={() => removeTestImage(index)}
+                            onClick={() => removeComponentImage(index)}
                             className="px-3 py-2 text-red-600 hover:text-red-800 text-sm font-medium"
                           >
                             Remove
@@ -1140,17 +1112,17 @@ export default function PathologyPage() {
                       </div>
 
                       {/* Test Image Preview */}
-                      {test.imageUrl && (
+                      {component.imageUrl && (
                         <div className="mt-3">
                           <div className="relative w-24 h-24 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
                             <img
-                              src={test.imageUrl}
-                              alt={`${test.name} preview`}
+                              src={component.imageUrl}
+                              alt={`${component.name} preview`}
                               className="w-full h-full object-cover"
                             />
                             <button
                               type="button"
-                              onClick={() => removeTestImage(index)}
+                              onClick={() => removeComponentImage(index)}
                               className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
                             >
                               ×
@@ -1164,60 +1136,21 @@ export default function PathologyPage() {
                       <label className="flex items-center">
                         <input
                           type="checkbox"
-                          checked={test.requiresPrescription}
+                          checked={component.isPackage}
                           onChange={(e) =>
-                            updateTest(
+                            updateComponent(
                               index,
-                              "requiresPrescription",
+                              "isPackage",
                               e.target.checked
                             )
                           }
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                          Requires Prescription
-                        </span>
-                      </label>
-
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={test.isHomeCollection}
-                          onChange={(e) =>
-                            updateTest(
-                              index,
-                              "isHomeCollection",
-                              e.target.checked
-                            )
-                          }
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                          Home Collection Available
+                          Package Test
                         </span>
                       </label>
                     </div>
-
-                    {test.isHomeCollection && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Home Collection Fee
-                        </label>
-                        <input
-                          type="number"
-                          value={test.homeCollectionFee}
-                          onChange={(e) =>
-                            updateTest(
-                              index,
-                              "homeCollectionFee",
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          className="input-field w-full"
-                          placeholder="0"
-                        />
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>

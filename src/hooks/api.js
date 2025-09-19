@@ -1,7 +1,7 @@
 "use client";
 import { useCallback } from "react";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function useApi() {
   const request = useCallback(async (method, path, data) => {

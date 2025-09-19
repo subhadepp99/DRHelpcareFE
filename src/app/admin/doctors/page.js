@@ -40,6 +40,7 @@ export default function AdminDoctorsPage() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [faqModalOpen, setFaqModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [search, setSearch] = useState("");
 
   // You can expand the form as required for your model
   const [form, setForm] = useState({
@@ -60,11 +61,12 @@ export default function AdminDoctorsPage() {
   });
 
   // Fetch doctors from the API using the Node backend endpoint
-  const fetchDoctors = async () => {
+  const fetchDoctors = async (term = "") => {
     setLoading(true);
     try {
+      const qs = term ? `&search=${encodeURIComponent(term)}` : "";
       const res = await get(
-        "/doctors?populate=department,clinicDetails.clinic"
+        `/doctors?populate=department,clinicDetails.clinic${qs}`
       ); // Add populate to get department names and clinic details
       setDoctors(res.data.doctors || res.data.data?.doctors || []);
     } catch (err) {
@@ -109,6 +111,14 @@ export default function AdminDoctorsPage() {
     fetchDepartments();
     fetchClinics();
   }, []);
+
+  // Live search with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchDoctors(search.trim());
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   const openAddModal = () => {
     setEditingDoctor(null);
@@ -322,9 +332,20 @@ export default function AdminDoctorsPage() {
 
   return (
     <div>
-      {/* *** NEW BUTTON STYLING *** */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Doctors Management</h1>
+      {/* *** Header with Search and Add *** */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-3">
+        <div className="flex items-center gap-3 flex-1">
+          <h1 className="text-2xl font-semibold">Doctors Management</h1>
+          <div className="flex items-center gap-2 ml-auto md:ml-6">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name or phone"
+              className="input-field w-56 md:w-72"
+            />
+          </div>
+        </div>
         <button
           className="flex items-center px-6 py-2 rounded-md bg-primary-600 hover:bg-primary-700 text-white font-bold shadow-lg space-x-2 transition-all 
                      active:scale-95 active:shadow-none"

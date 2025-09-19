@@ -17,6 +17,7 @@ import Image from "next/image";
 import { getImageUrl } from "@/utils/imageUtils";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import HeroCarousel from "@/components/common/HeroCarousel";
 
 export default function Pathology() {
   const { get } = useApi();
@@ -144,6 +145,11 @@ export default function Pathology() {
               </div>
             </div>
           </motion.section>
+
+          {/* Pathology Banners */}
+          <div className="mb-10">
+            <HeroCarousel placement="pathology" />
+          </div>
 
           {/* Featured Packages Slider */}
           {testPackages.length > 0 ? (
@@ -423,22 +429,18 @@ export default function Pathology() {
                 </p>
               </div>
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredTests.map((test, index) => (
                   <motion.div
                     key={test._id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.05 * index }}
-                    className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 ${
-                      index !== filteredTests.length - 1
-                        ? "border-b border-gray-200 dark:border-gray-700"
-                        : ""
-                    }`}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start space-x-4">
                           <div className="w-12 h-12 rounded-lg overflow-hidden bg-primary-100 dark:bg-primary-900 flex items-center justify-center flex-shrink-0">
                             {getImageUrl(test.imageUrl) ? (
                               <img
@@ -451,13 +453,13 @@ export default function Pathology() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1">
                               {test.name}
                             </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
                               {test.description}
                             </p>
-                            <div className="flex items-center space-x-6 text-xs text-gray-500 dark:text-gray-400">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
                               <span>
                                 Category: {test.category || "General"}
                               </span>
@@ -474,10 +476,10 @@ export default function Pathology() {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-4 ml-4">
-                        <div className="text-right">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xl font-bold text-primary-600 dark:text-primary-400">
+                      <div className="flex items-center space-x-3 ml-2 sm:ml-4">
+                        <div className="text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end space-x-2">
+                            <span className="text-base sm:text-xl font-bold text-primary-600 dark:text-primary-400">
                               ₹{test.discountedPrice || test.price}
                             </span>
                             {test.discountedPrice &&
@@ -489,7 +491,7 @@ export default function Pathology() {
                           </div>
                           {test.discountedPrice &&
                             test.discountedPrice < test.price && (
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold">
+                              <span className="inline-block mt-1 bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold">
                                 {getDiscountPercentage(
                                   test.price,
                                   test.discountedPrice
@@ -510,14 +512,14 @@ export default function Pathology() {
                               );
                               window.location.href = `/pathology/${testName}/${location}`;
                             }}
-                            className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-1.5 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm"
+                            className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-1 px-3 sm:py-1.5 sm:px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-xs sm:text-sm"
                           >
                             <TestTube className="w-3 h-3" />
                             <span>View Details</span>
                           </button>
                           <button
                             onClick={() => handleCall()}
-                            className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-1.5 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm"
+                            className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-1 px-3 sm:py-1.5 sm:px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-xs sm:text-sm"
                           >
                             <Phone className="w-3 h-3" />
                             <span>Book</span>

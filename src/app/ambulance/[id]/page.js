@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Phone, ArrowLeft, MapPin, Share } from "lucide-react";
+import { Phone, ArrowLeft, MapPin, Share2 } from "lucide-react";
+import Image from "next/image";
+import { getEntityImageUrl } from "@/utils/imageUtils";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -199,6 +201,17 @@ export default function AmbulanceDetailsPage() {
             transition={{ duration: 0.6 }}
             className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden"
           >
+            <div className="w-full h-56 sm:h-72 md:h-80 relative bg-gray-100 dark:bg-gray-700">
+              {getEntityImageUrl(ambulance, "imageUrl") ? (
+                <Image
+                  src={getEntityImageUrl(ambulance, "imageUrl")}
+                  alt={ambulance.name || "Ambulance"}
+                  fill
+                  className="object-cover"
+                />
+              ) : null}
+            </div>
+
             <div className="p-6 md:p-8">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -247,7 +260,7 @@ export default function AmbulanceDetailsPage() {
                   onClick={handleShare}
                   className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm"
                 >
-                  <Share className="w-4 h-4 mr-2" /> Share
+                  <Share2 className="w-4 h-4 mr-2" /> Share
                 </button>
               </div>
             </div>

@@ -1,21 +1,22 @@
 /** @type {import('next').NextConfig} */
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+let remotePatterns = [];
+try {
+  if (apiUrl) {
+    const url = new URL(apiUrl);
+    remotePatterns.push({
+      protocol: url.protocol.replace(":", ""),
+      hostname: url.hostname,
+      port: url.port || undefined,
+      pathname: "/**",
+    });
+  }
+} catch {}
+
 const nextConfig = {
   images: {
-    domains: ["localhost", "127.0.0.1"],
-    remotePatterns: [
-      {
-        protocol: "http",
-        hostname: "localhost",
-        port: "5000",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "127.0.0.1",
-        port: "5000",
-        pathname: "/**",
-      },
-    ],
+    domains: [],
+    remotePatterns,
     unoptimized: true,
   },
   env: {

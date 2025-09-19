@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { getEntityImageUrl } from "@/utils/imageUtils";
+import { getEntityImageUrl, debugApiConfig } from "@/utils/imageUtils";
 
 export default function DepartmentCard({ department }) {
   const router = useRouter();
@@ -29,30 +29,78 @@ export default function DepartmentCard({ department }) {
       {/* min-h-[240px] */}
       <div className="relative w-full h-24 mb-3 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
         {(() => {
+          // Debug API configuration on first load
+          if (!window.debugLogged) {
+            debugApiConfig();
+            window.debugLogged = true;
+          }
+
           const imageSrc = getEntityImageUrl(department, "imageUrl");
-          return imageSrc ? (
-            <Image
-              src={imageSrc}
-              alt={department?.heading || department?.name || "Department"}
-              fill
-              className="object-cover"
-              onError={(e) => {
-                e.target.style.display = "none";
-                e.target.nextSibling.style.display = "flex";
-              }}
-            />
-          ) : null;
+          console.log(
+            "DepartmentCard: Department:",
+            department?.name,
+            "Image URL:",
+            imageSrc
+          );
+
+          if (imageSrc) {
+            return (
+              <>
+                <img
+                  src={imageSrc}
+                  alt={department?.heading || department?.name || "Department"}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error(
+                      "DepartmentCard: Image failed to load:",
+                      imageSrc
+                    );
+                    const target = e.target;
+                    const fallback = target.nextSibling;
+                    if (target && fallback) {
+                      target.style.display = "none";
+                      fallback.style.display = "flex";
+                    }
+                  }}
+                  onLoad={() => {
+                    console.log(
+                      "DepartmentCard: Image loaded successfully:",
+                      imageSrc
+                    );
+                  }}
+                />
+                <div
+                  className="w-full h-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800"
+                  style={{ display: "none" }}
+                >
+                  <div className="text-center">
+                    <div className="text-xs text-gray-400 mb-1">
+                      Image unavailable
+                    </div>
+                    <div className="text-xs">
+                      {department?.heading || department?.name || "Department"}
+                    </div>
+                  </div>
+                </div>
+              </>
+            );
+          } else {
+            console.log(
+              "DepartmentCard: No image source available for department:",
+              department?.name
+            );
+            return (
+              <div className="w-full h-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+                <div className="text-center">
+                  <div className="text-xs text-gray-400 mb-1">No image</div>
+                  <div className="text-xs">
+                    {department?.heading || department?.name || "Department"}
+                  </div>
+                </div>
+              </div>
+            );
+          }
         })()}
-        <div
-          className="w-full h-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400"
-          style={{
-            display: getEntityImageUrl(department, "imageUrl")
-              ? "none"
-              : "flex",
-          }}
-        >
-          No image
-        </div>
       </div>
       <h3 className="font-bold text-base mb-2">
         {department?.heading || department?.name || "Department"}

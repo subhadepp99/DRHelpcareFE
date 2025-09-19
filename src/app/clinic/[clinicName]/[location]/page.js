@@ -16,7 +16,7 @@ import {
   ExternalLink,
   Search,
   X,
-  Share,
+  Share2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ReactStars from "react-rating-stars-component";
@@ -794,7 +794,7 @@ export default function ClinicDetailsPage() {
                   onClick={handleShare}
                   className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                 >
-                  <Share className="w-5 h-5 mr-2" /> Share
+                  <Share2 className="w-5 h-5 mr-2" /> Share
                 </button>
               </div>
             </div>
