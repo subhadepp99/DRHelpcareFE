@@ -227,13 +227,28 @@ export default function AdminDoctorsPage() {
     setFaqModalOpen(true);
   };
 
-  const handleScheduleUpdate = (updatedSchedule) => {
+  const handleScheduleUpdate = ({ scope, clinicId, schedule }) => {
     setDoctors((prev) =>
-      prev.map((doc) =>
-        doc._id === selectedDoctor._id
-          ? { ...doc, bookingSchedule: updatedSchedule }
-          : doc
-      )
+      prev.map((doc) => {
+        if (doc._id !== selectedDoctor._id) return doc;
+        if (scope === "clinic" && clinicId) {
+          const updatedClinicDetails = (doc.clinicDetails || []).map((cd) => {
+            const id = String(cd.clinic?._id || cd.clinic);
+            if (id === String(clinicId)) {
+              return {
+                ...cd,
+                clinicSchedule: Array.isArray(schedule) ? schedule : [],
+              };
+            }
+            return cd;
+          });
+          return { ...doc, clinicDetails: updatedClinicDetails };
+        }
+        return {
+          ...doc,
+          bookingSchedule: Array.isArray(schedule) ? schedule : [],
+        };
+      })
     );
   };
 

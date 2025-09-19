@@ -26,6 +26,11 @@ export default function DoctorScheduleModal({
       : ""
   );
   const [scheduleDrafts, setScheduleDrafts] = useState({}); // key: clinicId or 'general' -> schedule array
+  // Recurrence controls
+  const [recurrenceScope, setRecurrenceScope] = useState("week"); // 'week' | 'month' | 'range'
+  const [selectedWeekdays, setSelectedWeekdays] = useState(new Set()); // 0=Sun..6=Sat
+  const [rangeEndDate, setRangeEndDate] = useState(null);
+  const [templateSource, setTemplateSource] = useState("selected"); // 'selected' | 'default'
 
   // Generate calendar dates for current month
   const generateCalendarDates = () => {
@@ -130,6 +135,11 @@ export default function DoctorScheduleModal({
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
+    // Initialize weekday selection to selected date's weekday if empty
+    if (!selectedWeekdays || selectedWeekdays.size === 0) {
+      const wd = new Date(date).getDay();
+      setSelectedWeekdays(new Set([wd]));
+    }
   };
 
   const addSchedule = () => {
@@ -160,6 +170,142 @@ export default function DoctorScheduleModal({
 
     setSchedule([...schedule, newSchedule]);
     toast.success("Schedule added for selected date");
+  };
+
+  const toggleWeekday = (wd) => {
+    setSelectedWeekdays((prev) => {
+      const next = new Set(prev);
+      if (next.has(wd)) next.delete(wd);
+      else next.add(wd);
+      return next;
+    });
+  };
+
+  const getWeekBounds = (date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const start = new Date(d);
+    start.setDate(d.getDate() - day);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  };
+
+  const getMonthBounds = (date) => {
+    const d = new Date(date);
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  };
+
+  const buildSlotsFromTemplate = (baseDate) => {
+    const baseSchedule = getScheduleForDate(baseDate);
+    if (templateSource === "selected" && baseSchedule) {
+      return (baseSchedule.slots || []).map((s) => ({
+        startTime: s.startTime,
+        endTime: s.endTime,
+        isAvailable: true,
+        maxBookings: Number(s.maxBookings) || 1,
+        currentBookings: 0,
+      }));
+    }
+    return defaultTimeSlots.map((time) => ({
+      startTime: time,
+      endTime: addMinutes(time, 30),
+      isAvailable: true,
+      maxBookings: 1,
+      currentBookings: 0,
+    }));
+  };
+
+  const addRecurringSchedules = () => {
+    if (!selectedDate) {
+      toast.error("Please select a date first");
+      return;
+    }
+    // Determine range
+    let rangeStart = startOfDay(new Date(selectedDate));
+    let rangeEnd = null;
+    if (recurrenceScope === "week") {
+      const { start, end } = getWeekBounds(rangeStart);
+      rangeStart = start;
+      rangeEnd = end;
+    } else if (recurrenceScope === "month") {
+      const { start, end } = getMonthBounds(rangeStart);
+      rangeStart = start;
+      rangeEnd = end;
+    } else if (recurrenceScope === "range") {
+      if (!rangeEndDate) {
+        toast.error("Please select an end date for the range");
+        return;
+      }
+      rangeEnd = new Date(rangeEndDate);
+      rangeEnd.setHours(23, 59, 59, 999);
+      if (isAfter(rangeStart, rangeEnd)) {
+        toast.error("End date must be after start date");
+        return;
+      }
+      // Guard extreme ranges
+      const maxDays = 180;
+      const daysDiff = Math.ceil(
+        (rangeEnd - rangeStart) / (1000 * 60 * 60 * 24)
+      );
+      if (daysDiff > maxDays) {
+        toast.error(`Range too large (>${maxDays} days)`);
+        return;
+      }
+    }
+
+    const weekdays =
+      selectedWeekdays.size > 0
+        ? new Set(selectedWeekdays)
+        : new Set([new Date(selectedDate).getDay()]);
+
+    const todayStart = startOfDay(new Date());
+    const toAdd = [];
+    let cursor = new Date(rangeStart);
+    while (cursor <= rangeEnd) {
+      const day = cursor.getDay();
+      const isFutureOrToday =
+        !isAfter(todayStart, cursor) || isSameDay(todayStart, cursor);
+      if (weekdays.has(day) && isFutureOrToday) {
+        const exists = schedule.some((s) =>
+          isSameDay(new Date(s.date), cursor)
+        );
+        if (!exists) {
+          toAdd.push(new Date(cursor));
+        }
+      }
+      cursor = addDays(cursor, 1);
+    }
+
+    if (toAdd.length === 0) {
+      toast("No new dates to add for selected recurrence");
+      return;
+    }
+
+    const slotsTemplate = buildSlotsFromTemplate(selectedDate);
+    const newSchedules = toAdd.map((d) => ({
+      date: d,
+      isAvailable: true,
+      slots: slotsTemplate.map((s) => ({ ...s })),
+    }));
+
+    setSchedule((prev) => [...prev, ...newSchedules]);
+    const skipped = Math.max(
+      0,
+      Math.ceil((rangeEnd - rangeStart) / (1000 * 60 * 60 * 24)) +
+        1 -
+        toAdd.length
+    );
+    toast.success(
+      `Added ${newSchedules.length} dates${
+        skipped ? `, skipped ${skipped}` : ""
+      }`
+    );
   };
 
   const addMinutes = (time, minutes) => {
@@ -232,11 +378,10 @@ export default function DoctorScheduleModal({
         ...prev,
         [key]: Array.isArray(schedule) ? schedule : [],
       }));
-      // refresh from server to ensure consistent state
+      // refresh from server to ensure consistent state and IDs
       try {
         const res = await get(`/doctors/${doctor._id}`, { silent: true });
-        const payload = res?.data;
-        const fresh = payload?.data || payload?.doctor || payload || null;
+        const fresh = res?.data?.data || res?.data || null;
         if (fresh) {
           const nextDrafts = {};
           nextDrafts["general"] = Array.isArray(fresh.bookingSchedule)
@@ -469,6 +614,108 @@ export default function DoctorScheduleModal({
                         <Plus className="w-4 h-4 mr-1" />
                         Add
                       </button>
+                    </div>
+
+                    {/* Recurrence Controls */}
+                    <div className="space-y-3 mb-4 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                        Repeat
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                          (lbl, idx) => (
+                            <label
+                              key={idx}
+                              className={`px-2 py-1 text-xs rounded border cursor-pointer ${
+                                selectedWeekdays.has(idx)
+                                  ? "bg-primary-600 text-white border-primary-600"
+                                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                className="hidden"
+                                checked={selectedWeekdays.has(idx)}
+                                onChange={() => toggleWeekday(idx)}
+                              />
+                              {lbl}
+                            </label>
+                          )
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-sm">
+                        <label className="flex items-center gap-1">
+                          <input
+                            type="radio"
+                            name="rec-scope"
+                            checked={recurrenceScope === "week"}
+                            onChange={() => setRecurrenceScope("week")}
+                          />
+                          This week
+                        </label>
+                        <label className="flex items-center gap-1">
+                          <input
+                            type="radio"
+                            name="rec-scope"
+                            checked={recurrenceScope === "month"}
+                            onChange={() => setRecurrenceScope("month")}
+                          />
+                          This month
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <span className="flex items-center gap-1">
+                            <input
+                              type="radio"
+                              name="rec-scope"
+                              checked={recurrenceScope === "range"}
+                              onChange={() => setRecurrenceScope("range")}
+                            />
+                            Range until
+                          </span>
+                          <input
+                            type="date"
+                            className="input-field py-1 px-2 text-xs"
+                            disabled={recurrenceScope !== "range"}
+                            value={
+                              rangeEndDate
+                                ? format(new Date(rangeEndDate), "yyyy-MM-dd")
+                                : ""
+                            }
+                            onChange={(e) =>
+                              setRangeEndDate(
+                                e.target.value ? new Date(e.target.value) : null
+                              )
+                            }
+                          />
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm">
+                        <label className="flex items-center gap-1">
+                          <input
+                            type="radio"
+                            name="rec-template"
+                            checked={templateSource === "selected"}
+                            onChange={() => setTemplateSource("selected")}
+                          />
+                          Use selected date's slots
+                        </label>
+                        <label className="flex items-center gap-1">
+                          <input
+                            type="radio"
+                            name="rec-template"
+                            checked={templateSource === "default"}
+                            onChange={() => setTemplateSource("default")}
+                          />
+                          Use default slots
+                        </label>
+                        <button
+                          type="button"
+                          onClick={addRecurringSchedules}
+                          className="ml-auto px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                        >
+                          Add Recurring
+                        </button>
+                      </div>
                     </div>
 
                     {getScheduleForDate(selectedDate) ? (
