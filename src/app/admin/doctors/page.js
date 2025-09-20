@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useApi } from "@/hooks/useApi";
+import { useAuthStore } from "@/store/authStore";
 import { Plus, Edit, Trash2, Calendar, Eye, HelpCircle } from "lucide-react";
 import Modal from "@/components/common/Modal";
 import DoctorScheduleModal from "@/components/modals/DoctorScheduleModal";
@@ -28,6 +29,7 @@ const initialForm = {
 
 export default function AdminDoctorsPage() {
   const { get, post, put, del } = useApi();
+  const { user } = useAuthStore();
   const [doctors, setDoctors] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [clinics, setClinics] = useState([]);
@@ -121,6 +123,10 @@ export default function AdminDoctorsPage() {
   }, [search]);
 
   const openAddModal = () => {
+    if (user?.role === "userDoctor") {
+      toast.error("You do not have permission to add doctors.");
+      return;
+    }
     setEditingDoctor(null);
     setForm({
       name: "",
@@ -166,6 +172,10 @@ export default function AdminDoctorsPage() {
   };
 
   const handleDelete = async (id) => {
+    if (user?.role === "userDoctor") {
+      toast.error("You do not have permission to delete doctors.");
+      return;
+    }
     if (confirm("Are you sure you want to delete this doctor?")) {
       setIsDeleting(true); // Set deleting state
       try {
@@ -254,6 +264,10 @@ export default function AdminDoctorsPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (user?.role === "userDoctor") {
+      toast.error("You do not have permission to add or update doctors.");
+      return;
+    }
     setIsSubmitting(true); // Set submitting state
 
     console.log("Submitting doctor form:", form); // Debug log

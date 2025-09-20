@@ -18,6 +18,15 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 import { useApi } from "@/hooks/useApi";
+import {
+  loadMsg91Widget,
+  isMsg91Configured,
+  msg91SendOtp,
+  msg91VerifyOtp,
+  msg91RetryOtp,
+  msg91ExtractReqId,
+  msg91ExtractAccessToken,
+} from "@/lib/msg91";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -29,6 +38,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState(null);
   const [otp, setOtp] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [txnId, setTxnId] = useState("");
 
   const {
     register,
@@ -55,15 +65,23 @@ export default function RegisterPage() {
   // Send OTP for verification
   const handleSendOTP = async (data) => {
     try {
+      setFormData(data);
+      if (isMsg91Configured()) {
+        await loadMsg91Widget();
+        const resp = await msg91SendOtp(String(data.phone));
+        setTxnId(resp?.data?.txnId || resp?.txnId || "");
+        setStep(2);
+        startCountdown();
+        toast.success("OTP sent successfully");
+        return;
+      }
       const response = await post("/auth/send-registration-otp", {
         phone: data.phone,
       });
-
       if (response.data?.success) {
-        setFormData(data);
         setStep(2);
         startCountdown();
-        toast.success("OTP sent successfully to your phone number");
+        toast.success("OTP sent successfully");
       } else {
         toast.error(response.data?.message || "Failed to send OTP");
       }
@@ -78,10 +96,22 @@ export default function RegisterPage() {
     if (countdown > 0) return;
 
     try {
+      if (isMsg91Configured()) {
+        await loadMsg91Widget();
+        try {
+          const resp = await msg91RetryOtp(null, txnId || undefined);
+          setTxnId(msg91ExtractReqId(resp) || txnId || "");
+        } catch (e) {
+          const again = await msg91SendOtp(String(formData.phone));
+          setTxnId(msg91ExtractReqId(again) || "");
+        }
+        startCountdown();
+        toast.success("OTP resent successfully");
+        return;
+      }
       const response = await post("/auth/send-registration-otp", {
         phone: formData.phone,
       });
-
       if (response.data?.success) {
         startCountdown();
         toast.success("OTP resent successfully");
@@ -96,17 +126,36 @@ export default function RegisterPage() {
 
   // Verify OTP and complete registration
   const handleVerifyOTP = async () => {
-    if (!otp || otp.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP");
+    if (!otp || otp.length !== 4) {
+      toast.error("Enter the 4-digit OTP");
       return;
     }
 
     try {
-      const result = await registerUser({
-        ...formData,
-        otp: otp,
-      });
-
+      if (isMsg91Configured()) {
+        await loadMsg91Widget();
+        const vr = await msg91VerifyOtp(Number(otp), txnId || undefined);
+        const accessToken = msg91ExtractAccessToken(vr);
+        if (!accessToken) throw new Error("No access token from MSG91");
+        const response = await post("/auth/register-msg91", {
+          accessToken,
+          user: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            username: formData.username,
+            password: formData.password,
+          },
+        });
+        if (response.data?.success) {
+          toast.success("Registration successful!");
+          router.push("/");
+        } else {
+          toast.error(response.data?.message || "Registration failed");
+        }
+        return;
+      }
+      const result = await registerUser({ ...formData, otp: otp });
       if (result.success) {
         toast.success("Registration successful!");
         router.push("/");
@@ -145,7 +194,7 @@ export default function RegisterPage() {
               Verify Your Phone
             </h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Enter the 6-digit OTP sent to {formData?.phone}
+              Enter the 4-digit OTP sent to {formData?.phone}
             </p>
           </div>
 
@@ -162,22 +211,22 @@ export default function RegisterPage() {
                   type="text"
                   value={otp}
                   onChange={(e) =>
-                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))
                   }
-                  maxLength={6}
+                  maxLength={4}
                   className="appearance-none relative block w-full px-12 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 sm:text-sm text-center text-lg tracking-widest"
-                  placeholder="000000"
+                  placeholder="0000"
                 />
               </div>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center">
-                Enter the 6-digit OTP sent to your phone
+                Enter the 4-digit OTP sent to your phone
               </p>
             </div>
 
             <div className="space-y-4">
               <button
                 onClick={handleVerifyOTP}
-                disabled={!otp || otp.length !== 6 || isLoading}
+                disabled={!otp || otp.length !== 4 || isLoading}
                 className="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 {isLoading ? (

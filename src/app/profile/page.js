@@ -28,7 +28,7 @@ import { getEntityImageUrl } from "@/utils/imageUtils";
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuthStore();
-  const { put, get } = useApi();
+  const { put, get, post } = useApi();
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
@@ -38,6 +38,14 @@ export default function ProfilePage() {
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState(null);
+  const [pwdOtp, setPwdOtp] = useState("");
+  const [pwdOtpCountdown, setPwdOtpCountdown] = useState(0);
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdForm, setPwdForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   const {
     register,
@@ -683,6 +691,169 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="p-6 space-y-6">
+                    {/* Change Password with OTP */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Change Password
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="form-label">Current Password</label>
+                          <input
+                            type="password"
+                            value={pwdForm.currentPassword}
+                            onChange={(e) =>
+                              setPwdForm({
+                                ...pwdForm,
+                                currentPassword: e.target.value,
+                              })
+                            }
+                            className="input-field"
+                          />
+                        </div>
+                        <div className="md:col-span-2 flex items-end justify-between gap-2">
+                          <div className="flex-1">
+                            <label className="form-label">
+                              OTP sent to {user?.phone || "your phone"}
+                            </label>
+                            <input
+                              type="text"
+                              value={pwdOtp}
+                              onChange={(e) =>
+                                setPwdOtp(
+                                  e.target.value.replace(/\D/g, "").slice(0, 4)
+                                )
+                              }
+                              maxLength={4}
+                              className="input-field"
+                              placeholder="0000"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Required to confirm password change
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={pwdOtpCountdown > 0 || pwdLoading}
+                            onClick={async () => {
+                              try {
+                                setPwdLoading(true);
+                                const res = await post(
+                                  "/auth/send-change-password-otp",
+                                  {}
+                                );
+                                if (res.data?.success) {
+                                  setPwdOtpCountdown(60);
+                                  const timer = setInterval(() => {
+                                    setPwdOtpCountdown((v) => {
+                                      if (v <= 1) {
+                                        clearInterval(timer);
+                                        return 0;
+                                      }
+                                      return v - 1;
+                                    });
+                                  }, 1000);
+                                  toast.success("OTP sent");
+                                } else {
+                                  toast.error(
+                                    res.data?.message || "Failed to send OTP"
+                                  );
+                                }
+                              } catch (_) {
+                                toast.error("Failed to send OTP");
+                              } finally {
+                                setPwdLoading(false);
+                              }
+                            }}
+                            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                          >
+                            {pwdOtpCountdown > 0
+                              ? `Resend in ${pwdOtpCountdown}s`
+                              : "Send OTP"}
+                          </button>
+                        </div>
+                        <div>
+                          <label className="form-label">New Password</label>
+                          <input
+                            type="password"
+                            value={pwdForm.newPassword}
+                            onChange={(e) =>
+                              setPwdForm({
+                                ...pwdForm,
+                                newPassword: e.target.value,
+                              })
+                            }
+                            className="input-field"
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">
+                            Confirm New Password
+                          </label>
+                          <input
+                            type="password"
+                            value={pwdForm.confirmPassword}
+                            onChange={(e) =>
+                              setPwdForm({
+                                ...pwdForm,
+                                confirmPassword: e.target.value,
+                              })
+                            }
+                            className="input-field"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          disabled={pwdLoading}
+                          onClick={async () => {
+                            try {
+                              if (!pwdOtp || pwdOtp.length !== 4) {
+                                toast.error("Enter the 4-digit OTP");
+                                return;
+                              }
+                              if (
+                                pwdForm.newPassword !== pwdForm.confirmPassword
+                              ) {
+                                toast.error("Passwords do not match");
+                                return;
+                              }
+                              setPwdLoading(true);
+                              const res = await post("/auth/change-password", {
+                                currentPassword: pwdForm.currentPassword,
+                                newPassword: pwdForm.newPassword,
+                                otp: pwdOtp,
+                              });
+                              if (res.data?.success) {
+                                toast.success("Password changed successfully");
+                                setPwdForm({
+                                  currentPassword: "",
+                                  newPassword: "",
+                                  confirmPassword: "",
+                                });
+                                setPwdOtp("");
+                              } else {
+                                toast.error(
+                                  res.data?.message ||
+                                    "Failed to change password"
+                                );
+                              }
+                            } catch (_) {
+                              toast.error("Failed to change password");
+                            } finally {
+                              setPwdLoading(false);
+                            }
+                          }}
+                          className="btn-primary"
+                        >
+                          {pwdLoading ? (
+                            <div className="spinner mr-2"></div>
+                          ) : null}
+                          Save New Password
+                        </button>
+                      </div>
+                    </div>
                     {/* Account Actions */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white">

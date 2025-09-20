@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Upload, X, HelpCircle } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
+import { useAuthStore } from "@/store/authStore";
 import Modal from "@/components/common/Modal";
 import StatesDropdown from "@/components/common/StatesDropdown";
 import FAQModal from "@/components/modals/FAQModal";
@@ -26,6 +27,7 @@ const initialForm = {
 
 export default function AdminClinics() {
   const { get, post, put, del } = useApi();
+  const { user } = useAuthStore();
   const [clinics, setClinics] = useState([]);
   const [fetching, setFetching] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,6 +40,9 @@ export default function AdminClinics() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [search, setSearch] = useState("");
+  // Tag states for services and facilities
+  const [servicesTags, setServicesTags] = useState([]);
+  const [facilitiesTags, setFacilitiesTags] = useState([]);
 
   useEffect(() => {
     fetchClinics();
@@ -67,11 +72,17 @@ export default function AdminClinics() {
   }
 
   const openAdd = () => {
+    if (user?.role === "userDoctor") {
+      toast.error("You do not have permission to add clinics.");
+      return;
+    }
     setForm(initialForm);
     setEditing(null);
     setImageFile(null);
     setImagePreview("");
     setModalOpen(true);
+    setServicesTags([]);
+    setFacilitiesTags([]);
   };
 
   const openFaqModal = (clinic) => {
@@ -80,6 +91,10 @@ export default function AdminClinics() {
   };
 
   const openEdit = (clinic) => {
+    if (user?.role === "userDoctor") {
+      toast.error("You do not have permission to edit clinics.");
+      return;
+    }
     // Handle services and facilities properly - they might be arrays or JSON strings
     let servicesStr = "";
     let facilitiesStr = "";
@@ -87,31 +102,47 @@ export default function AdminClinics() {
     if (clinic.services) {
       if (Array.isArray(clinic.services)) {
         servicesStr = clinic.services.join(", ");
+        setServicesTags(clinic.services.filter(Boolean));
       } else if (typeof clinic.services === "string") {
         try {
           const parsed = JSON.parse(clinic.services);
-          servicesStr = Array.isArray(parsed)
-            ? parsed.join(", ")
-            : clinic.services;
+          if (Array.isArray(parsed)) {
+            servicesStr = parsed.join(", ");
+            setServicesTags(parsed.filter(Boolean));
+          } else {
+            servicesStr = clinic.services;
+            setServicesTags([]);
+          }
         } catch {
           servicesStr = clinic.services;
+          setServicesTags([]);
         }
       }
+    } else {
+      setServicesTags([]);
     }
 
     if (clinic.facilities) {
       if (Array.isArray(clinic.facilities)) {
         facilitiesStr = clinic.facilities.join(", ");
+        setFacilitiesTags(clinic.facilities.filter(Boolean));
       } else if (typeof clinic.facilities === "string") {
         try {
           const parsed = JSON.parse(clinic.facilities);
-          facilitiesStr = Array.isArray(parsed)
-            ? parsed.join(", ")
-            : clinic.facilities;
+          if (Array.isArray(parsed)) {
+            facilitiesStr = parsed.join(", ");
+            setFacilitiesTags(parsed.filter(Boolean));
+          } else {
+            facilitiesStr = clinic.facilities;
+            setFacilitiesTags([]);
+          }
         } catch {
           facilitiesStr = clinic.facilities;
+          setFacilitiesTags([]);
         }
       }
+    } else {
+      setFacilitiesTags([]);
     }
 
     setForm({
@@ -124,8 +155,8 @@ export default function AdminClinics() {
       state: clinic.state || "",
       zipCode: clinic.zipCode || "",
       country: clinic.country || "India",
-      services: servicesStr,
-      facilities: facilitiesStr,
+      services: servicesStr === "[]" ? "" : servicesStr,
+      facilities: facilitiesStr === "[]" ? "" : facilitiesStr,
       imageUrl: clinic.imageUrl || "",
     });
     setEditing(clinic);
@@ -135,6 +166,10 @@ export default function AdminClinics() {
   };
 
   const handleDelete = async (id) => {
+    if (user?.role === "userDoctor") {
+      toast.error("You do not have permission to delete clinics.");
+      return;
+    }
     if (!confirm("Confirm delete?")) return;
     setIsDeleting(true);
     try {
@@ -171,24 +206,88 @@ export default function AdminClinics() {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
+  // Helpers to add/remove tokens
+  const addTokens = (value) =>
+    value
+      .split(/,|\n/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+  const onServicesKeyDown = (e) => {
+    if (e.key === "," || e.key === "Enter") {
+      e.preventDefault();
+      if (form.services && form.services.trim()) {
+        const tokens = addTokens(form.services);
+        if (tokens.length > 0) {
+          setServicesTags((prev) => Array.from(new Set([...prev, ...tokens])));
+          setForm((prev) => ({ ...prev, services: "" }));
+        }
+      }
+    }
+  };
+
+  const onServicesBlur = () => {
+    if (form.services && form.services.trim()) {
+      const tokens = addTokens(form.services);
+      if (tokens.length > 0) {
+        setServicesTags((prev) => Array.from(new Set([...prev, ...tokens])));
+        setForm((prev) => ({ ...prev, services: "" }));
+      }
+    }
+  };
+
+  const removeServiceTag = (tag) => {
+    setServicesTags((prev) => prev.filter((t) => t !== tag));
+  };
+
+  const onFacilitiesKeyDown = (e) => {
+    if (e.key === "," || e.key === "Enter") {
+      e.preventDefault();
+      if (form.facilities && form.facilities.trim()) {
+        const tokens = addTokens(form.facilities);
+        if (tokens.length > 0) {
+          setFacilitiesTags((prev) =>
+            Array.from(new Set([...prev, ...tokens]))
+          );
+          setForm((prev) => ({ ...prev, facilities: "" }));
+        }
+      }
+    }
+  };
+
+  const onFacilitiesBlur = () => {
+    if (form.facilities && form.facilities.trim()) {
+      const tokens = addTokens(form.facilities);
+      if (tokens.length > 0) {
+        setFacilitiesTags((prev) => Array.from(new Set([...prev, ...tokens])));
+        setForm((prev) => ({ ...prev, facilities: "" }));
+      }
+    }
+  };
+
+  const removeFacilityTag = (tag) => {
+    setFacilitiesTags((prev) => prev.filter((t) => t !== tag));
+  };
+
   async function onSubmit(e) {
     e.preventDefault();
     setIsSubmitting(true);
+    if (user?.role === "userDoctor") {
+      toast.error("You do not have permission to add or update clinics.");
+      setIsSubmitting(false);
+      return;
+    }
 
-    // Ensure services and facilities are properly formatted
-    const servicesArray = form.services
-      ? form.services
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : [];
+    // Ensure services and facilities are properly formatted (tags + any remaining text)
+    const pendingServices = addTokens(form.services || "");
+    const servicesArray = Array.from(
+      new Set([...(servicesTags || []), ...pendingServices])
+    );
 
-    const facilitiesArray = form.facilities
-      ? form.facilities
-          .split(",")
-          .map((f) => f.trim())
-          .filter(Boolean)
-      : [];
+    const pendingFacilities = addTokens(form.facilities || "");
+    const facilitiesArray = Array.from(
+      new Set([...(facilitiesTags || []), ...pendingFacilities])
+    );
 
     try {
       // Create FormData for file upload
@@ -455,20 +554,66 @@ export default function AdminClinics() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                name="services"
-                value={form.services}
-                onChange={onChange}
-                placeholder="Services (comma separated)"
-                className="input-field"
-              />
-              <input
-                name="facilities"
-                value={form.facilities}
-                onChange={onChange}
-                placeholder="Facilities (comma separated)"
-                className="input-field"
-              />
+              <div>
+                <input
+                  name="services"
+                  value={form.services}
+                  onChange={onChange}
+                  onKeyDown={onServicesKeyDown}
+                  onBlur={onServicesBlur}
+                  placeholder="Type a service and press Enter or comma"
+                  className="input-field"
+                />
+                {servicesTags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {servicesTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-2 py-1 text-xs font-medium bg-primary-100 text-primary-700 rounded"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          className="ml-2 text-primary-700 hover:text-primary-900"
+                          onClick={() => removeServiceTag(tag)}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <input
+                  name="facilities"
+                  value={form.facilities}
+                  onChange={onChange}
+                  onKeyDown={onFacilitiesKeyDown}
+                  onBlur={onFacilitiesBlur}
+                  placeholder="Type a facility and press Enter or comma"
+                  className="input-field"
+                />
+                {facilitiesTags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {facilitiesTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-2 py-1 text-xs font-medium bg-primary-100 text-primary-700 rounded"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          className="ml-2 text-primary-700 hover:text-primary-900"
+                          onClick={() => removeFacilityTag(tag)}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Image Upload Section */}

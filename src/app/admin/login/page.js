@@ -9,10 +9,19 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 import { useApi } from "@/hooks/useApi";
+import {
+  loadMsg91Widget,
+  isMsg91Configured,
+  msg91SendOtp,
+  msg91VerifyOtp,
+  msg91RetryOtp,
+  msg91ExtractReqId,
+  msg91ExtractAccessToken,
+} from "@/lib/msg91";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, initialize } = useAuthStore();
   const { post, loading: apiLoading } = useApi();
   const [showPassword, setShowPassword] = useState(false);
   const [loginMethod, setLoginMethod] = useState("password"); // "password" or "otp"
@@ -20,6 +29,8 @@ export default function AdminLoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [otp, setOtp] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [txnId, setTxnId] = useState("");
+  const [verifyError, setVerifyError] = useState("");
 
   // Hardcode loginType to 'admin' for this page
   const loginType = "admin";
@@ -47,12 +58,28 @@ export default function AdminLoginPage() {
   // Send OTP for login
   const handleSendOTP = async (data) => {
     try {
+      setVerifyError("");
+      const normalized = String(data.identifier || "").trim();
+      if (!normalized) {
+        toast.error("Please enter your registered phone number");
+        return;
+      }
+      setIdentifier(normalized);
+      if (isMsg91Configured()) {
+        await loadMsg91Widget();
+        const resp = await msg91SendOtp(normalizePhoneForMsg91(normalized));
+        setTxnId(
+          resp?.data?.txnId || resp?.txnId || msg91ExtractReqId(resp) || ""
+        );
+        setOtpStep(2);
+        startCountdown();
+        toast.success("OTP sent successfully");
+        return;
+      }
       const response = await post("/auth/send-login-otp", {
-        identifier: data.identifier,
+        identifier: normalized,
       });
-
       if (response.data?.success) {
-        setIdentifier(data.identifier);
         setOtpStep(2);
         startCountdown();
         toast.success("OTP sent successfully to your registered phone number");
@@ -65,33 +92,115 @@ export default function AdminLoginPage() {
     }
   };
 
+  function normalizePhoneForMsg91(value) {
+    const str = String(value || "").trim();
+    if (str.includes("@")) return str; // email
+    let digits = str.replace(/\D/g, "");
+    if (digits.startsWith("0") && digits.length === 11)
+      digits = digits.slice(1);
+    if (digits.startsWith("91")) return digits;
+    if (digits.length === 10) return `91${digits}`;
+    return digits;
+  }
+
   // Verify OTP and login
   const handleVerifyOTP = async () => {
-    if (!otp || otp.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP");
+    const isWidget = isMsg91Configured();
+    const isValidLength = isWidget
+      ? otp && (otp.length === 4 || otp.length === 6)
+      : otp && otp.length === 6;
+    if (!isValidLength) {
+      toast.error(
+        isWidget
+          ? "Enter a 4 or 6-digit OTP"
+          : "Please enter a valid 6-digit OTP"
+      );
       return;
     }
 
     try {
-      const response = await post("/auth/verify-otp-login", {
-        identifier,
-        otp,
-      });
-
+      setVerifyError("");
+      if (isWidget) {
+        await loadMsg91Widget();
+        const vr = await msg91VerifyOtp(String(otp), txnId || undefined);
+        const accessToken = msg91ExtractAccessToken(vr);
+        if (!accessToken) throw new Error("No access token from MSG91");
+        const response = await post(
+          "/auth/login-msg91",
+          { identifier },
+          { headers: { "X-Skip-Unauth-Redirect": "1" } }
+        );
+        if (response.data?.success) {
+          const payload = response.data?.data || {};
+          const token = payload.token;
+          const user = payload.user;
+          if (token && user && typeof window !== "undefined") {
+            localStorage.setItem("token", token);
+            localStorage.setItem("user", JSON.stringify(user));
+            try {
+              if (typeof initialize === "function") initialize();
+            } catch (_) {}
+          }
+          const role = user?.role || response.data?.data?.user?.role;
+          if (
+            [
+              "admin",
+              "superuser",
+              "masteruser",
+              "userDoctor",
+              "userClinic",
+            ].includes(role)
+          ) {
+            router.push("/admin");
+            toast.success("Admin login successful!");
+          } else {
+            toast.error("Insufficient permissions for admin access");
+          }
+        } else {
+          const failMsg = response.data?.message || "Login failed";
+          setVerifyError(failMsg);
+        }
+        return;
+      }
+      const response = await post(
+        "/auth/verify-otp-login",
+        { identifier, otp },
+        { headers: { "X-Skip-Unauth-Redirect": "1" } }
+      );
       if (response.data?.success) {
-        const role = response.data.data.user.role;
-        if (["admin", "superuser"].includes(role)) {
+        const payload = response.data?.data || {};
+        const token = payload.token;
+        const user = payload.user;
+        if (token && user && typeof window !== "undefined") {
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(user));
+          try {
+            if (typeof initialize === "function") initialize();
+          } catch (_) {}
+        }
+        const role = (payload.user && payload.user.role) || user?.role;
+        if (
+          [
+            "admin",
+            "superuser",
+            "masteruser",
+            "userDoctor",
+            "userClinic",
+          ].includes(role)
+        ) {
           router.push("/admin");
           toast.success("Admin login successful!");
         } else {
           toast.error("Insufficient permissions for admin access");
         }
       } else {
-        toast.error(response.data?.message || "Login failed");
+        const msg = response.data?.message || "Login failed";
+        setVerifyError(msg);
       }
     } catch (error) {
       console.error("Verify OTP error:", error);
-      toast.error("Invalid OTP. Please try again.");
+      const msg = error.response?.data?.message || error.message;
+      setVerifyError(msg || "Login failed. Please try again.");
     }
   };
 
@@ -100,10 +209,22 @@ export default function AdminLoginPage() {
     if (countdown > 0) return;
 
     try {
+      if (isMsg91Configured()) {
+        await loadMsg91Widget();
+        try {
+          const resp = await msg91RetryOtp(null, txnId || undefined);
+          setTxnId(msg91ExtractReqId(resp) || txnId || "");
+        } catch (_) {
+          const again = await msg91SendOtp(String(identifier));
+          setTxnId(msg91ExtractReqId(again) || "");
+        }
+        startCountdown();
+        toast.success("OTP resent successfully");
+        return;
+      }
       const response = await post("/auth/send-login-otp", {
         identifier,
       });
-
       if (response.data?.success) {
         startCountdown();
         toast.success("OTP resent successfully");
@@ -320,7 +441,7 @@ export default function AdminLoginPage() {
               >
                 <div>
                   <label htmlFor="otp-identifier" className="sr-only">
-                    Email, Username or Phone
+                    Enter your registered phone number.
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -328,12 +449,12 @@ export default function AdminLoginPage() {
                     </div>
                     <input
                       {...register("identifier", {
-                        required: "Email, username or phone is required",
+                        required: "Registered phone is required",
                       })}
                       type="text"
                       autoComplete="username"
                       className="appearance-none relative block w-full px-12 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 sm:text-sm"
-                      placeholder="Email, username or phone"
+                      placeholder="Enter your registered phone number."
                     />
                   </div>
                   {errors.identifier && (
@@ -371,19 +492,33 @@ export default function AdminLoginPage() {
                         setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
                       }
                       maxLength={6}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleVerifyOTP();
+                        }
+                      }}
                       className="appearance-none relative block w-full px-12 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 sm:text-sm text-center text-lg tracking-widest"
                       placeholder="000000"
                     />
                   </div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center">
-                    Enter the 6-digit OTP sent to your phone
+                    {isMsg91Configured()
+                      ? "Enter the OTP sent to your phone"
+                      : "Enter the 6-digit OTP sent to your phone"}
                   </p>
                 </div>
 
                 <div className="space-y-4">
+                  {verifyError && (
+                    <div className="w-full text-center text-red-600 text-sm font-medium">
+                      {verifyError}
+                    </div>
+                  )}
                   <button
+                    type="button"
                     onClick={handleVerifyOTP}
-                    disabled={!otp || otp.length !== 6 || apiLoading}
+                    disabled={!otp || apiLoading}
                     className="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                   >
                     {apiLoading ? (

@@ -13,6 +13,7 @@ export default function ForgotPasswordPage() {
   const router = useRouter();
   const { post, loading: apiLoading } = useApi();
   const [step, setStep] = useState(1); // 1: identifier, 2: OTP, 3: new password
+  const [loginAfterOtp, setLoginAfterOtp] = useState(true);
   const [identifier, setIdentifier] = useState("");
   const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -65,25 +66,39 @@ export default function ForgotPasswordPage() {
 
   // Step 2: Verify OTP
   const handleVerifyOTP = async () => {
-    if (!otp || otp.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP");
+    if (!otp || otp.length !== 4) {
+      toast.error("Enter the 4-digit OTP");
       return;
     }
 
     try {
-      const response = await post("/auth/reset-password-otp", {
-        identifier,
-        otp,
-        newPassword: "temp", // We'll update this in step 3
-      });
-
-      if (response.data?.success) {
-        setStep(3);
-        toast.success(
-          "OTP verified successfully. Please set your new password."
-        );
+      if (loginAfterOtp) {
+        const response = await post("/auth/verify-otp-login", {
+          identifier,
+          otp,
+        });
+        if (response.data?.success) {
+          toast.success(
+            "Logged in successfully. You can change password in profile."
+          );
+          router.push("/profile");
+        } else {
+          toast.error(response.data?.message || "Invalid OTP");
+        }
       } else {
-        toast.error(response.data?.message || "Invalid OTP");
+        const response = await post("/auth/reset-password-otp", {
+          identifier,
+          otp,
+          newPassword: "temp",
+        });
+        if (response.data?.success) {
+          setStep(3);
+          toast.success(
+            "OTP verified successfully. Please set your new password."
+          );
+        } else {
+          toast.error(response.data?.message || "Invalid OTP");
+        }
       }
     } catch (error) {
       console.error("Verify OTP error:", error);
@@ -202,6 +217,18 @@ export default function ForgotPasswordPage() {
               )}
             </div>
 
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={loginAfterOtp}
+                onChange={(e) => setLoginAfterOtp(e.target.checked)}
+                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                Login after OTP (skip password reset now)
+              </span>
+            </label>
+
             <div>
               <button
                 type="submit"
@@ -243,22 +270,22 @@ export default function ForgotPasswordPage() {
                   type="text"
                   value={otp}
                   onChange={(e) =>
-                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))
                   }
-                  maxLength={6}
+                  maxLength={4}
                   className="appearance-none relative block w-full px-12 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 sm:text-sm text-center text-lg tracking-widest"
-                  placeholder="000000"
+                  placeholder="0000"
                 />
               </div>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center">
-                Enter the 6-digit OTP sent to your phone
+                Enter the 4-digit OTP sent to your phone
               </p>
             </div>
 
             <div className="space-y-4">
               <button
                 onClick={handleVerifyOTP}
-                disabled={!otp || otp.length !== 6 || apiLoading}
+                disabled={!otp || otp.length !== 4 || apiLoading}
                 className="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 {apiLoading ? <div className="spinner"></div> : "Verify OTP"}

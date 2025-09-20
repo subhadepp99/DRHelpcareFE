@@ -516,7 +516,7 @@ export default function PathologyDetailsPage() {
                 <button
                   onClick={() =>
                     window.open(
-                      `tel:${pathology.contact?.phone || "+919674243119"}`,
+                      `tel:${pathology.contact?.phone || "+919242141716"}`,
                       "_blank"
                     )
                   }
@@ -540,7 +540,7 @@ export default function PathologyDetailsPage() {
                   <button
                     onClick={() =>
                       window.open(
-                        `tel:${pathology.contact?.phone || "+919674243119"}`,
+                        `tel:${pathology.contact?.phone || "+919242141716"}`,
                         "_blank"
                       )
                     }

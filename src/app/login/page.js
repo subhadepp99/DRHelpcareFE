@@ -9,10 +9,19 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 import { useApi } from "@/hooks/useApi";
+import {
+  loadMsg91Widget,
+  isMsg91Configured,
+  msg91SendOtp,
+  msg91VerifyOtp,
+  msg91RetryOtp,
+  msg91ExtractReqId,
+  msg91ExtractAccessToken,
+} from "@/lib/msg91";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, initialize } = useAuthStore();
   const { post, loading: apiLoading } = useApi();
   const [showPassword, setShowPassword] = useState(false);
   const [loginMethod, setLoginMethod] = useState("password"); // "password" or "otp"
@@ -20,6 +29,7 @@ export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [otp, setOtp] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [txnId, setTxnId] = useState("");
 
   // Hardcode loginType to 'user' for this page
   const loginType = "user";
@@ -47,15 +57,23 @@ export default function LoginPage() {
   // Send OTP for login
   const handleSendOTP = async (data) => {
     try {
+      setIdentifier(data.identifier);
+      if (isMsg91Configured()) {
+        await loadMsg91Widget();
+        const resp = await msg91SendOtp(String(data.identifier));
+        setTxnId(resp?.data?.txnId || resp?.txnId || "");
+        setOtpStep(2);
+        startCountdown();
+        toast.success("OTP sent successfully");
+        return;
+      }
       const response = await post("/auth/send-login-otp", {
         identifier: data.identifier,
       });
-
       if (response.data?.success) {
-        setIdentifier(data.identifier);
         setOtpStep(2);
         startCountdown();
-        toast.success("OTP sent successfully to your registered phone number");
+        toast.success("OTP sent successfully");
       } else {
         toast.error(response.data?.message || "Failed to send OTP");
       }
@@ -67,19 +85,67 @@ export default function LoginPage() {
 
   // Verify OTP and login
   const handleVerifyOTP = async () => {
-    if (!otp || otp.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP");
+    debugger;
+    if (!otp || otp.length !== 4) {
+      toast.error("Enter the 4-digit OTP");
       return;
     }
 
     try {
+      if (isMsg91Configured()) {
+        await loadMsg91Widget();
+        await msg91VerifyOtp(String(otp), txnId || undefined);
+        const response = await post(
+          "/auth/login-msg91",
+          { identifier },
+          { headers: { "X-Skip-Unauth-Redirect": "1" } }
+        );
+        if (response.data?.success) {
+          const payload = response.data?.data || {};
+          const token = payload.token;
+          const user = payload.user;
+          if (token && user && typeof window !== "undefined") {
+            localStorage.setItem("token", token);
+            localStorage.setItem("user", JSON.stringify(user));
+            try {
+              initialize && initialize();
+            } catch (_) {}
+          }
+          const role = payload.user?.role;
+          if (role === "user") {
+            router.push("/");
+            toast.success("Login successful!");
+          } else if (
+            ["admin", "superuser", "masteruser", "doctor", "clinic"].includes(
+              role
+            )
+          ) {
+            toast.success("Redirecting to admin panel...");
+            router.push("/admin");
+          } else {
+            toast.error("Invalid user role");
+          }
+        } else {
+          toast.error(response.data?.message || "Login failed");
+        }
+        return;
+      }
       const response = await post("/auth/verify-otp-login", {
         identifier,
         otp,
       });
-
       if (response.data?.success) {
-        const role = response.data.data.user.role;
+        const payload = response.data?.data || {};
+        const token = payload.token;
+        const user = payload.user;
+        if (token && user && typeof window !== "undefined") {
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(user));
+          try {
+            initialize && initialize();
+          } catch (_) {}
+        }
+        const role = payload.user?.role;
         console.log("OTP verification successful, user role:", role);
         if (role === "user") {
           router.push("/");
@@ -107,12 +173,22 @@ export default function LoginPage() {
   // Resend OTP
   const handleResendOTP = async () => {
     if (countdown > 0) return;
-
     try {
-      const response = await post("/auth/send-login-otp", {
-        identifier,
-      });
-
+      if (isMsg91Configured()) {
+        await loadMsg91Widget();
+        try {
+          const resp = await msg91RetryOtp(null, txnId || undefined);
+          setTxnId(msg91ExtractReqId(resp) || txnId || "");
+        } catch (e) {
+          // Fallback to sending a fresh OTP
+          const again = await msg91SendOtp(String(identifier));
+          setTxnId(msg91ExtractReqId(again) || "");
+        }
+        startCountdown();
+        toast.success("OTP resent successfully");
+        return;
+      }
+      const response = await post("/auth/send-login-otp", { identifier });
       if (response.data?.success) {
         startCountdown();
         toast.success("OTP resent successfully");
@@ -324,6 +400,17 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-between">
+              <label className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={loginMethod === "otp"}
+                  onChange={(e) =>
+                    setLoginMethod(e.target.checked ? "otp" : "password")
+                  }
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span>Login by OTP</span>
+              </label>
               <div className="text-sm">
                 <Link
                   href="/forgot-password"
@@ -370,7 +457,7 @@ export default function LoginPage() {
                     </div>
                     <input
                       {...register("identifier", {
-                        required: "Email, username or phone is required",
+                        required: "Phone Number is required",
                       })}
                       type="text"
                       autoComplete="username"
@@ -410,22 +497,22 @@ export default function LoginPage() {
                       type="text"
                       value={otp}
                       onChange={(e) =>
-                        setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                        setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))
                       }
-                      maxLength={6}
+                      maxLength={4}
                       className="appearance-none relative block w-full px-12 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 sm:text-sm text-center text-lg tracking-widest"
-                      placeholder="000000"
+                      placeholder="0000"
                     />
                   </div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center">
-                    Enter the 6-digit OTP sent to your phone
+                    Enter the 4-digit OTP sent to your phone
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <button
                     onClick={handleVerifyOTP}
-                    disabled={!otp || otp.length !== 6 || apiLoading}
+                    disabled={!otp || otp.length !== 4 || apiLoading}
                     className="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                   >
                     {apiLoading ? (

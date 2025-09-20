@@ -36,24 +36,50 @@ export default function AdminLayout({ children }) {
       router.replace("/login");
     } else if (
       isAuthenticated === true &&
-      !["admin", "superuser", "masteruser"].includes(user?.role)
+      ![
+        "admin",
+        "superuser",
+        "masteruser",
+        "userDoctor",
+        "userClinic",
+      ].includes(user?.role)
     ) {
       router.replace("/");
     }
   }, [isAuthenticated, user, router]);
 
+  const isSuperLike = user?.role === "superuser" || user?.role === "masteruser";
+  const isUserDoctor = user?.role === "userDoctor";
+  const isUserClinic = user?.role === "userClinic";
+
   const navigation = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-    { name: "Doctors", href: "/admin/doctors", icon: Stethoscope },
-    { name: "Departments", href: "/admin/departments", icon: Building },
-    { name: "Clinics", href: "/admin/clinics", icon: Building2 },
+    ...(isUserClinic || isSuperLike || user?.role === "admin"
+      ? [{ name: "Clinics", href: "/admin/clinics", icon: Building2 }]
+      : []),
+    ...(isUserDoctor || isSuperLike || user?.role === "admin"
+      ? [{ name: "Doctors", href: "/admin/doctors", icon: Stethoscope }]
+      : []),
+    ...(isSuperLike || user?.role === "admin"
+      ? [{ name: "Departments", href: "/admin/departments", icon: Building }]
+      : []),
     // { name: "Pharmacies", href: "/admin/pharmacies", icon: Pill },
-    { name: "Pathology", href: "/admin/pathology", icon: TestTube },
-    { name: "Ambulances", href: "/admin/ambulances", icon: Truck },
-    { name: "Banners", href: "/admin/banners", icon: ImageIcon },
-    { name: "Patients", href: "/admin/patients", icon: UserPlus },
-    { name: "Users", href: "/admin/users", icon: Users },
-    ...(user?.role === "superuser" || user?.role === "masteruser"
+    ...(isSuperLike || user?.role === "admin"
+      ? [
+          { name: "Pathology", href: "/admin/pathology", icon: TestTube },
+          { name: "Ambulances", href: "/admin/ambulances", icon: Truck },
+        ]
+      : []),
+    // Hide Banners, Patients, Users for normal admins
+    ...(isSuperLike
+      ? [
+          { name: "Banners", href: "/admin/banners", icon: ImageIcon },
+          { name: "Patients", href: "/admin/patients", icon: UserPlus },
+          { name: "Users", href: "/admin/users", icon: Users },
+        ]
+      : []),
+    // Access Requests visible to admin and masteruser only (not superuser)
+    ...(user?.role === "admin" || user?.role === "masteruser"
       ? [
           {
             name: "Access Requests",
@@ -61,9 +87,6 @@ export default function AdminLayout({ children }) {
             icon: UserPlus,
           },
         ]
-      : []),
-    ...(user?.role === "superuser"
-      ? [{ name: "Settings", href: "/admin/settings", icon: Settings }]
       : []),
   ];
 
@@ -89,7 +112,11 @@ export default function AdminLayout({ children }) {
       </div>
     );
   }
-  if (!["admin", "superuser"].includes(user?.role)) {
+  if (
+    !["admin", "superuser", "masteruser", "userDoctor", "userClinic"].includes(
+      user?.role
+    )
+  ) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <p className="text-gray-700 dark:text-gray-300">Access denied.</p>
@@ -130,6 +157,9 @@ export default function AdminLayout({ children }) {
                   ? pathname === "/admin"
                   : pathname === item.href ||
                     pathname.startsWith(item.href + "/");
+              // Hide doctor menu for userClinic; hide clinic menu for userDoctor
+              if (isUserClinic && item.href === "/admin/doctors") return null;
+              if (isUserDoctor && item.href === "/admin/clinics") return null;
               return (
                 <li key={item.name}>
                   <Link

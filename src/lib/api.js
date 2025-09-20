@@ -36,7 +36,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const skipRedirect = error.config?.headers?.["X-Skip-Unauth-Redirect"];
+    if (status === 401 && !skipRedirect) {
       // Token expired or invalid
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");

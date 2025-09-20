@@ -169,7 +169,7 @@ export default function HomePage() {
     );
   };
 
-  const handleCall = (phoneNumber = "+919674243119") => {
+  const handleCall = (phoneNumber = "+919242141716") => {
     window.open(`tel:${phoneNumber}`, "_blank");
   };
 

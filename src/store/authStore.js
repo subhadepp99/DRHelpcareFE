@@ -118,7 +118,14 @@ export const useAuthStore = create((set, get) => ({
 
     try {
       const response = await api.post("/auth/register", userData);
-      const { token, user } = response.data;
+      let token, user;
+      if (response.data?.data) {
+        token = response.data.data.token;
+        user = response.data.data.user;
+      } else {
+        token = response.data.token;
+        user = response.data.user;
+      }
 
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
