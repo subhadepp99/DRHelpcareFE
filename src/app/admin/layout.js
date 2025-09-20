@@ -79,7 +79,7 @@ export default function AdminLayout({ children }) {
         ]
       : []),
     // Access Requests visible to admin and masteruser only (not superuser)
-    ...(user?.role === "admin" || user?.role === "masteruser"
+    ...(user?.role === "masteruser"
       ? [
           {
             name: "Access Requests",
