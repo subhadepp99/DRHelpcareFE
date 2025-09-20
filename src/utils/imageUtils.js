@@ -63,6 +63,12 @@ export const getImageUrl = (imagePath) => {
   const pathStr = imagePath.trim();
   if (!pathStr) return null;
 
+  // Guard: treat empty data URLs (no payload) as missing so we can fall back
+  // Example: "data:image/jpeg;base64," → should not be used
+  if (/^data:image\/[^;]+;base64,$/i.test(pathStr)) {
+    return null;
+  }
+
   // If it's already a full URL, return as is
   if (/^https?:\/\//i.test(pathStr)) {
     return pathStr;
@@ -119,16 +125,17 @@ export const getEntityImageUrl = (entity, imageField = "imageUrl") => {
     candidates
   );
 
-  const chosen =
-    candidates.find((v) => typeof v === "string" && v.trim().length > 0) ||
-    candidates.find((v) => v && typeof v.url === "string");
+  // Iterate in order and return the first resolvable URL.
+  for (const candidate of candidates) {
+    const url = getImageUrl(candidate);
+    if (url) {
+      console.log("getEntityImageUrl: Resolved URL:", url);
+      return url;
+    }
+  }
 
-  console.log("getEntityImageUrl: Chosen image value:", chosen);
-
-  const result = getImageUrl(chosen);
-  console.log("getEntityImageUrl: Final URL:", result);
-
-  return result;
+  console.log("getEntityImageUrl: No valid image found.");
+  return null;
 };
 
 /**

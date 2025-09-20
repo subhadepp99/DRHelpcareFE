@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useApi } from "@/hooks/useApi";
 import { useAuthStore } from "@/store/authStore";
-import { Plus, Edit, Trash2, Calendar, Eye, HelpCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, Eye, HelpCircle, X } from "lucide-react";
 import Modal from "@/components/common/Modal";
 import DoctorScheduleModal from "@/components/modals/DoctorScheduleModal";
 import DoctorViewModal from "@/components/modals/DoctorViewModal";
@@ -366,13 +366,25 @@ export default function AdminDoctorsPage() {
         <div className="flex items-center gap-3 flex-1">
           <h1 className="text-2xl font-semibold">Doctors Management</h1>
           <div className="flex items-center gap-2 ml-auto md:ml-6">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or phone"
-              className="input-field w-56 md:w-72"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or phone"
+                className="input-field w-56 md:w-72 pr-8"
+              />
+              {search ? (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
         <button

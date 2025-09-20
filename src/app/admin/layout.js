@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -23,13 +23,16 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getEntityImageUrl } from "@/utils/imageUtils";
+import { useApi } from "@/hooks/useApi";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, logout, isAuthenticated } = useAuthStore();
+  const { user, logout, isAuthenticated, updateUser } = useAuthStore();
+  const { get } = useApi();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const triedProfileRef = useRef(false);
 
   useEffect(() => {
     if (isAuthenticated === false) {
@@ -47,6 +50,26 @@ export default function AdminLayout({ children }) {
       router.replace("/");
     }
   }, [isAuthenticated, user, router]);
+
+  // Ensure we have latest user profile with image if missing in localStorage
+  useEffect(() => {
+    if (!isAuthenticated || !user || triedProfileRef.current) return;
+    const hasAvatar = Boolean(
+      getEntityImageUrl(user, "profileImageUrl") || user.profileImageUrl
+    );
+    if (!hasAvatar) {
+      (async () => {
+        try {
+          const res = await get("/users/profile");
+          const freshUser = res.data?.data || res.data?.user || null;
+          if (freshUser) updateUser(freshUser);
+        } catch (_) {}
+        triedProfileRef.current = true;
+      })();
+    } else {
+      triedProfileRef.current = true;
+    }
+  }, [isAuthenticated, user, get, updateUser]);
 
   const isSuperLike = user?.role === "superuser" || user?.role === "masteruser";
   const isUserDoctor = user?.role === "userDoctor";
@@ -226,18 +249,21 @@ export default function AdminLayout({ children }) {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="hidden sm:flex items-center space-x-3 px-3 py-2 bg-primary-100 dark:bg-primary-900 rounded-md select-none hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors"
               >
-                {user?.profileImageUrl ? (
-                  <img
-                    src={getEntityImageUrl(user, "profileImageUrl")}
-                    alt="Profile"
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="inline-flex items-center justify-center w-8 h-8 text-sm font-bold text-white bg-primary-600 rounded-full uppercase">
-                    {user?.firstName?.[0]}
-                    {user?.lastName?.[0]}
-                  </span>
-                )}
+                {(() => {
+                  const avatarSrc = getEntityImageUrl(user, "profileImageUrl");
+                  return avatarSrc ? (
+                    <img
+                      src={avatarSrc}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="inline-flex items-center justify-center w-8 h-8 text-sm font-bold text-white bg-primary-600 rounded-full uppercase">
+                      {user?.firstName?.[0]}
+                      {user?.lastName?.[0]}
+                    </span>
+                  );
+                })()}
                 <span className="text-sm font-medium text-primary-800 dark:text-primary-200">
                   {user?.firstName}
                 </span>

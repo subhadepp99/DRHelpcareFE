@@ -156,16 +156,11 @@ export default function ProfilePage() {
           response.data?.data?.profileImageUrl
         );
 
-        // Update user with new profile image URL
-        const updatedUserData = {
-          ...user,
-          profileImageUrl: response.data?.data?.profileImageUrl,
-        };
-
-        console.log("👤 Updated user data:", updatedUserData);
-
-        // Update the user state immediately
-        updateUser(updatedUserData);
+        // Merge full server user payload to ensure profileImage/profileImageUrl are in store/localStorage
+        const serverUser = response.data?.data;
+        const mergedUser = serverUser ? { ...user, ...serverUser } : user;
+        console.log("👤 Updated user data:", mergedUser);
+        updateUser(mergedUser);
 
         // Clear preview states
         setImagePreview(null);

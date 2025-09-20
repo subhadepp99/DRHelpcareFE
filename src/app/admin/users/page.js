@@ -18,9 +18,11 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getEntityImageUrl } from "@/utils/imageUtils";
+import { useAuthStore } from "@/store/authStore";
 
 export default function UsersPage() {
   const { get, post, put, del, patch } = useApi();
+  const { user: authUser, updateUser: updateAuthUser } = useAuthStore();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -87,8 +89,19 @@ export default function UsersPage() {
       }
 
       if (selectedUser) {
-        await put(`/users/${selectedUser._id}`, formDataToSend);
+        const res = await put(`/users/${selectedUser._id}`, formDataToSend);
         toast.success("User updated successfully");
+        // If the updated user is the currently logged-in user, refresh avatar in store
+        try {
+          const updated = res?.data?.data || res?.data?.user || null;
+          if (
+            updated &&
+            authUser &&
+            String(updated._id) === String(authUser._id)
+          ) {
+            updateAuthUser({ ...authUser, ...updated });
+          }
+        } catch (_) {}
       } else {
         await post("/users", formDataToSend);
         toast.success("User added successfully");
@@ -302,6 +315,16 @@ export default function UsersPage() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
         />
+        {searchTerm ? (
+          <button
+            type="button"
+            onClick={() => setSearchTerm("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            aria-label="Clear search"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        ) : null}
       </div>
 
       {/* Users Table */}

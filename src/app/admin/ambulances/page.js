@@ -14,6 +14,7 @@ import { useApi } from "@/hooks/useApi";
 import Modal from "@/components/common/Modal";
 import FAQModal from "@/components/modals/FAQModal";
 import toast from "react-hot-toast";
+import { getEntityImageUrl } from "@/utils/imageUtils";
 
 const initialForm = {
   name: "",
@@ -230,8 +231,18 @@ export default function AmbulancesPage() {
             placeholder="Search ambulances by name, vehicle number, or driver name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
+          {searchTerm ? (
+            <button
+              type="button"
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -287,21 +298,22 @@ export default function AmbulancesPage() {
                 <tr key={ambulance._id} className="hover:bg-gray-50">
                   <td className="border border-gray-300 p-3">
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                      {ambulance.imageUrl ? (
-                        <img
-                          src={require("@/utils/imageUtils").getImageUrl(
-                            ambulance.imageUrl
-                          )}
-                          alt={ambulance.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                          <span className="text-gray-500 text-xs font-medium">
-                            {ambulance.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
+                      {(() => {
+                        const img = getEntityImageUrl(ambulance, "imageUrl");
+                        return img ? (
+                          <img
+                            src={img}
+                            alt={ambulance.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                            <span className="text-gray-500 text-xs font-medium">
+                              {ambulance.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </td>
                   <td className="border border-gray-300 p-3">
@@ -489,7 +501,7 @@ export default function AmbulancesPage() {
               )}
 
               <div className="flex items-center space-x-3">
-                <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg border border-gray-300 flex items-center space-x-2">
+                <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg border border-gray-300 flex items-center space-x-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600">
                   <Upload className="w-4 h-4" />
                   <span>Upload Image</span>
                   <input

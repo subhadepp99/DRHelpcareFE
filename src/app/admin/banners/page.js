@@ -149,7 +149,7 @@ export default function AdminBannersPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="btn-secondary cursor-pointer inline-flex items-center gap-2">
+          <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg border border-gray-300 flex items-center gap-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600">
             <Upload className="w-4 h-4" />
             <span>Select Image</span>
             <input
@@ -187,13 +187,16 @@ export default function AdminBannersPage() {
                     className="border rounded-lg overflow-hidden bg-white dark:bg-gray-800"
                   >
                     <div className="relative h-40 bg-gray-100 dark:bg-gray-700">
-                      {getImageUrl(b.imageUrl) && (
-                        <img
-                          src={getImageUrl(b.imageUrl)}
-                          alt={b.title || "Banner"}
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                      )}
+                      {(() => {
+                        const url = getImageUrl(b.imageUrl || b.image);
+                        return url ? (
+                          <img
+                            src={url}
+                            alt={b.title || "Banner"}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : null;
+                      })()}
                     </div>
                     <div className="p-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -212,9 +215,7 @@ export default function AdminBannersPage() {
                               {b.linkUrl}
                             </a>
                           )}
-                          <div className="text-xs text-gray-500 mt-1 break-all">
-                            {getImageUrl(b.imageUrl)}
-                          </div>
+                          {null}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -254,13 +255,16 @@ export default function AdminBannersPage() {
                     className="border rounded-lg overflow-hidden bg-white dark:bg-gray-800"
                   >
                     <div className="relative h-40 bg-gray-100 dark:bg-gray-700">
-                      {getImageUrl(b.imageUrl) && (
-                        <img
-                          src={getImageUrl(b.imageUrl)}
-                          alt={b.title || "Banner"}
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                      )}
+                      {(() => {
+                        const url = getImageUrl(b.imageUrl || b.image);
+                        return url ? (
+                          <img
+                            src={url}
+                            alt={b.title || "Banner"}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : null;
+                      })()}
                     </div>
                     <div className="p-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -279,9 +283,7 @@ export default function AdminBannersPage() {
                               {b.linkUrl}
                             </a>
                           )}
-                          <div className="text-xs text-gray-500 mt-1 break-all">
-                            {getImageUrl(b.imageUrl)}
-                          </div>
+                          {null}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

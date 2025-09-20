@@ -24,7 +24,7 @@ export default function HeroCarousel({ placement = "home" }) {
         setBanners([]);
       }
     })();
-  }, [get]);
+  }, [get, placement]);
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -39,7 +39,7 @@ export default function HeroCarousel({ placement = "home" }) {
   const current = banners[index];
   const onDot = (i) => setIndex(i);
 
-  const imgUrl = getImageUrl(current.imageUrl);
+  const imgUrl = getImageUrl(current.imageUrl || current.image);
 
   return (
     <div className="relative w-full h-40 sm:h-56 md:h-72 lg:h-80 rounded-xl overflow-hidden shadow-lg">
@@ -50,6 +50,7 @@ export default function HeroCarousel({ placement = "home" }) {
           fill
           className="object-cover"
           priority
+          unoptimized={imgUrl.startsWith("data:")}
         />
       )}
 

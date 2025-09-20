@@ -98,17 +98,23 @@ export default function Header() {
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                 >
-                  {user?.profileImageUrl ? (
-                    <img
-                      src={getEntityImageUrl(user, "profileImageUrl")}
-                      alt="Profile"
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-white" />
-                    </div>
-                  )}
+                  {(() => {
+                    const avatarSrc = getEntityImageUrl(
+                      user,
+                      "profileImageUrl"
+                    );
+                    return avatarSrc ? (
+                      <img
+                        src={avatarSrc}
+                        alt="Profile"
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                    );
+                  })()}
                   <span className="text-gray-700 dark:text-gray-300 font-medium">
                     {user?.firstName}
                   </span>

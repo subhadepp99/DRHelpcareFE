@@ -282,8 +282,21 @@ export default function SearchSection({
                       ? "healthcare services"
                       : searchType || "all"
                   }...`}
-                  className="w-full pl-10 pr-4 py-2 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full pl-10 pr-10 py-2 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery && setSearchQuery("");
+                      setShowSuggestions(false);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                    aria-label="Clear search"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                ) : null}
 
                 {/* Search Suggestions Dropdown */}
                 {showSuggestions && suggestions.length > 0 && (
@@ -327,9 +340,29 @@ export default function SearchSection({
                   onChange={handleLocationInput}
                   onFocus={fetchLocationSuggestions}
                   placeholder="Enter location (city, state, village)"
-                  className="w-full pl-10 pr-4 py-2 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full pl-10 pr-10 py-2 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   autoComplete="off"
                 />
+                {locationInput ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowLocationSuggestions(false);
+                      setAllLocations([]);
+                      setLocationSuggestions([]);
+                      setSelectedLocation && setSelectedLocation("");
+                      setFilters &&
+                        setFilters((prev) => ({ ...prev, distance: "" }));
+                      // Clear input value
+                      const evt = { target: { value: "" } };
+                      handleLocationInput(evt);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                    aria-label="Clear location"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                ) : null}
                 {showLocationSuggestions && locationSuggestions.length > 0 && (
                   <ul className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 mt-1 max-h-48 overflow-y-auto">
                     {locationSuggestions.map((loc) => (
