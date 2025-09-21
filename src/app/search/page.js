@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -14,6 +14,7 @@ import {
   Home,
   Building2,
   Clock,
+  X,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import Header from "@/components/layout/Header";
@@ -70,11 +71,14 @@ export default function SearchPage() {
     searchParams.get("city") || ""
   );
   const [selectedLocation, setSelectedLocation] = useState("");
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const locationBoxRef = useRef(null);
 
   const handleLocationInput = (e) => {
     const value = e.target.value;
     setLocationInput(value);
     setSelectedLocation("");
+    setShowLocationSuggestions(true);
     if (allLocations.length === 0) return; // wait for fetch on focus or mount
     if (value.trim().length === 0) {
       setLocationSuggestions(allLocations);
@@ -89,15 +93,11 @@ export default function SearchPage() {
     setLocationInput(loc);
     setSelectedLocation(loc);
     setLocationSuggestions([]);
+    setShowLocationSuggestions(false);
   };
 
-  // Fetch search suggestions when query is 3+ characters
+  // Fetch search suggestions (now supports empty string for defaults)
   const fetchSuggestions = async (query) => {
-    if (!query || query.length < 3) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
     try {
       const res = await fetch(
         `/api/search/suggestions?q=${encodeURIComponent(query)}&type=${
@@ -107,7 +107,7 @@ export default function SearchPage() {
       debugger;
       const data = await res.json();
       setSuggestions(data.suggestions || []);
-      setShowSuggestions(true);
+      setShowSuggestions((data.suggestions || []).length > 0);
     } catch (e) {
       console.error("Suggestion fetch failed", e);
       setSuggestions([]);
@@ -117,11 +117,11 @@ export default function SearchPage() {
 
   const handleSearchChange = (value) => {
     setSearchQuery(value);
-    if (value.length >= 3) {
+    if (value.length >= 1) {
       fetchSuggestions(value);
     } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
+      // Empty input: show default suggestions (departments etc.)
+      fetchSuggestions("");
     }
   };
 
@@ -162,6 +162,22 @@ export default function SearchPage() {
       performSearch();
     }
   }, [performSearch]);
+
+  // Close suggestion lists on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        locationBoxRef.current &&
+        !locationBoxRef.current.contains(event.target)
+      ) {
+        setShowLocationSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Trigger search when searchType changes
   useEffect(() => {
@@ -308,11 +324,7 @@ export default function SearchPage() {
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
                     onFocus={() => {
-                      if ((searchQuery || "").length >= 3) {
-                        fetchSuggestions(searchQuery || "");
-                      } else {
-                        setShowSuggestions(false);
-                      }
+                      fetchSuggestions(searchQuery || "");
                     }}
                     placeholder="Search for doctors, clinics, departments, pathologies, ambulance..."
                     className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
@@ -333,11 +345,11 @@ export default function SearchPage() {
                     </button>
                   ) : null}
                   {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10 mt-1 max-h-60 overflow-y-auto">
+                    <div className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10 mt-1 max-h-60 overflow-y-auto text-left">
                       {suggestions.map((s, idx) => (
                         <div
                           key={idx}
-                          className={`px-4 py-2 ${
+                          className={`px-4 py-2 text-left ${
                             s.type === "info"
                               ? "cursor-default bg-blue-50 dark:bg-blue-900/20"
                               : "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -368,29 +380,48 @@ export default function SearchPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex-1 relative">
+                <div className="flex-1 relative" ref={locationBoxRef}>
                   <Compass className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
                     value={locationInput}
                     onChange={handleLocationInput}
+                    onFocus={() => setShowLocationSuggestions(true)}
+                    onBlur={() =>
+                      setTimeout(() => setShowLocationSuggestions(false), 150)
+                    }
                     placeholder="Enter location (city, state, village)"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
                     autoComplete="off"
                   />
-                  {locationSuggestions.length > 0 && (
-                    <ul className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10 mt-1 max-h-48 overflow-y-auto">
-                      {locationSuggestions.map((loc) => (
-                        <li
-                          key={loc}
-                          className="px-4 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900"
-                          onClick={() => handleLocationSelect(loc)}
-                        >
-                          {loc}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  {locationInput ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocationInput("");
+                        setSelectedLocation("");
+                        setLocationSuggestions([]);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                      aria-label="Clear location"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  ) : null}
+                  {showLocationSuggestions &&
+                    locationSuggestions.length > 0 && (
+                      <ul className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10 mt-1 max-h-48 overflow-y-auto text-left">
+                        {locationSuggestions.map((loc) => (
+                          <li
+                            key={loc}
+                            className="px-4 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900 text-left"
+                            onClick={() => handleLocationSelect(loc)}
+                          >
+                            {loc}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                 </div>
                 <button type="submit" className="btn-primary px-6 py-2">
                   Search

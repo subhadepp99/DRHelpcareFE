@@ -46,7 +46,10 @@ export default function BookingModal({
     reset,
   } = useForm({
     defaultValues: {
-      patientName: `${user?.firstName} ${user?.lastName}` || "",
+      patientName:
+        [user?.firstName, user?.lastName]
+          .filter((v) => typeof v === "string" && v.trim().length > 0)
+          .join(" ") || "",
       phone: user?.phone || "",
       email: user?.email || "",
       age: "",

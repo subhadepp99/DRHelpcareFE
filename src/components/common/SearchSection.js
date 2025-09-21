@@ -119,14 +119,8 @@ export default function SearchSection({
     setShowLocationSuggestions(false);
   };
 
-  // Fetch search suggestions when query is 3+ characters
+  // Fetch search suggestions (supports empty string for defaults)
   const fetchSuggestions = async (query) => {
-    if (query.length < 3) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
     try {
       const response = await fetch(
         `/api/search/suggestions?q=${encodeURIComponent(query)}&type=${
@@ -136,7 +130,7 @@ export default function SearchSection({
       debugger;
       const data = await response.json();
       setSuggestions(data.suggestions || []);
-      setShowSuggestions(true);
+      setShowSuggestions((data.suggestions || []).length > 0);
     } catch (error) {
       console.error("Error fetching suggestions:", error);
       setSuggestions([]);
@@ -168,18 +162,16 @@ export default function SearchSection({
     }
   };
 
-  // Handle search input change with debounced suggestions
+  // Handle search input change with suggestions from 1+ chars, defaults on empty
   const handleSearchChange = (value) => {
     if (setSearchQuery) {
       setSearchQuery(value);
     }
 
-    // Fetch suggestions only for 3+ characters; otherwise hide suggestions
-    if (value.length >= 3) {
+    if (value.length >= 1) {
       fetchSuggestions(value);
     } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
+      fetchSuggestions("");
     }
   };
 
@@ -271,11 +263,7 @@ export default function SearchSection({
                   value={searchQuery || ""}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   onFocus={() => {
-                    if ((searchQuery || "").length >= 3) {
-                      fetchSuggestions(searchQuery || "");
-                    } else {
-                      setShowSuggestions(false);
-                    }
+                    fetchSuggestions(searchQuery || "");
                   }}
                   placeholder={`Search for ${
                     (searchType || "all") === "all"
@@ -300,11 +288,11 @@ export default function SearchSection({
 
                 {/* Search Suggestions Dropdown */}
                 {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 mt-1 max-h-60 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 mt-1 max-h-60 overflow-y-auto text-left">
                     {suggestions.map((suggestion, index) => (
                       <div
                         key={index}
-                        className={`px-4 py-3 ${
+                        className={`px-4 py-3 text-left ${
                           suggestion.type === "info"
                             ? "cursor-default bg-blue-50 dark:bg-blue-900/20"
                             : "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -364,11 +352,11 @@ export default function SearchSection({
                   </button>
                 ) : null}
                 {showLocationSuggestions && locationSuggestions.length > 0 && (
-                  <ul className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 mt-1 max-h-48 overflow-y-auto">
+                  <ul className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 mt-1 max-h-48 overflow-y-auto text-left">
                     {locationSuggestions.map((loc) => (
                       <li
                         key={loc}
-                        className="px-4 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900"
+                        className="px-4 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900 text-left"
                         onClick={() => {
                           handleLocationSelect(loc);
                           setShowLocationSuggestions(false);
