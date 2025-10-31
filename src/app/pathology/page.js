@@ -23,6 +23,7 @@ export default function Pathology() {
   const { get } = useApi();
   const [searchQuery, setSearchQuery] = useState("");
   const [testPackages, setTestPackages] = useState([]);
+  const [filteredPackages, setFilteredPackages] = useState([]);
   const [allTests, setAllTests] = useState([]);
   const [filteredTests, setFilteredTests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,32 +37,42 @@ export default function Pathology() {
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredTests(allTests);
+      setFilteredPackages(testPackages);
     } else {
-      const filtered = allTests.filter(
+      const filteredTests = allTests.filter(
         (test) =>
           test.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           test.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           test.description?.toLowerCase().includes(searchQuery.toLowerCase())
       );
 
-      setFilteredTests(filtered);
+      const filteredPackages = testPackages.filter(
+        (pkg) =>
+          pkg.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          pkg.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          pkg.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+      setFilteredTests(filteredTests);
+      setFilteredPackages(filteredPackages);
     }
-  }, [searchQuery, allTests]);
+  }, [searchQuery, allTests, testPackages]);
 
   const fetchPathologyData = async () => {
     try {
       setLoading(true);
 
-      // Fetch test packages
+      // Fetch test packages (pathology packages)
       const packagesResponse = await get("/pathology/test-packages");
-      setTestPackages(
+      const packages =
         packagesResponse.data?.data?.testPackages ||
-          packagesResponse.data?.testPackages ||
-          []
-      );
+        packagesResponse.data?.testPackages ||
+        [];
+      setTestPackages(packages);
+      setFilteredPackages(packages);
 
-      // Fetch individual tests
-      const testsResponse = await get("/pathology/tests");
+      // Fetch individual tests from the new tests endpoint
+      const testsResponse = await get("/tests");
       const tests =
         testsResponse.data?.data?.tests || testsResponse.data?.tests || [];
       setAllTests(tests);
@@ -69,6 +80,7 @@ export default function Pathology() {
     } catch (error) {
       console.error("Error fetching pathology data:", error);
       setTestPackages([]);
+      setFilteredPackages([]);
       setAllTests([]);
       setFilteredTests([]);
     } finally {
@@ -149,7 +161,9 @@ export default function Pathology() {
                 {searchQuery && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
                     Found {filteredTests.length} test
-                    {filteredTests.length !== 1 ? "s" : ""}
+                    {filteredTests.length !== 1 ? "s" : ""} and{" "}
+                    {filteredPackages.length} package
+                    {filteredPackages.length !== 1 ? "s" : ""}
                   </p>
                 )}
               </div>
@@ -162,7 +176,7 @@ export default function Pathology() {
           </div>
 
           {/* Featured Packages Slider */}
-          {testPackages.length > 0 ? (
+          {filteredPackages.length > 0 ? (
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -173,10 +187,10 @@ export default function Pathology() {
                 Featured Health Packages
               </h2>
 
-              {testPackages.length <= 4 ? (
+              {filteredPackages.length <= 4 ? (
                 // Show all packages in a grid for 4 or fewer
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {testPackages.map((pkg, index) => (
+                  {filteredPackages.map((pkg, index) => (
                     <motion.div
                       key={pkg._id}
                       initial={{ opacity: 0, y: 20 }}
@@ -213,9 +227,20 @@ export default function Pathology() {
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
                           {pkg.name}
                         </h3>
-                        <p className="text-gray-600 dark:text-gray-300 mb-3 text-sm line-clamp-2">
+                        <p className="text-gray-600 dark:text-gray-300 mb-2 text-sm line-clamp-2">
                           {pkg.description}
                         </p>
+                        {pkg.rating && pkg.rating.average > 0 && (
+                          <div className="flex items-center mb-2">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="ml-1 text-sm font-medium text-gray-900 dark:text-white">
+                              {pkg.rating.average.toFixed(1)}
+                            </span>
+                            <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                              ({pkg.rating.count} reviews)
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-2">
                             <span className="text-xl font-bold text-primary-600 dark:text-primary-400">
@@ -253,7 +278,7 @@ export default function Pathology() {
                         transform: `translateX(-${currentSlide * 100}%)`,
                       }}
                     >
-                      {testPackages.map((pkg, index) => (
+                      {filteredPackages.map((pkg, index) => (
                         <motion.div
                           key={pkg._id}
                           initial={{ opacity: 0, y: 20 }}
@@ -290,9 +315,20 @@ export default function Pathology() {
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
                               {pkg.name}
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-300 mb-3 text-sm line-clamp-2">
+                            <p className="text-gray-600 dark:text-gray-300 mb-2 text-sm line-clamp-2">
                               {pkg.description}
                             </p>
+                            {pkg.rating && pkg.rating.average > 0 && (
+                              <div className="flex items-center mb-2">
+                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                <span className="ml-1 text-sm font-medium text-gray-900 dark:text-white">
+                                  {pkg.rating.average.toFixed(1)}
+                                </span>
+                                <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                                  ({pkg.rating.count} reviews)
+                                </span>
+                              </div>
+                            )}
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center space-x-2">
                                 <span className="text-xl font-bold text-primary-600 dark:text-primary-400">
@@ -325,7 +361,7 @@ export default function Pathology() {
                   {/* Navigation Dots */}
                   <div className="flex justify-center mt-6 space-x-2">
                     {Array.from({
-                      length: Math.ceil(testPackages.length / 4),
+                      length: Math.ceil(filteredPackages.length / 4),
                     }).map((_, index) => (
                       <button
                         key={index}
@@ -340,7 +376,7 @@ export default function Pathology() {
                   </div>
 
                   {/* Navigation Arrows */}
-                  {testPackages.length > 4 && (
+                  {filteredPackages.length > 4 && (
                     <>
                       <button
                         onClick={() =>
@@ -367,7 +403,7 @@ export default function Pathology() {
                         onClick={() =>
                           setCurrentSlide(
                             Math.min(
-                              Math.ceil(testPackages.length / 4) - 1,
+                              Math.ceil(filteredPackages.length / 4) - 1,
                               currentSlide + 1
                             )
                           )
@@ -375,7 +411,7 @@ export default function Pathology() {
                         className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-800 p-2 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
                         disabled={
                           currentSlide ===
-                          Math.ceil(testPackages.length / 4) - 1
+                          Math.ceil(filteredPackages.length / 4) - 1
                         }
                       >
                         <svg
@@ -427,15 +463,15 @@ export default function Pathology() {
               All Available Tests
             </h2>
 
-            {filteredTests.length === 0 ? (
+            {filteredTests.length === 0 && filteredPackages.length === 0 ? (
               <div className="text-center py-12">
                 <TestTube className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  No tests found
+                  No tests or packages found
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Try adjusting your search terms or browse our featured
-                  packages above.
+                  Try adjusting your search terms or check back later for new
+                  tests and packages.
                 </p>
               </div>
             ) : (
@@ -469,6 +505,17 @@ export default function Pathology() {
                             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
                               {test.description}
                             </p>
+                            {test.rating && test.rating.average > 0 && (
+                              <div className="flex items-center mb-2">
+                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                <span className="ml-1 text-xs font-medium text-gray-900 dark:text-white">
+                                  {test.rating.average.toFixed(1)}
+                                </span>
+                                <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                                  ({test.rating.count} reviews)
+                                </span>
+                              </div>
+                            )}
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
                               <span>
                                 Category: {test.category || "General"}
@@ -520,7 +567,7 @@ export default function Pathology() {
                               const location = encodeURIComponent(
                                 test.place || test.state || "unknown"
                               );
-                              window.location.href = `/pathology/${testName}/${location}`;
+                              window.location.href = `/test/${testName}/${location}`;
                             }}
                             className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-1 px-3 sm:py-1.5 sm:px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-xs sm:text-sm"
                           >

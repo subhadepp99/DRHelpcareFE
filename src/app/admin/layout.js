@@ -90,6 +90,7 @@ export default function AdminLayout({ children }) {
     ...(isSuperLike || user?.role === "admin"
       ? [
           { name: "Pathology", href: "/admin/pathology", icon: TestTube },
+          { name: "Tests", href: "/admin/tests", icon: TestTube },
           { name: "Ambulances", href: "/admin/ambulances", icon: Truck },
         ]
       : []),

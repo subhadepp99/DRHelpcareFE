@@ -40,6 +40,7 @@ export default function Header() {
     // { name: "Pharmacies", href: "/search?type=pharmacies" },
     { name: "Pathology", href: "/pathology" },
     { name: "Ambulance", href: "/search?type=ambulance" },
+    { name: "Blog", href: "/blog" },
     { name: "About", href: "/about" },
   ];
 

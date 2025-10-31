@@ -26,11 +26,14 @@ import PharmacyCard from "@/components/cards/PharmacyCard";
 import SearchFilters from "@/components/search/SearchFilters";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import FAQAccordion from "@/components/common/FAQAccordion";
+import LocationModal from "@/components/modals/LocationModal";
+import { useLocation } from "@/contexts/LocationContext";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { get, loading: apiLoading } = useApi();
+  const { location: userLocation } = useLocation();
 
   const [results, setResults] = useState({});
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
@@ -72,7 +75,19 @@ export default function SearchPage() {
   );
   const [selectedLocation, setSelectedLocation] = useState("");
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const locationBoxRef = useRef(null);
+
+  // Sync with context location
+  useEffect(() => {
+    if (userLocation?.city) {
+      const locationText = userLocation.state
+        ? `${userLocation.city}, ${userLocation.state}`
+        : userLocation.city;
+      setLocationInput(locationText);
+      setSelectedLocation(locationText);
+    }
+  }, [userLocation]);
 
   const handleLocationInput = (e) => {
     const value = e.target.value;
@@ -133,14 +148,29 @@ export default function SearchPage() {
         sort: sortBy,
         ...filters,
       });
-      const cityParam = (selectedLocation || locationInput || "").trim();
-      if (cityParam) queryParams.set("city", cityParam);
+
+      // Use location from context if available
+      if (userLocation) {
+        if (userLocation.city) queryParams.set("city", userLocation.city);
+        if (userLocation.state) queryParams.set("state", userLocation.state);
+        if (userLocation.pincode)
+          queryParams.set("pincode", userLocation.pincode);
+        // Add coordinates for distance calculation
+        if (userLocation.lat) queryParams.set("lat", userLocation.lat);
+        if (userLocation.lng) queryParams.set("lng", userLocation.lng);
+      } else {
+        // Fallback to manual location input
+        const cityParam = (selectedLocation || locationInput || "").trim();
+        if (cityParam) queryParams.set("city", cityParam);
+      }
+
       console.log("Search query params:", queryParams.toString());
       console.log("Search type:", searchType);
       console.log("Search query:", searchQuery);
       console.log("Department filter:", filters.department);
+      console.log("User location:", userLocation);
+
       const response = await get(`/search?${queryParams.toString()}`);
-      debugger;
       console.log("Search response:", response.data);
       console.log("Search results:", response.data?.results);
       console.log("Ambulance results:", response.data?.results?.ambulances);
@@ -149,7 +179,16 @@ export default function SearchPage() {
       console.error("Search error:", error);
       setResults({});
     }
-  }, [searchQuery, searchType, sortBy, filters, selectedLocation, get]);
+  }, [
+    searchQuery,
+    searchType,
+    sortBy,
+    filters,
+    selectedLocation,
+    locationInput,
+    userLocation,
+    get,
+  ]);
 
   useEffect(() => {
     // Auto-search only when query has 3+ characters or when a specific type is selected
@@ -381,47 +420,39 @@ export default function SearchPage() {
                   )}
                 </div>
                 <div className="flex-1 relative" ref={locationBoxRef}>
-                  <Compass className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <button
+                    type="button"
+                    onClick={() => setIsLocationModalOpen(true)}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 z-10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    title="Select location"
+                  >
+                    <MapPin className="w-5 h-5" />
+                  </button>
                   <input
                     type="text"
                     value={locationInput}
-                    onChange={handleLocationInput}
-                    onFocus={() => setShowLocationSuggestions(true)}
-                    onBlur={() =>
-                      setTimeout(() => setShowLocationSuggestions(false), 150)
-                    }
-                    placeholder="Enter location (city, state, village)"
-                    className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                    onClick={() => setIsLocationModalOpen(true)}
+                    placeholder="Select location"
+                    className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white cursor-pointer"
                     autoComplete="off"
+                    readOnly
                   />
-                  {locationInput ? (
+                  {locationInput && (
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setLocationInput("");
                         setSelectedLocation("");
                         setLocationSuggestions([]);
                       }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 z-10"
                       aria-label="Clear location"
+                      title="Clear location"
                     >
                       <X className="w-4 h-4" />
                     </button>
-                  ) : null}
-                  {showLocationSuggestions &&
-                    locationSuggestions.length > 0 && (
-                      <ul className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10 mt-1 max-h-48 overflow-y-auto text-left">
-                        {locationSuggestions.map((loc) => (
-                          <li
-                            key={loc}
-                            className="px-4 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900 text-left"
-                            onClick={() => handleLocationSelect(loc)}
-                          >
-                            {loc}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                  )}
                 </div>
                 <button type="submit" className="btn-primary px-6 py-2">
                   Search
@@ -958,6 +989,20 @@ export default function SearchPage() {
           </div>
         )}
       </main>
+
+      {/* Location Modal */}
+      <LocationModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        onLocationSelect={(location) => {
+          const locationText = location.state
+            ? `${location.city}, ${location.state}`
+            : location.city;
+          setLocationInput(locationText);
+          setSelectedLocation(locationText);
+          setIsLocationModalOpen(false);
+        }}
+      />
 
       <Footer />
     </div>

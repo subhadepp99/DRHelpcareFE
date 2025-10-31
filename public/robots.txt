@@ -1,0 +1,16 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Allow Googlebot specifically
+User-agent: Googlebot
+Allow: /
+
+# Disallow admin pages
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://drhelp.in/sitemap.xml
+

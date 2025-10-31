@@ -177,6 +177,11 @@ export default function DoctorCard({
             <span className="truncate">
               {doctor.address?.city || doctor.city || "City"},{" "}
               {doctor.address?.state || doctor.state || "State"}
+              {doctor.distance != null && doctor.distance > 0 && (
+                <span className="ml-1 text-xs font-medium text-blue-600 dark:text-blue-400">
+                  ({doctor.distance} km)
+                </span>
+              )}
             </span>
           </div>
 

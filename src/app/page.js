@@ -33,6 +33,7 @@ import AppointmentModal from "@/components/common/AppointmentModal";
 import { useLocation } from "@/hooks/useLocation";
 import { useApi } from "@/hooks/useApi";
 import { useAuthStore } from "@/store/authStore";
+import { useLocation as useLocationContext } from "@/contexts/LocationContext";
 import Image from "next/image";
 
 export default function HomePage() {
@@ -260,7 +261,10 @@ export default function HomePage() {
             transition={{ duration: 0.5 }}
             className="text-center relative z-50"
           >
-            {/* Enhanced Search Section */}
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+              Find Doctors, Clinics & Pathology Labs in Midnapore
+            </h1>
+            {/* Enhanced Search Section with Integrated Location Detection */}
             <SearchSection
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}

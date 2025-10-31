@@ -9,6 +9,7 @@ import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import Head from "next/head";
 import FAQAccordion from "@/components/common/FAQAccordion";
+import ReviewSection from "@/components/common/ReviewSection";
 
 export default function DoctorProfilePage() {
   const { id } = useParams();
@@ -456,24 +457,6 @@ export default function DoctorProfilePage() {
 
                   {/* Quick Action Buttons */}
                   <div className="space-y-3">
-                    {doctor.phone && (
-                      <a
-                        href={`tel:${doctor.phone}`}
-                        className="w-full inline-flex items-center justify-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
-                      >
-                        📞 Call Now
-                      </a>
-                    )}
-                    {doctor.phone && (
-                      <a
-                        href={`https://wa.me/${doctor.phone}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full inline-flex items-center justify-center px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
-                      >
-                        💬 WhatsApp
-                      </a>
-                    )}
                     <button
                       onClick={handleShare}
                       className="w-full inline-flex items-center justify-center px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
@@ -492,40 +475,40 @@ export default function DoctorProfilePage() {
                     👨‍⚕️ About Doctor
                   </h2>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-5">
+                      <div className="flex items-start">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
                           Qualification:
                         </span>
-                        <span className="text-gray-900 dark:text-white">
+                        <span className="text-gray-900 dark:text-white flex-1">
                           {doctor.qualification || "Not specified"}
                         </span>
                       </div>
-                      <div className="flex items-center">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24">
+                      <div className="flex items-start">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
                           Experience:
                         </span>
-                        <span className="text-gray-900 dark:text-white">
+                        <span className="text-gray-900 dark:text-white flex-1">
                           {doctor.experience || 0} years
                         </span>
                       </div>
-                      <div className="flex items-center">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24">
+                      <div className="flex items-start">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
                           Consultation:
                         </span>
-                        <span className="text-primary-600 font-bold">
+                        <span className="text-primary-600 font-bold flex-1">
                           ₹{doctor.consultationFee || doctor.doctorFees || 0}
                         </span>
                       </div>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                       <div className="flex items-start">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24 mt-1">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
                           Location:
                         </span>
-                        <div className="text-gray-900 dark:text-white">
+                        <div className="text-gray-900 dark:text-white flex-1">
                           {/* Display full address from database */}
                           {(() => {
                             const addressParts = [];
@@ -562,18 +545,18 @@ export default function DoctorProfilePage() {
                         </div>
                       </div>
                       <div className="flex items-start">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24 mt-1">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
                           Specialty:
                         </span>
-                        <span className="text-gray-900 dark:text-white">
+                        <span className="text-gray-900 dark:text-white flex-1">
                           {doctor.specialization || "General Medicine"}
                         </span>
                       </div>
                       <div className="flex items-start">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium w-24 mt-1">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
                           Department:
                         </span>
-                        <span className="text-gray-900 dark:text-white">
+                        <span className="text-gray-900 dark:text-white flex-1">
                           {typeof doctor.department === "object"
                             ? doctor.department?.name || "General Medicine"
                             : doctor.department || "General Medicine"}
@@ -658,6 +641,14 @@ export default function DoctorProfilePage() {
             </div>
           </div>
         </div>
+      </div>
+      {/* Reviews */}
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <ReviewSection
+          entityType="Doctor"
+          entityId={doctor?._id}
+          entityName={doctor?.name || doctor?.firstName || "this doctor"}
+        />
       </div>
       {/* FAQs */}
       <div className="max-w-4xl mx-auto px-4">

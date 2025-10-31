@@ -323,12 +323,7 @@ export default function AmbulancesPage() {
                     {ambulance.vehicleNumber}
                   </td>
                   <td className="border border-gray-300 p-3">
-                    <div>
-                      <div className="font-medium">{ambulance.driverName}</div>
-                      <div className="text-sm text-gray-500">
-                        {ambulance.driverPhone}
-                      </div>
-                    </div>
+                    {ambulance.driverName}
                   </td>
                   <td className="border border-gray-300 p-3">
                     {ambulance.phone}

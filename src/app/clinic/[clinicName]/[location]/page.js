@@ -26,6 +26,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import BookingModal from "@/components/modals/BookingModal";
 import { useApi } from "@/hooks/useApi";
 import FAQAccordion from "@/components/common/FAQAccordion";
+import ReviewSection from "@/components/common/ReviewSection";
 
 import Image from "next/image";
 import { getImageUrl } from "@/utils/imageUtils";
@@ -799,6 +800,14 @@ export default function ClinicDetailsPage() {
               </div>
             </div>
           </motion.div>
+        </div>
+        {/* Reviews */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+          <ReviewSection
+            entityType="Clinic"
+            entityId={clinic?._id}
+            entityName={clinic?.name || "this clinic"}
+          />
         </div>
         {/* FAQs */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">

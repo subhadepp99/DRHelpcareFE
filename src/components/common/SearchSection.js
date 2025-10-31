@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, MapPin, Filter, Loader, X, Compass } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocation as useLocationContext } from "@/contexts/LocationContext";
+import LocationModal from "@/components/modals/LocationModal";
 
 export default function SearchSection({
   searchQuery = "",
@@ -11,6 +13,9 @@ export default function SearchSection({
   setSearchType = () => {},
   onSearch = () => {},
 }) {
+  const { location: contextLocation, setLocation: setContextLocation } =
+    useLocationContext();
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -96,6 +101,17 @@ export default function SearchSection({
 
   const [locationInput, setLocationInput] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
+
+  // Sync with context location
+  useEffect(() => {
+    if (contextLocation?.city) {
+      const locationText = contextLocation.state
+        ? `${contextLocation.city}, ${contextLocation.state}`
+        : contextLocation.city;
+      setLocationInput(locationText);
+      setSelectedLocation(locationText);
+    }
+  }, [contextLocation]);
 
   // Handle location input change
   const handleLocationInput = (e) => {
@@ -213,15 +229,15 @@ export default function SearchSection({
     "Cardiologist",
     "ENT",
   ];
-  const topCities = [
-    "Delhi",
-    "Mumbai",
-    "Bengaluru",
-    "Hyderabad",
-    "Chennai",
-    "Pune",
-    "Kolkata",
-  ];
+  // const topCities = [
+  //   "Delhi",
+  //   "Mumbai",
+  //   "Bengaluru",
+  //   "Hyderabad",
+  //   "Chennai",
+  //   "Pune",
+  //   "Kolkata",
+  // ];
 
   return (
     <motion.div
@@ -319,53 +335,42 @@ export default function SearchSection({
 
               {/* Removed helper text and counters for minimum characters */}
 
-              {/* Location Typeahead with Compass Icon */}
+              {/* Location Typeahead with Modal Trigger and Detect Location Button */}
               <div className="flex-1 relative" ref={locationRef}>
-                <Compass className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <button
+                  type="button"
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 z-10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  title="Select location"
+                >
+                  <MapPin className="w-5 h-5" />
+                </button>
                 <input
                   type="text"
                   value={locationInput}
                   onChange={handleLocationInput}
                   onFocus={fetchLocationSuggestions}
-                  placeholder="Enter location (city, state, village)"
-                  className="w-full pl-10 pr-10 py-2 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
+                  onClick={() => setIsLocationModalOpen(true)}
+                  placeholder="Select location"
+                  className="w-full pl-10 pr-24 py-2 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 cursor-pointer"
                   autoComplete="off"
+                  readOnly
                 />
-                {locationInput ? (
+                {locationInput && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowLocationSuggestions(false);
-                      setAllLocations([]);
-                      setLocationSuggestions([]);
-                      setSelectedLocation && setSelectedLocation("");
-                      setFilters &&
-                        setFilters((prev) => ({ ...prev, distance: "" }));
-                      // Clear input value
-                      const evt = { target: { value: "" } };
-                      handleLocationInput(evt);
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLocationInput("");
+                      setSelectedLocation("");
+                      setContextLocation(null);
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 z-10"
                     aria-label="Clear location"
+                    title="Clear location"
                   >
                     <X className="w-4 h-4" />
                   </button>
-                ) : null}
-                {showLocationSuggestions && locationSuggestions.length > 0 && (
-                  <ul className="absolute left-0 right-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 mt-1 max-h-48 overflow-y-auto text-left">
-                    {locationSuggestions.map((loc) => (
-                      <li
-                        key={loc}
-                        className="px-4 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900 text-left"
-                        onClick={() => {
-                          handleLocationSelect(loc);
-                          setShowLocationSuggestions(false);
-                        }}
-                      >
-                        {loc}
-                      </li>
-                    ))}
-                  </ul>
                 )}
               </div>
 
@@ -409,7 +414,8 @@ export default function SearchSection({
                 </button>
               ))}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            {/* Top Cities - Commented Out */}
+            {/* <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-gray-600 dark:text-gray-300 mr-1">
                 Top cities:
               </span>
@@ -427,7 +433,7 @@ export default function SearchSection({
                   {city}
                 </button>
               ))}
-            </div>
+            </div> */}
           </div>
 
           {/* Right-aligned Filters */}
@@ -608,6 +614,21 @@ export default function SearchSection({
           )}
         </AnimatePresence>
       </form>
+
+      {/* Location Modal */}
+      <LocationModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        onLocationSelect={(location) => {
+          const locationText = location.state
+            ? `${location.city}, ${location.state}`
+            : location.city;
+          setLocationInput(locationText);
+          setSelectedLocation(locationText);
+          setContextLocation(location);
+          setIsLocationModalOpen(false);
+        }}
+      />
     </motion.div>
   );
 }

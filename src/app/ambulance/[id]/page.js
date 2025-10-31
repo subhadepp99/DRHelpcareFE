@@ -11,6 +11,7 @@ import Footer from "@/components/layout/Footer";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useApi } from "@/hooks/useApi";
 import FAQAccordion from "@/components/common/FAQAccordion";
+import ReviewSection from "@/components/common/ReviewSection";
 import toast from "react-hot-toast";
 
 export default function AmbulanceDetailsPage() {
@@ -236,7 +237,7 @@ export default function AmbulanceDetailsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="space-y-3">
                   <div className="flex items-center text-gray-700 dark:text-gray-300">
-                    <Phone className="w-5 h-5 mr-2 text-primary-600" />{" "}
+                    <Phone className="w-5 h-5 mr-2 text-primary-600" /> Contact:{" "}
                     {ambulance.phone}
                   </div>
                   <div className="flex items-center text-gray-700 dark:text-gray-300">
@@ -244,7 +245,7 @@ export default function AmbulanceDetailsPage() {
                     {ambulance.location}, {ambulance.city}
                   </div>
                   <div className="text-gray-700 dark:text-gray-300">
-                    Driver: {ambulance.driverName} ({ambulance.driverPhone})
+                    Driver: {ambulance.driverName}
                   </div>
                 </div>
               </div>
@@ -265,6 +266,15 @@ export default function AmbulanceDetailsPage() {
               </div>
             </div>
           </motion.div>
+
+          {/* Reviews */}
+          <div className="mt-8">
+            <ReviewSection
+              entityType="Ambulance"
+              entityId={ambulance._id}
+              entityName={ambulance.name || "this ambulance service"}
+            />
+          </div>
 
           {/* FAQs */}
           <div className="mt-8">

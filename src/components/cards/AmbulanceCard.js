@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { MapPin, Phone, Truck, Clock, User } from "lucide-react";
+import { MapPin, Phone, Truck, Clock, User, Star } from "lucide-react";
 import Image from "next/image";
 import { getEntityImageUrl } from "@/utils/imageUtils";
 
@@ -81,12 +81,36 @@ export default function AmbulanceCard({ ambulance }) {
           </p>
         </div>
 
+        {/* Rating */}
+        {ambulance.rating && (
+          <div className="flex items-center mb-2">
+            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+            <span className="ml-1 text-sm font-medium text-gray-900 dark:text-white">
+              {typeof ambulance.rating === "object"
+                ? ambulance.rating.average?.toFixed(1) || "0.0"
+                : ambulance.rating?.toFixed(1) || "0.0"}
+            </span>
+            <span className="ml-1 text-sm text-gray-500 dark:text-gray-400">
+              (
+              {typeof ambulance.rating === "object"
+                ? ambulance.rating.count || 0
+                : ambulance.reviewCount || 0}{" "}
+              reviews)
+            </span>
+          </div>
+        )}
+
         {/* Location & Driver */}
         <div className="space-y-1 mb-3 text-sm">
           <div className="flex items-center text-gray-600 dark:text-gray-400">
             <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
             <span className="truncate">
               {ambulance.location}, {ambulance.city}
+              {ambulance.distance != null && ambulance.distance > 0 && (
+                <span className="ml-1 text-xs font-medium text-blue-600 dark:text-blue-400">
+                  ({ambulance.distance} km)
+                </span>
+              )}
             </span>
           </div>
 
@@ -97,7 +121,7 @@ export default function AmbulanceCard({ ambulance }) {
 
           <div className="flex items-center text-gray-600 dark:text-gray-400">
             <Phone className="w-3 h-3 mr-1 flex-shrink-0" />
-            <span className="truncate">{ambulance.phone}</span>
+            <span className="truncate">Contact: {ambulance.phone}</span>
           </div>
         </div>
 

@@ -25,6 +25,7 @@ import { useApi } from "@/hooks/useApi";
 import { getImageUrl } from "@/utils/imageUtils";
 import Image from "next/image";
 import FAQAccordion from "@/components/common/FAQAccordion";
+import ReviewSection from "@/components/common/ReviewSection";
 
 export default function PathologyDetailsPage() {
   const params = useParams();
@@ -553,6 +554,14 @@ export default function PathologyDetailsPage() {
               </div>
             </div>
           </motion.div>
+        </div>
+        {/* Reviews */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+          <ReviewSection
+            entityType="Pathology"
+            entityId={pathology?._id}
+            entityName={pathology?.name || "this pathology lab"}
+          />
         </div>
         {/* FAQs */}
         <FAQAccordion

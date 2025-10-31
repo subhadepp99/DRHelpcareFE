@@ -744,34 +744,65 @@ export default function AdminDoctorsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Select Clinics
               </label>
-              <select
-                multiple
-                name="selectedClinics"
-                className="input-field min-h-32"
-                value={form.selectedClinics}
-                onChange={(e) => {
-                  const selectedOptions = Array.from(
-                    e.target.selectedOptions,
-                    (option) => option.value
-                  );
-                  setForm((prev) => ({
-                    ...prev,
-                    selectedClinics: selectedOptions,
-                  }));
-                }}
-              >
-                {clinics.map((clinic) => (
-                  <option key={clinic._id} value={clinic._id}>
-                    {clinic.name}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Hold Ctrl (or Cmd on Mac) to select multiple clinics
-              </p>
+              <div className="border border-gray-300 dark:border-gray-600 rounded-md p-3 bg-gray-50 dark:bg-gray-800 max-h-64 overflow-y-auto">
+                {clinics.length > 0 ? (
+                  <div className="space-y-2">
+                    {clinics.map((clinic) => (
+                      <label
+                        key={clinic._id}
+                        className="flex items-start space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={form.selectedClinics.includes(clinic._id)}
+                          onChange={(e) => {
+                            setForm((prev) => {
+                              if (e.target.checked) {
+                                // Add clinic to selection
+                                return {
+                                  ...prev,
+                                  selectedClinics: [...prev.selectedClinics, clinic._id],
+                                };
+                              } else {
+                                // Remove clinic from selection
+                                return {
+                                  ...prev,
+                                  selectedClinics: prev.selectedClinics.filter(
+                                    (id) => id !== clinic._id
+                                  ),
+                                };
+                              }
+                            });
+                          }}
+                          className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                        <div className="flex-1">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {clinic.name}
+                          </span>
+                          {clinic.address && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              {clinic.address}
+                            </p>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                    No clinics available. Please add clinics first.
+                  </p>
+                )}
+              </div>
+              {form.selectedClinics.length > 0 && (
+                <p className="text-xs text-primary-600 dark:text-primary-400 mt-1">
+                  {form.selectedClinics.length} clinic(s) selected
+                </p>
+              )}
             </div>
             {/* Doctor Photo Upload */}
             <div>

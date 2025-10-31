@@ -7,6 +7,8 @@ import { QueryClient, QueryClientProvider } from "react-query";
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "@/store/authStore";
 import { useEffect, useState } from "react";
+import FloatingContactButtons from "@/components/common/FloatingContactButtons";
+import { LocationProvider } from "@/contexts/LocationContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,6 +34,9 @@ export default function RootLayout({ children }) {
     return (
       <html lang="en">
         <head>
+          <title>Find Doctors, Clinics & Pathology Labs in Midnapore | DrHelp.in</title>
+          <meta name="description" content="DrHelp helps you find trusted doctors, clinics, pathology labs, and ambulance services in Tamluk, Haldia, Contai, and nearby areas. Book medical services easily and get care when you need it most." />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
           <meta name="fast2sms" content="pdVH66wTFsGd4GOM811gavI2ReWPGnpq" />
         </head>
         <body className={inter.className}>
@@ -46,12 +51,18 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <title>Find Doctors, Clinics & Pathology Labs in Midnapore | DrHelp.in</title>
+        <meta name="description" content="DrHelp helps you find trusted doctors, clinics, pathology labs, and ambulance services in Tamluk, Haldia, Contai, and nearby areas. Book medical services easily and get care when you need it most." />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="fast2sms" content="pdVH66wTFsGd4GOM811gavI2ReWPGnpq" />
       </head>
       <body className={inter.className}>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider attribute="class" defaultTheme="light">
-            {children}
+            <LocationProvider>
+              {children}
+              <FloatingContactButtons />
+            </LocationProvider>
             <Toaster
               position="top-right"
               toastOptions={{

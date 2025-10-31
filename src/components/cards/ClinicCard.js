@@ -182,7 +182,14 @@ export default function ClinicCard({ clinic }) {
         <div className="mb-4 text-sm">
           <div className="flex items-center text-gray-600 dark:text-gray-400">
             <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span className="truncate">{formatAddress(clinic.address)}</span>
+            <span className="truncate">
+              {formatAddress(clinic.address)}
+              {clinic.distance != null && clinic.distance > 0 && (
+                <span className="ml-1 text-xs font-medium text-blue-600 dark:text-blue-400">
+                  ({clinic.distance} km)
+                </span>
+              )}
+            </span>
           </div>
         </div>
 
