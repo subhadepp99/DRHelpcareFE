@@ -6,6 +6,8 @@ import { useApi } from "@/hooks/useApi";
 import { Calendar, Clock, MapPin, User, Phone, Mail } from "lucide-react";
 import BookingDetailsModal from "@/components/modals/BookingDetailsModal";
 import Header from "@/components/layout/Header";
+import MetaTags from "@/components/common/MetaTags";
+import { pageMetadata } from "@/utils/metadata";
 import toast from "react-hot-toast";
 
 export default function BookingsPage() {
@@ -69,9 +71,15 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <>
+      <MetaTags
+        title={pageMetadata.bookings.title}
+        description={pageMetadata.bookings.description}
+        keywords={pageMetadata.bookings.keywords}
+      />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             My Bookings
@@ -178,6 +186,7 @@ export default function BookingsPage() {
           onChanged={fetchBookings}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

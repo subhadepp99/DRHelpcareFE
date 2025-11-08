@@ -14,6 +14,7 @@ import {
   Stethoscope,
   Building2,
   Pill,
+  X,
 } from "lucide-react";
 
 export default function Footer() {
@@ -44,10 +45,26 @@ export default function Footer() {
   };
 
   const socialLinks = [
-    { name: "Facebook", icon: Facebook, href: "#" },
-    { name: "Twitter", icon: Twitter, href: "#" },
-    { name: "Instagram", icon: Instagram, href: "#" },
-    { name: "LinkedIn", icon: Linkedin, href: "#" },
+    {
+      name: "Facebook",
+      icon: Facebook,
+      href: "https://www.facebook.com/share/14JqPMM1M2L/",
+    },
+    {
+      name: "X",
+      icon: X,
+      href: "https://x.com/Doctorhelpcare?t=tV0yDpmLTs1cLLt7eYtMmw&s=09",
+    },
+    {
+      name: "Instagram",
+      icon: Instagram,
+      href: "https://www.instagram.com/doctorhelpcare?igsh=b3pocTdmb2dyeXNi",
+    },
+    {
+      name: "LinkedIn",
+      icon: Linkedin,
+      href: "www.linkedin.com/in/doctor-help-care-1b1b0a365",
+    },
   ];
 
   return (
@@ -67,7 +84,7 @@ export default function Footer() {
                   <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
                     <Heart className="w-6 h-6 text-white" />
                   </div>
-                  <span className="text-xl font-bold">HealthCare Pro</span>
+                  <span className="text-xl font-bold">HealthCare</span>
                 </div>
                 <p className="text-gray-300 mb-6 leading-relaxed">
                   Your trusted partner in healthcare. Find qualified doctors,
@@ -79,15 +96,17 @@ export default function Footer() {
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3 text-gray-300">
                     <Phone className="w-4 h-4 text-primary-400" />
-                    <span className="text-sm">+91 9674243119</span>
+                    <span className="text-sm">+91 9242141716</span>
                   </div>
                   <div className="flex items-center space-x-3 text-gray-300">
                     <Mail className="w-4 h-4 text-primary-400" />
-                    <span className="text-sm">support@healthcarepro.com</span>
+                    <span className="text-sm">support@drhelpcare.com</span>
                   </div>
                   <div className="flex items-center space-x-3 text-gray-300">
                     <MapPin className="w-4 h-4 text-primary-400" />
-                    <span className="text-sm">Tamluk, WestBengal, India</span>
+                    <span className="text-sm">
+                      Midnapore, WestBengal, India
+                    </span>
                   </div>
                 </div>
               </motion.div>

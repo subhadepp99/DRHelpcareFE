@@ -12,6 +12,7 @@ import { getEntityImageUrl } from "@/utils/imageUtils";
 
 const initialForm = {
   name: "",
+  description: "",
   registrationNumber: "",
   email: "",
   phone: "",
@@ -147,6 +148,7 @@ export default function AdminClinics() {
 
     setForm({
       name: clinic.name || "",
+      description: clinic.description || "",
       registrationNumber: clinic.registrationNumber || "",
       email: clinic.email || "",
       phone: clinic.phone || "",
@@ -295,6 +297,8 @@ export default function AdminClinics() {
 
       // Add all form fields
       formData.append("name", form.name);
+      if (form.description)
+        formData.append("description", form.description);
       if (form.registrationNumber)
         formData.append("registrationNumber", form.registrationNumber);
       formData.append("email", form.email);
@@ -506,6 +510,20 @@ export default function AdminClinics() {
                 onChange={onChange}
                 placeholder="Registration Number (Optional)"
                 className="input-field"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={form.description || ""}
+                onChange={onChange}
+                placeholder="Enter clinic description..."
+                rows="4"
+                className="input-field resize-none"
               />
             </div>
 

@@ -23,6 +23,8 @@ import { useApi } from "@/hooks/useApi";
 import StatsCard from "@/components/admin/StatsCard";
 import DashboardChart from "@/components/charts/DashboardChart";
 import RecentActivity from "@/components/admin/RecentActivity";
+import MetaTags from "@/components/common/MetaTags";
+import { pageMetadata } from "@/utils/metadata";
 import toast from "react-hot-toast";
 
 export default function AdminDashboard() {
@@ -365,9 +367,15 @@ export default function AdminDashboard() {
   const hasErrors = Object.keys(errors).length > 0;
 
   return (
-    <div className="space-y-8">
-      {/* Error Summary Banner */}
-      {hasErrors && (
+    <>
+      <MetaTags
+        title={pageMetadata.admin.title}
+        description={pageMetadata.admin.description}
+        keywords={pageMetadata.admin.keywords}
+      />
+      <div className="space-y-8">
+        {/* Error Summary Banner */}
+        {hasErrors && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -747,6 +755,7 @@ export default function AdminDashboard() {
           Manage Clinics
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

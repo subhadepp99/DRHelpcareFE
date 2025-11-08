@@ -111,7 +111,7 @@ export default function DoctorCard({
         )}
 
         {/* Status Badge */}
-        <div className="absolute top-3 left-3">
+        {/* <div className="absolute top-3 left-3">
           <span
             className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
               hasAvailability
@@ -126,7 +126,7 @@ export default function DoctorCard({
             ></span>
             {hasAvailability ? "Available" : "Unavailable"}
           </span>
-        </div>
+        </div> */}
 
         {/* Verified Badge */}
         <div className="absolute top-3 right-3">
@@ -206,7 +206,7 @@ export default function DoctorCard({
           </div>
 
           {/* Availability */}
-          {hasAvailability && (
+          {/* {hasAvailability && (
             <div className="flex items-center text-gray-600 dark:text-gray-400">
               <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
               <span className="text-xs">
@@ -214,7 +214,7 @@ export default function DoctorCard({
                 {doctor.availableDateTime.length !== 1 ? "s" : ""} per week
               </span>
             </div>
-          )}
+          )} */}
         </div>
 
         {/* Action Buttons */}

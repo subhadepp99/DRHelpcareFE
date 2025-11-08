@@ -18,6 +18,8 @@ import { getImageUrl } from "@/utils/imageUtils";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import HeroCarousel from "@/components/common/HeroCarousel";
+import MetaTags from "@/components/common/MetaTags";
+import { pageMetadata } from "@/utils/metadata";
 
 export default function Pathology() {
   const { get } = useApi();
@@ -112,10 +114,16 @@ export default function Pathology() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800">
-      <Header />
+    <>
+      <MetaTags
+        title={pageMetadata.pathology.title}
+        description={pageMetadata.pathology.description}
+        keywords={pageMetadata.pathology.keywords}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800">
+        <Header />
 
-      <div className="pt-20 pb-8">
+        <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Search Section */}
           <motion.section
@@ -619,6 +627,7 @@ export default function Pathology() {
       </div>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }

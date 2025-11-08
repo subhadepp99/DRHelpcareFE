@@ -27,6 +27,8 @@ import SearchFilters from "@/components/search/SearchFilters";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import FAQAccordion from "@/components/common/FAQAccordion";
 import LocationModal from "@/components/modals/LocationModal";
+import MetaTags from "@/components/common/MetaTags";
+import { pageMetadata } from "@/utils/metadata";
 import { useLocation } from "@/contexts/LocationContext";
 
 export default function SearchPage() {
@@ -53,6 +55,13 @@ export default function SearchPage() {
   });
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [suggestedResults, setSuggestedResults] = useState({});
+  const RESULTS_PER_PAGE = 20;
 
   // Debug department parameter
   useEffect(() => {
@@ -140,14 +149,20 @@ export default function SearchPage() {
     }
   };
 
-  const performSearch = useCallback(async () => {
+  const performSearch = useCallback(async (pageNum = 1, append = false) => {
     try {
       const queryParams = new URLSearchParams({
-        q: searchQuery,
         type: searchType,
         sort: sortBy,
         ...filters,
+        page: pageNum,
+        limit: RESULTS_PER_PAGE,
       });
+      
+      // Only add search query if it's not empty
+      if (searchQuery && searchQuery.trim()) {
+        queryParams.set("q", searchQuery.trim());
+      }
 
       // Use location from context if available
       if (userLocation) {
@@ -174,10 +189,45 @@ export default function SearchPage() {
       console.log("Search response:", response.data);
       console.log("Search results:", response.data?.results);
       console.log("Ambulance results:", response.data?.results?.ambulances);
-      setResults(response.data?.results || {});
+      
+      const newResults = response.data?.results || {};
+      
+      if (append) {
+        // Append new results to existing ones
+        setResults(prevResults => ({
+          doctors: [...(prevResults.doctors || []), ...(newResults.doctors || [])],
+          clinics: [...(prevResults.clinics || []), ...(newResults.clinics || [])],
+          ambulances: [...(prevResults.ambulances || []), ...(newResults.ambulances || [])],
+          pathologies: [...(prevResults.pathologies || []), ...(newResults.pathologies || [])],
+        }));
+      } else {
+        setResults(newResults);
+        
+        // If no results found, fetch suggestions
+        const totalResults = Object.values(newResults).reduce((sum, arr) => 
+          sum + (Array.isArray(arr) ? arr.length : 0), 0
+        );
+        
+        if (totalResults === 0 && !append) {
+          await fetchSuggestedResults();
+        } else {
+          setSuggestedResults({});
+        }
+      }
+      
+      // Check if there are more results
+      const hasMoreResults = Object.values(newResults).some(arr => 
+        Array.isArray(arr) && arr.length >= RESULTS_PER_PAGE
+      );
+      setHasMore(hasMoreResults);
+      setIsLoadingMore(false);
     } catch (error) {
       console.error("Search error:", error);
-      setResults({});
+      if (!append) {
+        setResults({});
+      }
+      setIsLoadingMore(false);
+      setHasMore(false);
     }
   }, [
     searchQuery,
@@ -188,15 +238,20 @@ export default function SearchPage() {
     locationInput,
     userLocation,
     get,
+    RESULTS_PER_PAGE,
   ]);
 
   useEffect(() => {
-    // Auto-search only when query has 3+ characters or when a specific type is selected
+    // Auto-search when:
+    // 1. Query has 3+ characters, OR
+    // 2. A specific type is selected, OR  
+    // 3. Location is provided (even without query)
+    const hasLocation = locationInput || selectedLocation || userLocation?.city;
+    
     if (
       searchQuery.trim().length >= 3 ||
       searchType !== "all" ||
-      locationInput ||
-      selectedLocation
+      hasLocation
     ) {
       performSearch();
     }
@@ -221,7 +276,9 @@ export default function SearchPage() {
   // Trigger search when searchType changes
   useEffect(() => {
     if (searchType !== "all") {
-      performSearch();
+      setPage(1);
+      setHasMore(false);
+      performSearch(1, false);
     }
   }, [searchType]);
 
@@ -276,11 +333,50 @@ export default function SearchPage() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    performSearch();
+    setPage(1);
+    setHasMore(false);
+    performSearch(1, false);
+  };
+  
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    setIsLoadingMore(true);
+    performSearch(nextPage, true);
+  };
+  
+  const fetchSuggestedResults = async () => {
+    try {
+      // Fetch nearby results without the search query (location-based only)
+      const queryParams = new URLSearchParams({
+        type: searchType,
+        limit: 10, // Get fewer suggested results
+      });
+      
+      // Don't send q parameter for suggestions
+      // Use location from context if available
+      if (userLocation) {
+        if (userLocation.city) queryParams.set("city", userLocation.city);
+        if (userLocation.state) queryParams.set("state", userLocation.state);
+        if (userLocation.lat) queryParams.set("lat", userLocation.lat);
+        if (userLocation.lng) queryParams.set("lng", userLocation.lng);
+      } else {
+        const cityParam = (selectedLocation || locationInput || "").trim();
+        if (cityParam) queryParams.set("city", cityParam);
+      }
+      
+      const response = await get(`/search?${queryParams.toString()}`);
+      setSuggestedResults(response.data?.results || {});
+    } catch (error) {
+      console.error("Error fetching suggested results:", error);
+      setSuggestedResults({});
+    }
   };
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
+    setPage(1); // Reset page when filters change
+    setHasMore(false);
   };
 
   // Normalize singular type names to results keys
@@ -322,9 +418,15 @@ export default function SearchPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      <Header />
-      {/* Breadcrumb Navigation */}
+    <>
+      <MetaTags
+        title={pageMetadata.search.title}
+        description={pageMetadata.search.description}
+        keywords={pageMetadata.search.keywords}
+      />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+        <Header />
+        {/* Breadcrumb Navigation */}
       <nav
         className="text-sm text-gray-500 dark:text-gray-400 py-4 px-4 max-w-7xl"
         aria-label="Breadcrumb"
@@ -971,14 +1073,134 @@ export default function SearchPage() {
             </>
           )}
 
-          {/* No Results Message */}
+          {/* Load More Button */}
+          {getTotalResults() > 0 && hasMore && !apiLoading && (
+            <div className="text-center py-8">
+              <button
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                className="btn-primary px-8 py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoadingMore ? (
+                  <span className="flex items-center">
+                    <div className="spinner w-5 h-5 mr-2"></div>
+                    Loading...
+                  </span>
+                ) : (
+                  "Load More Results"
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* No Results Message with Suggestions */}
           {getTotalResults() === 0 && !apiLoading && (
-            <div className="text-center py-12 text-gray-600 dark:text-gray-400">
-              <Search className="mx-auto w-16 h-16 mb-6" />
-              <h3 className="text-lg font-medium">No results found</h3>
-              <p className="mt-2">
-                Try adjusting your search terms or filters.
-              </p>
+            <div className="py-12">
+              <div className="text-center text-gray-600 dark:text-gray-400 mb-8">
+                <Search className="mx-auto w-16 h-16 mb-6" />
+                <h3 className="text-lg font-medium">No exact matches found</h3>
+                <p className="mt-2">
+                  {Object.values(suggestedResults).some(arr => arr && arr.length > 0) 
+                    ? "Here are some nearby options that might help:" 
+                    : "Try adjusting your search terms or filters."}
+                </p>
+              </div>
+              
+              {/* Display Suggested Results */}
+              {Object.values(suggestedResults).some(arr => arr && arr.length > 0) && (
+                <div className="space-y-8">
+                  <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Suggested Results Nearby
+                  </h4>
+                  
+                  {/* Suggested Doctors */}
+                  {suggestedResults.doctors && suggestedResults.doctors.length > 0 && (
+                    <section>
+                      <h5 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
+                        Doctors ({suggestedResults.doctors.length})
+                      </h5>
+                      <div className={viewMode === "grid" 
+                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+                        : "space-y-4"}>
+                        {suggestedResults.doctors.map((doctor) => (
+                          <DoctorCard key={doctor._id} doctor={doctor} />
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                  
+                  {/* Suggested Clinics */}
+                  {suggestedResults.clinics && suggestedResults.clinics.length > 0 && (
+                    <section>
+                      <h5 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
+                        Clinics ({suggestedResults.clinics.length})
+                      </h5>
+                      <div className={viewMode === "grid" 
+                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+                        : "space-y-4"}>
+                        {suggestedResults.clinics.map((clinic) => (
+                          <ClinicCard key={clinic._id} clinic={clinic} />
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                  
+                  {/* Suggested Ambulances */}
+                  {suggestedResults.ambulances && suggestedResults.ambulances.length > 0 && (
+                    <section>
+                      <h5 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
+                        Ambulances ({suggestedResults.ambulances.length})
+                      </h5>
+                      <div className={viewMode === "grid" 
+                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+                        : "space-y-4"}>
+                        {suggestedResults.ambulances.map((ambulance) => (
+                          <AmbulanceCard key={ambulance._id} ambulance={ambulance} />
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                  
+                  {/* Suggested Pathologies */}
+                  {suggestedResults.pathologies && suggestedResults.pathologies.length > 0 && (
+                    <section>
+                      <h5 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
+                        Pathology Labs ({suggestedResults.pathologies.length})
+                      </h5>
+                      <div className={viewMode === "grid" 
+                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+                        : "space-y-4"}>
+                        {suggestedResults.pathologies.map((pathology) => (
+                          <div key={pathology._id} className="card p-6 hover:shadow-lg transition-shadow">
+                            <h6 className="font-semibold text-lg text-gray-900 dark:text-white mb-2">
+                              {pathology.name}
+                            </h6>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                              {pathology.place}, {pathology.state}
+                            </p>
+                            <button
+                              onClick={() => {
+                                const pathologyName = encodeURIComponent(
+                                  pathology.name.replace(/\s+/g, "-").toLowerCase()
+                                );
+                                const location = encodeURIComponent(
+                                  pathology.place || pathology.state || "unknown"
+                                );
+                                router.push(
+                                  `/pathology/${pathologyName}/${location}?id=${pathology._id}`
+                                );
+                              }}
+                              className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              View Details
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1005,6 +1227,7 @@ export default function SearchPage() {
       />
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }

@@ -30,10 +30,12 @@ import ServiceCard from "@/components/cards/ServiceCard";
 import DoctorCard from "@/components/cards/DoctorCard";
 import DepartmentCard from "@/components/cards/DepartmentCard";
 import AppointmentModal from "@/components/common/AppointmentModal";
+import MetaTags from "@/components/common/MetaTags";
 import { useLocation } from "@/hooks/useLocation";
 import { useApi } from "@/hooks/useApi";
 import { useAuthStore } from "@/store/authStore";
 import { useLocation as useLocationContext } from "@/contexts/LocationContext";
+import { pageMetadata } from "@/utils/metadata";
 import Image from "next/image";
 
 export default function HomePage() {
@@ -249,8 +251,14 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 relative">
-      <Header />
+    <>
+      <MetaTags
+        title={pageMetadata.home.title}
+        description={pageMetadata.home.description}
+        keywords={pageMetadata.home.keywords}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 relative">
+        <Header />
 
       {/* Hero Section (Search then Carousel) */}
       <section className="relative z-40 overflow-hidden pt-20 pb-6">
@@ -619,6 +627,7 @@ export default function HomePage() {
       </div>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }

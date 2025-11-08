@@ -9,6 +9,8 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 import { useApi } from "@/hooks/useApi";
+import MetaTags from "@/components/common/MetaTags";
+import { pageMetadata } from "@/utils/metadata";
 import {
   loadMsg91Widget,
   isMsg91Configured,
@@ -254,9 +256,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
+    <>
+      <MetaTags
+        title={pageMetadata.login.title}
+        description={pageMetadata.login.description}
+        keywords={pageMetadata.login.keywords}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="max-w-md w-full space-y-8"
@@ -545,6 +553,7 @@ export default function LoginPage() {
           </motion.div>
         )}
       </motion.div>
-    </div>
+      </div>
+    </>
   );
 }

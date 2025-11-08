@@ -7,7 +7,8 @@ import { ArrowLeft, Search, X, Share2 } from "lucide-react";
 import toast from "react-hot-toast";
 import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
-import Head from "next/head";
+import MetaTags from "@/components/common/MetaTags";
+import { generateDoctorMetadata } from "@/utils/metadata";
 import FAQAccordion from "@/components/common/FAQAccordion";
 import ReviewSection from "@/components/common/ReviewSection";
 
@@ -272,19 +273,15 @@ export default function DoctorProfilePage() {
     return undefined;
   };
 
+  const metadata = generateDoctorMetadata(doctor);
+  
   return (
     <>
-      <Head>
-        <title>{`Dr. ${
-          doctor.name || `${doctor.firstName || ""} ${doctor.lastName || ""}`
-        }`}</title>
-        <meta
-          name="description"
-          content={`Book an appointment with Dr. ${
-            doctor.name || doctor.firstName || ""
-          }. Department: ${doctor.department || "Doctor"}.`}
-        />
-      </Head>
+      <MetaTags
+        title={metadata.title}
+        description={metadata.description}
+        keywords={metadata.keywords}
+      />
       <Header />
       {/* Breadcrumb Navigation */}
       <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pt-16">

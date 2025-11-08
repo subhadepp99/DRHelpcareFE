@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { Calendar, User, ArrowRight, Search } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import MetaTags from "@/components/common/MetaTags";
+import { pageMetadata } from "@/utils/metadata";
 import Image from "next/image";
 
 export default function BlogPage() {
@@ -112,10 +114,16 @@ export default function BlogPage() {
       : filteredPosts.filter((post) => post.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
+    <>
+      <MetaTags
+        title={pageMetadata.blog.title}
+        description={pageMetadata.blog.description}
+        keywords={pageMetadata.blog.keywords}
+      />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header />
 
-      {/* Blog Header */}
+        {/* Blog Header */}
       <section className="bg-gradient-to-br from-primary-600 to-primary-800 dark:from-primary-800 dark:to-primary-900 pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -244,7 +252,8 @@ export default function BlogPage() {
       </section>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }
 

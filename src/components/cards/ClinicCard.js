@@ -172,8 +172,8 @@ export default function ClinicCard({ clinic }) {
               {clinic.doctorCount !== 1 ||
               (clinic.doctors && clinic.doctors.length !== 1)
                 ? "s"
-                : ""}{" "}
-              Available
+                : ""}
+              {/* Available */}
             </span>
           </div>
         </div>

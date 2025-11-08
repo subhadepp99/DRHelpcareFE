@@ -23,6 +23,8 @@ import { useApi } from "@/hooks/useApi";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BookingDetailsModal from "@/components/modals/BookingDetailsModal";
+import MetaTags from "@/components/common/MetaTags";
+import { pageMetadata } from "@/utils/metadata";
 import toast from "react-hot-toast";
 import { getEntityImageUrl } from "@/utils/imageUtils";
 
@@ -249,8 +251,14 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
+    <>
+      <MetaTags
+        title={pageMetadata.profile.title}
+        description={pageMetadata.profile.description}
+        keywords={pageMetadata.profile.keywords}
+      />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header />
 
       <div className="pt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1010,6 +1018,7 @@ export default function ProfilePage() {
 
       {/* Add Footer */}
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }

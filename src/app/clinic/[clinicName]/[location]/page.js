@@ -496,6 +496,15 @@ export default function ClinicDetailsPage() {
                     reviews)
                   </span>
                 </div>
+                
+                {/* Description */}
+                {clinic.description && (
+                  <div className="mb-4">
+                    <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed">
+                      {clinic.description}
+                    </p>
+                  </div>
+                )}
 
                 {/* Type Badge */}
                 <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 mb-4">
