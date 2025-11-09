@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { X, MapPin, Loader2, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import { pincodeToLocation } from "@/utils/locationUtils";
 
 export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
-  const [selectedTab, setSelectedTab] = useState("detect"); // detect or pincode
+  const [selectedTab, setSelectedTab] = useState("detect"); // detect or pincode or city
   const [pincode, setPincode] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -23,6 +24,13 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
       } catch (error) {
         console.error("Error loading recent locations:", error);
       }
+    }
+    
+    // Reset form when modal opens
+    if (isOpen) {
+      setPincode("");
+      setCity("");
+      setState("");
     }
   }, [isOpen]);
 
@@ -106,57 +114,133 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
   const handlePincodeSubmit = async (e) => {
     e.preventDefault();
 
-    if (!pincode || pincode.length < 5) {
-      toast.error("Please enter a valid pincode");
+    // Validate: Either pincode or city must be provided
+    if (!pincode && !city) {
+      toast.error("Please enter either a pincode or city name");
       return;
     }
 
     setSearching(true);
 
     try {
-      // Search using pincode with Nominatim
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json&addressdetails=1&limit=1`
-      );
+      // If pincode is provided, search by pincode
+      if (pincode && pincode.length >= 5) {
+        // Try Google Maps API first if available
+        const googleLocation = await pincodeToLocation(pincode);
+        
+        if (googleLocation) {
+          const locationData = {
+            city: city || googleLocation.city,
+            state: state || googleLocation.state,
+            pincode: pincode,
+            country: googleLocation.country || "India",
+            latitude: googleLocation.lat,
+            longitude: googleLocation.lng,
+            lat: googleLocation.lat,
+            lng: googleLocation.lng,
+            formattedAddress: googleLocation.formatted_address || `${googleLocation.city}, ${googleLocation.state}`,
+          };
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch location details");
+          saveToRecentLocations(locationData);
+          onLocationSelect(locationData);
+          toast.success(`Location set to ${locationData.city}`);
+          onClose();
+          setSearching(false);
+          return;
+        }
+
+        // Fallback to Nominatim for pincode
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json&addressdetails=1&limit=1`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data && data.length > 0) {
+            const result = data[0];
+            const address = result.address || {};
+
+            const locationData = {
+              city:
+                city ||
+                address.city ||
+                address.town ||
+                address.village ||
+                address.suburb ||
+                "Unknown",
+              state: state || address.state || "Unknown",
+              pincode: pincode,
+              country: "India",
+              latitude: parseFloat(result.lat),
+              longitude: parseFloat(result.lon),
+              lat: parseFloat(result.lat),
+              lng: parseFloat(result.lon),
+              formattedAddress: result.display_name || `${city}, ${state}`,
+            };
+
+            saveToRecentLocations(locationData);
+            onLocationSelect(locationData);
+            toast.success(`Location set to ${locationData.city}`);
+            onClose();
+            setSearching(false);
+            return;
+          }
+        }
       }
 
-      const data = await response.json();
+      // If city is provided (with or without state), search by city name
+      if (city) {
+        const searchQuery = state ? `${city}, ${state}, India` : `${city}, India`;
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&addressdetails=1&limit=1`
+        );
 
-      if (!data || data.length === 0) {
-        toast.error("Invalid pincode. Please try again.");
+        if (!response.ok) {
+          throw new Error("Failed to fetch location details");
+        }
+
+        const data = await response.json();
+
+        if (!data || data.length === 0) {
+          toast.error("Location not found. Please check your city name.");
+          setSearching(false);
+          return;
+        }
+
+        const result = data[0];
+        const address = result.address || {};
+
+        const locationData = {
+          city:
+            city ||
+            address.city ||
+            address.town ||
+            address.village ||
+            address.suburb ||
+            "Unknown",
+          state: state || address.state || "Unknown",
+          pincode: pincode || address.postcode || "",
+          country: "India",
+          latitude: parseFloat(result.lat),
+          longitude: parseFloat(result.lon),
+          lat: parseFloat(result.lat),
+          lng: parseFloat(result.lon),
+          formattedAddress: result.display_name || `${city}${state ? ', ' + state : ''}`,
+        };
+
+        saveToRecentLocations(locationData);
+        onLocationSelect(locationData);
+        toast.success(`Location set to ${locationData.city}`);
+        onClose();
         setSearching(false);
         return;
       }
 
-      const result = data[0];
-      const address = result.address || {};
-
-      const locationData = {
-        city:
-          city ||
-          address.city ||
-          address.town ||
-          address.village ||
-          address.suburb ||
-          "Unknown",
-        state: state || address.state || "Unknown",
-        pincode: pincode,
-        country: "India",
-        latitude: parseFloat(result.lat),
-        longitude: parseFloat(result.lon),
-        formattedAddress: result.display_name || `${city}, ${state}`,
-      };
-
-      saveToRecentLocations(locationData);
-      onLocationSelect(locationData);
-      toast.success(`Location set to ${locationData.city}`);
-      onClose();
+      toast.error("Failed to find location. Please try again.");
     } catch (error) {
-      console.error("Error searching pincode:", error);
-      toast.error("Failed to find location. Please check your pincode.");
+      console.error("Error searching location:", error);
+      toast.error("Failed to find location. Please check your input.");
     } finally {
       setSearching(false);
     }
@@ -247,7 +331,7 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
                     : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 }`}
               >
-                Enter Pincode
+                Enter Location
               </button>
             </div>
 
@@ -286,9 +370,15 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
                 </div>
               ) : (
                 <form onSubmit={handlePincodeSubmit} className="space-y-4">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      Enter either a pincode OR city name to search for a location
+                    </p>
+                  </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Pincode *
+                      Pincode
                     </label>
                     <input
                       type="text"
@@ -299,18 +389,24 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
                       placeholder="Enter 6-digit pincode"
                       maxLength={6}
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      required
                     />
                   </div>
+                  
+                  <div className="flex items-center">
+                    <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                    <span className="px-3 text-gray-500 dark:text-gray-400 text-sm">OR</span>
+                    <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                  </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      City (Optional)
+                      City Name
                     </label>
                     <input
                       type="text"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      placeholder="Enter city name"
+                      placeholder="e.g. Mumbai, Delhi, Kolkata"
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
@@ -322,7 +418,7 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
                       type="text"
                       value={state}
                       onChange={(e) => setState(e.target.value)}
-                      placeholder="Enter state name"
+                      placeholder="e.g. Maharashtra, West Bengal"
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>

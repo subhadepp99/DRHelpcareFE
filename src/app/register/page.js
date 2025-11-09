@@ -381,10 +381,10 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Email */}
+            {/* Email (Optional) */}
             <div>
               <label htmlFor="email" className="sr-only">
-                Email
+                Email (Optional)
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -392,7 +392,7 @@ export default function RegisterPage() {
                 </div>
                 <input
                   {...register("email", {
-                    required: "Email is required",
+                    required: false,
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                       message: "Invalid email address",
@@ -400,7 +400,7 @@ export default function RegisterPage() {
                   })}
                   type="email"
                   className="appearance-none relative block w-full px-12 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 sm:text-sm"
-                  placeholder="Email"
+                  placeholder="Email (optional)"
                 />
               </div>
               {errors.email && (

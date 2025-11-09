@@ -59,6 +59,8 @@ export default function PathologyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [showTestSelectionModal, setShowTestSelectionModal] = useState(false);
+  const [selectedTestIds, setSelectedTestIds] = useState([]);
 
   useEffect(() => {
     fetchPathologies();
@@ -314,8 +316,15 @@ export default function PathologyPage() {
   };
 
   const addComponent = () => {
+    setShowTestSelectionModal(true);
+  };
+
+  const addCustomTest = () => {
     const newComponent = {
       name: "",
+      category: "",
+      price: 0,
+      sampleType: "",
       unit: "",
       referenceRange: "",
     };
@@ -323,6 +332,27 @@ export default function PathologyPage() {
       ...formData,
       components: [...formData.components, newComponent],
     });
+    setShowTestSelectionModal(false);
+  };
+
+  const addSelectedTests = () => {
+    const selectedTests = tests.filter(test => selectedTestIds.includes(test._id));
+    const newComponents = selectedTests.map(test => ({
+      name: test.name,
+      category: test.category || "",
+      price: test.price || 0,
+      sampleType: test.sampleType || "",
+      unit: test.unit || "",
+      referenceRange: test.referenceRange || "",
+      testId: test._id,
+    }));
+    
+    setFormData({
+      ...formData,
+      components: [...formData.components, ...newComponents],
+    });
+    setSelectedTestIds([]);
+    setShowTestSelectionModal(false);
   };
 
   const removeComponent = (index) => {
@@ -1402,6 +1432,122 @@ export default function PathologyPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Test Selection Modal */}
+      {showTestSelectionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Select Tests for Package
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowTestSelectionModal(false);
+                    setSelectedTestIds([]);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Select tests from the list below or add a custom test
+                </p>
+                
+                {/* Action Buttons */}
+                <div className="flex gap-3 mb-4">
+                  <button
+                    type="button"
+                    onClick={addCustomTest}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Custom Test
+                  </button>
+                  <button
+                    type="button"
+                    onClick={addSelectedTests}
+                    disabled={selectedTestIds.length === 0}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Selected Tests ({selectedTestIds.length})
+                  </button>
+                </div>
+
+                {/* Tests List */}
+                <div className="border border-gray-300 dark:border-gray-600 rounded-lg max-h-96 overflow-y-auto">
+                  {tests.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                      No tests available
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {tests.map((test) => (
+                        <label
+                          key={test._id}
+                          className="flex items-start p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedTestIds.includes(test._id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedTestIds([...selectedTestIds, test._id]);
+                              } else {
+                                setSelectedTestIds(
+                                  selectedTestIds.filter((id) => id !== test._id)
+                                );
+                              }
+                            }}
+                            className="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          />
+                          <div className="ml-3 flex-1">
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                {test.name}
+                              </p>
+                              <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                ₹{test.price}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {test.category && `Category: ${test.category}`}
+                              {test.sampleType && ` | Sample: ${test.sampleType}`}
+                            </p>
+                            {test.description && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                                {test.description}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTestSelectionModal(false);
+                    setSelectedTestIds([]);
+                  }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

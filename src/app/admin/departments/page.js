@@ -50,7 +50,7 @@ export default function DepartmentsPage() {
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      const response = await get("/departments");
+      const response = await get("/departments?limit=1000");
       console.log("Department API response:", response); // Debug log
       const departments =
         response.data?.data?.departments || response.data?.departments || [];
@@ -284,7 +284,7 @@ export default function DepartmentsPage() {
 
       {/* Departments Table */}
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>

@@ -24,6 +24,7 @@ const initialForm = {
   services: "",
   facilities: "",
   imageUrl: "",
+  pinLocation: "",
 };
 
 export default function AdminClinics() {
@@ -91,60 +92,163 @@ export default function AdminClinics() {
     setFaqModalOpen(true);
   };
 
+  // Helper function to safely parse array data that might be stringified multiple times
+  const safeParseArray = (value) => {
+    if (!value) return [];
+    
+    // Helper to check if a value is "empty" (should be filtered out)
+    const isEmpty = (val) => {
+      if (!val) return true;
+      if (typeof val !== 'string') return true;
+      const trimmed = val.trim();
+      // Check for various empty patterns
+      return trimmed === '' || 
+             trimmed === '[]' || 
+             trimmed === '""' || 
+             trimmed === "''" ||
+             trimmed === 'null' ||
+             trimmed === 'undefined' ||
+             /^\[["']*\]$/.test(trimmed) || // Matches [], [""], [''], etc.
+             /^["']+$/.test(trimmed);        // Matches "", '', """, etc.
+    };
+    
+    // Helper to aggressively clean a string value
+    const cleanString = (str) => {
+      if (typeof str !== 'string') return str;
+      
+      let cleaned = str.trim();
+      
+      // Remove all types of brackets and quotes from the edges until we get clean content
+      let prevLength = -1;
+      while (cleaned.length > 0 && cleaned.length !== prevLength) {
+        prevLength = cleaned.length;
+        
+        // Remove leading/trailing quotes and brackets
+        cleaned = cleaned.replace(/^[\[\]"']+/, '').replace(/[\[\]"']+$/, '').trim();
+        
+        // Remove escape characters
+        cleaned = cleaned.replace(/\\"/g, '"').replace(/\\\\/g, '\\').replace(/\\'/g, "'");
+      }
+      
+      return cleaned;
+    };
+    
+    // If already an array, recursively clean each item
+    if (Array.isArray(value)) {
+      const cleanedArray = value.map(item => {
+        if (typeof item === 'string') {
+          // Skip empty items immediately
+          if (isEmpty(item)) return null;
+          
+          // First try to clean the string aggressively
+          let cleaned = cleanString(item);
+          
+          // After cleaning, check if it's empty
+          if (isEmpty(cleaned)) return null;
+          
+          // If it still looks like it needs parsing, recurse
+          if (cleaned.startsWith('[') || cleaned.startsWith('"')) {
+            const parsed = safeParseArray(cleaned);
+            return parsed.length > 0 ? parsed : null;
+          }
+          
+          // Final check: if the cleaned string contains commas, it might be multiple values
+          if (cleaned.includes(',')) {
+            return cleaned.split(',').map(s => cleanString(s)).filter(s => s && !isEmpty(s));
+          }
+          
+          return cleaned;
+        }
+        return null;
+      }).flat(); // Flatten in case of nested arrays
+      
+      return cleanedArray.filter(item => item && !isEmpty(item));
+    }
+    
+    // If it's a string, try to parse it (handling multiple levels of stringification)
+    if (typeof value === 'string') {
+      let current = value.trim();
+      
+      // Check if it's empty before processing
+      if (isEmpty(current)) return [];
+      
+      // Remove surrounding quotes if present
+      if ((current.startsWith('"') && current.endsWith('"')) || 
+          (current.startsWith("'") && current.endsWith("'"))) {
+        current = current.slice(1, -1).trim();
+        if (isEmpty(current)) return [];
+      }
+      
+      // Try to parse as JSON up to 5 times (handle multiple stringification)
+      let attempts = 0;
+      while (attempts < 5 && typeof current === 'string' && (current.startsWith('[') || current.startsWith('"'))) {
+        try {
+          const parsed = JSON.parse(current);
+          if (Array.isArray(parsed)) {
+            // Check if the array is effectively empty
+            if (parsed.length === 0 || parsed.every(isEmpty)) return [];
+            // Recursively clean the parsed array
+            return safeParseArray(parsed);
+          }
+          current = parsed;
+          if (typeof current === 'string') {
+            current = current.trim();
+            if (isEmpty(current)) return [];
+          }
+        } catch {
+          // If JSON parse fails, try manual cleanup
+          break;
+        }
+        attempts++;
+      }
+      
+      // If we ended up with a string that looks like a list, split by comma
+      if (typeof current === 'string') {
+        // Final empty check
+        if (isEmpty(current)) return [];
+        
+        // Clean up escaped characters
+        current = current.replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
+        
+        // If it still looks like JSON, try one more parse
+        if (current.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(current);
+            if (Array.isArray(parsed)) {
+              if (parsed.length === 0 || parsed.every(isEmpty)) return [];
+              return safeParseArray(parsed);
+            }
+          } catch {
+            // Continue to comma split fallback
+          }
+        }
+        
+        // Split by comma as final fallback
+        return current
+          .split(',')
+          .map(s => cleanString(s))
+          .filter(s => s && !isEmpty(s));
+      }
+      
+      // If we get here with a plain string, clean and return it
+      return [cleanString(current)].filter(s => s && !isEmpty(s));
+    }
+    
+    return [];
+  };
+
   const openEdit = (clinic) => {
     if (user?.role === "userDoctor") {
       toast.error("You do not have permission to edit clinics.");
       return;
     }
-    // Handle services and facilities properly - they might be arrays or JSON strings
-    let servicesStr = "";
-    let facilitiesStr = "";
-
-    if (clinic.services) {
-      if (Array.isArray(clinic.services)) {
-        servicesStr = clinic.services.join(", ");
-        setServicesTags(clinic.services.filter(Boolean));
-      } else if (typeof clinic.services === "string") {
-        try {
-          const parsed = JSON.parse(clinic.services);
-          if (Array.isArray(parsed)) {
-            servicesStr = parsed.join(", ");
-            setServicesTags(parsed.filter(Boolean));
-          } else {
-            servicesStr = clinic.services;
-            setServicesTags([]);
-          }
-        } catch {
-          servicesStr = clinic.services;
-          setServicesTags([]);
-        }
-      }
-    } else {
-      setServicesTags([]);
-    }
-
-    if (clinic.facilities) {
-      if (Array.isArray(clinic.facilities)) {
-        facilitiesStr = clinic.facilities.join(", ");
-        setFacilitiesTags(clinic.facilities.filter(Boolean));
-      } else if (typeof clinic.facilities === "string") {
-        try {
-          const parsed = JSON.parse(clinic.facilities);
-          if (Array.isArray(parsed)) {
-            facilitiesStr = parsed.join(", ");
-            setFacilitiesTags(parsed.filter(Boolean));
-          } else {
-            facilitiesStr = clinic.facilities;
-            setFacilitiesTags([]);
-          }
-        } catch {
-          facilitiesStr = clinic.facilities;
-          setFacilitiesTags([]);
-        }
-      }
-    } else {
-      setFacilitiesTags([]);
-    }
+    
+    // Parse services and facilities safely
+    const servicesArray = safeParseArray(clinic.services);
+    const facilitiesArray = safeParseArray(clinic.facilities);
+    
+    setServicesTags(servicesArray);
+    setFacilitiesTags(facilitiesArray);
 
     setForm({
       name: clinic.name || "",
@@ -157,9 +261,10 @@ export default function AdminClinics() {
       state: clinic.state || "",
       zipCode: clinic.zipCode || "",
       country: clinic.country || "India",
-      services: servicesStr === "[]" ? "" : servicesStr,
-      facilities: facilitiesStr === "[]" ? "" : facilitiesStr,
+      services: "", // Will be shown in tags
+      facilities: "", // Will be shown in tags
       imageUrl: clinic.imageUrl || "",
+      pinLocation: clinic.pinLocation || "",
     });
     setEditing(clinic);
     setImageFile(null);
@@ -389,7 +494,7 @@ export default function AdminClinics() {
           <p>No clinics found.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
           <table className="w-full table-auto border-collapse border border-gray-300">
             <thead>
               <tr className="bg-gray-50">
@@ -644,6 +749,69 @@ export default function AdminClinics() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Pin Location Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Pin Location (Google Maps Link)
+                <span className="text-xs text-gray-500 ml-2">(Optional)</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  name="pinLocation"
+                  type="text"
+                  placeholder="Paste coordinates (lat,lng), address, or Google Maps URL"
+                  className="input-field flex-1"
+                  value={form.pinLocation}
+                  onChange={onChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const defaultLocation = form.pinLocation || `${form.name || 'Clinic'}, ${form.place || form.state || 'Midnapore'}, India`;
+                    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(defaultLocation)}`;
+                    window.open(mapUrl, '_blank', 'width=800,height=600');
+                    toast.success('Select a location on the map, then copy the URL and paste it here');
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded whitespace-nowrap"
+                >
+                  📍 Choose on Map
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Examples: 22.123456,88.123456 or Hospital Name, City, State
+              </p>
+              {form.pinLocation && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-600 mb-1">Preview:</p>
+                  <div className="w-full h-48 rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
+                    <iframe
+                      src={(() => {
+                        const location = form.pinLocation.trim();
+                        const coordMatch = location.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+                        if (coordMatch) {
+                          return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
+                        }
+                        if (location.includes('google.com/maps') && location.includes('@')) {
+                          const coordMatch = location.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+                          if (coordMatch) {
+                            return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
+                          }
+                        }
+                        return `https://www.google.com/maps?q=${encodeURIComponent(location)}&output=embed`;
+                      })()}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Location Preview"
+                    ></iframe>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Image Upload Section */}

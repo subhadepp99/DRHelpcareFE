@@ -12,6 +12,7 @@ import {
   MapPin,
   Star,
   Home,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { getImageUrl } from "@/utils/imageUtils";
@@ -178,10 +179,12 @@ export default function Pathology() {
             </div>
           </motion.section>
 
-          {/* Pathology Banners */}
-          <div className="mb-10">
-            <HeroCarousel placement="pathology" />
-          </div>
+          {/* Pathology Banners - Hide when searching */}
+          {!searchQuery && (
+            <div className="mb-10">
+              <HeroCarousel placement="pathology" />
+            </div>
+          )}
 
           {/* Featured Packages Slider */}
           {filteredPackages.length > 0 ? (
@@ -483,90 +486,93 @@ export default function Pathology() {
                 </p>
               </div>
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredTests.map((test, index) => (
                   <motion.div
                     key={test._id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.05 * index }}
-                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all duration-300"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start space-x-4">
-                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-primary-100 dark:bg-primary-900 flex items-center justify-center flex-shrink-0">
-                            {getImageUrl(test.imageUrl) ? (
-                              <img
-                                src={getImageUrl(test.imageUrl)}
-                                alt={test.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <TestTube className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                              {test.name}
-                            </h3>
-                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-                              {test.description}
-                            </p>
-                            {test.rating && test.rating.average > 0 && (
-                              <div className="flex items-center mb-2">
-                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                <span className="ml-1 text-xs font-medium text-gray-900 dark:text-white">
-                                  {test.rating.average.toFixed(1)}
-                                </span>
-                                <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
-                                  ({test.rating.count} reviews)
-                                </span>
-                              </div>
-                            )}
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                              <span>
-                                Category: {test.category || "General"}
-                              </span>
-                              {test.preparationInstructions && (
-                                <span>
-                                  Prep: {test.preparationInstructions}
-                                </span>
+                    {/* Test Image */}
+                    <div className="relative h-40 bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-800 dark:to-primary-900">
+                      {getImageUrl(test.imageUrl) ? (
+                        <img
+                          src={getImageUrl(test.imageUrl)}
+                          alt={test.name}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <TestTube className="w-12 h-12 text-primary-600 dark:text-primary-400" />
+                        </div>
+                      )}
+                      {test.discountedPrice &&
+                        test.discountedPrice < test.price && (
+                          <div className="absolute top-2 right-2">
+                            <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                              {getDiscountPercentage(
+                                test.price,
+                                test.discountedPrice
                               )}
-                              <span>
-                                Report: {test.reportTime || "24 hours"}
+                              % OFF
+                            </span>
+                          </div>
+                        )}
+                    </div>
+
+                    {/* Test Content */}
+                    <div className="p-4">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 min-h-[48px]">
+                        {test.name}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 mb-3 text-sm line-clamp-2 min-h-[40px]">
+                        {test.description}
+                      </p>
+
+                      {/* Rating */}
+                      {test.rating && test.rating.average > 0 && (
+                        <div className="flex items-center mb-3">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="ml-1 text-sm font-medium text-gray-900 dark:text-white">
+                            {test.rating.average.toFixed(1)}
+                          </span>
+                          <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                            ({test.rating.count} reviews)
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Test Details */}
+                      <div className="flex flex-wrap gap-2 mb-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                          {test.category || "General"}
+                        </span>
+                        <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                          {test.reportTime || "24 hours"}
+                        </span>
+                      </div>
+
+                      {/* Price and Actions */}
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xl font-bold text-primary-600 dark:text-primary-400">
+                                ₹{test.discountedPrice || test.price}
                               </span>
+                              {test.discountedPrice &&
+                                test.discountedPrice < test.price && (
+                                  <span className="text-sm text-gray-500 line-through">
+                                    ₹{test.price}
+                                  </span>
+                                )}
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center space-x-3 ml-2 sm:ml-4">
-                        <div className="text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end space-x-2">
-                            <span className="text-base sm:text-xl font-bold text-primary-600 dark:text-primary-400">
-                              ₹{test.discountedPrice || test.price}
-                            </span>
-                            {test.discountedPrice &&
-                              test.discountedPrice < test.price && (
-                                <span className="text-sm text-gray-500 line-through">
-                                  ₹{test.price}
-                                </span>
-                              )}
-                          </div>
-                          {test.discountedPrice &&
-                            test.discountedPrice < test.price && (
-                              <span className="inline-block mt-1 bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold">
-                                {getDiscountPercentage(
-                                  test.price,
-                                  test.discountedPrice
-                                )}
-                                % OFF
-                              </span>
-                            )}
-                        </div>
-
-                        <div className="flex space-x-2">
+                        <div className="flex gap-2">
                           <button
                             onClick={() => {
                               const testName = encodeURIComponent(
@@ -577,16 +583,16 @@ export default function Pathology() {
                               );
                               window.location.href = `/test/${testName}/${location}`;
                             }}
-                            className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-1 px-3 sm:py-1.5 sm:px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-xs sm:text-sm"
+                            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 text-sm"
                           >
-                            <TestTube className="w-3 h-3" />
-                            <span>View Details</span>
+                            <TestTube className="w-4 h-4" />
+                            <span>View</span>
                           </button>
                           <button
                             onClick={() => handleCall()}
-                            className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-1 px-3 sm:py-1.5 sm:px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-xs sm:text-sm"
+                            className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 text-sm"
                           >
-                            <Phone className="w-3 h-3" />
+                            <Phone className="w-4 h-4" />
                             <span>Book</span>
                           </button>
                         </div>

@@ -24,6 +24,7 @@ const initialForm = {
   state: "",
   city: "",
   imageUrl: "",
+  pinLocation: "",
   selectedClinics: [],
 };
 
@@ -43,6 +44,8 @@ export default function AdminDoctorsPage() {
   const [faqModalOpen, setFaqModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [search, setSearch] = useState("");
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [mapCenter, setMapCenter] = useState({ lat: 22.5726, lng: 88.3639 }); // Default: Kolkata
 
   // You can expand the form as required for your model
   const [form, setForm] = useState({
@@ -59,6 +62,7 @@ export default function AdminDoctorsPage() {
     state: "",
     city: "",
     imageUrl: "", // Ensure imageUrl is always present
+    pinLocation: "", // Google Maps location URL or embed link
     selectedClinics: [],
   });
 
@@ -68,7 +72,7 @@ export default function AdminDoctorsPage() {
     try {
       const qs = term ? `&search=${encodeURIComponent(term)}` : "";
       const res = await get(
-        `/doctors?populate=department,clinicDetails.clinic${qs}`
+        `/doctors?limit=1000&populate=department,clinicDetails.clinic${qs}`
       ); // Add populate to get department names and clinic details
       setDoctors(res.data.doctors || res.data.data?.doctors || []);
     } catch (err) {
@@ -97,7 +101,7 @@ export default function AdminDoctorsPage() {
   // Fetch clinics from the API
   const fetchClinics = async () => {
     try {
-      const res = await get("/clinics");
+      const res = await get("/clinics?limit=1000");
       const clinicList = res.data?.data?.clinics || res.data?.clinics || [];
       console.log("Fetched clinics:", clinicList); // Debug clinics
       setClinics(clinicList);
@@ -142,6 +146,7 @@ export default function AdminDoctorsPage() {
       state: "",
       city: "",
       imageUrl: "", // Ensure imageUrl is reset
+      pinLocation: "",
       selectedClinics: [],
     });
     setModalOpen(true);
@@ -163,6 +168,7 @@ export default function AdminDoctorsPage() {
       doctorFees: doc.doctorFees || doc.consultationFee || "",
       bio: doc.bio || "",
       imageUrl: doc.imageUrl || "",
+      pinLocation: doc.pinLocation || "",
       selectedClinics:
         doc.clinicDetails?.map((cd) => cd.clinic?._id || cd.clinic) ||
         doc.clinics ||
@@ -402,9 +408,10 @@ export default function AdminDoctorsPage() {
       ) : doctors.length === 0 ? (
         <p className="text-center text-gray-500">No doctors found.</p>
       ) : (
-        <table className="w-full text-left border-collapse border">
-          <thead>
-            <tr className="bg-gray-100">
+        <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
+          <table className="w-full text-left border-collapse border">
+            <thead>
+              <tr className="bg-gray-100">
               <th className="border p-2">Photo</th>
               <th className="border p-2">Name</th>
               <th className="border p-2">Email</th>
@@ -531,7 +538,8 @@ export default function AdminDoctorsPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       )}
 
       {modalOpen && (
@@ -742,6 +750,95 @@ export default function AdminDoctorsPage() {
                 value={form.bio}
                 onChange={handleChange}
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Pin Location (Google Maps Link)
+                <span className="text-xs text-gray-500 ml-2">(Optional)</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  name="pinLocation"
+                  type="text"
+                  placeholder="Paste Google Maps link, coordinates (lat,lng), or address"
+                  className="input-field flex-1"
+                  value={form.pinLocation}
+                  onChange={handleChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const defaultLocation = form.pinLocation || `${form.city || 'Midnapore'}, ${form.state || 'West Bengal'}, India`;
+                    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(defaultLocation)}`;
+                    window.open(mapUrl, '_blank', 'width=800,height=600');
+                    toast.success('Select a location on the map, then copy the URL and paste it here');
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded whitespace-nowrap"
+                >
+                  📍 Choose on Map
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Examples: 
+                <br />• Coordinates: 22.123456,88.123456
+                <br />• Address: Hospital Name, City, State
+                <br />• Google Maps URL: Right-click on map → Copy link
+              </p>
+              {form.pinLocation && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Preview:</p>
+                  <div className="w-full h-48 rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
+                    <iframe
+                      src={(() => {
+                        const location = form.pinLocation.trim();
+                        
+                        // Extract coordinates if it's a lat,lng format
+                        const coordMatch = location.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+                        if (coordMatch) {
+                          return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
+                        }
+                        
+                        // If it's an iframe embed code, extract the src
+                        if (location.includes('<iframe')) {
+                          const srcMatch = location.match(/src=["']([^"']+)["']/);
+                          if (srcMatch) {
+                            return srcMatch[1];
+                          }
+                        }
+                        
+                        // If it's a Google Maps URL with coordinates in @
+                        if (location.includes('google.com/maps') && location.includes('@')) {
+                          const coordMatch = location.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+                          if (coordMatch) {
+                            return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
+                          }
+                        }
+                        
+                        // If it's a place URL
+                        if (location.includes('google.com/maps/place/')) {
+                          const placeMatch = location.match(/google\.com\/maps\/place\/([^/]+)/);
+                          if (placeMatch) {
+                            return `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(placeMatch[1])}`;
+                          }
+                        }
+                        
+                        // Default: treat as address or search query
+                        return `https://www.google.com/maps?q=${encodeURIComponent(location)}&output=embed`;
+                      })()}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Location Preview"
+                    ></iframe>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    💡 Tip: If preview doesn't load, try using coordinates format (lat,lng) like: 22.321756,87.321045
+                  </p>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

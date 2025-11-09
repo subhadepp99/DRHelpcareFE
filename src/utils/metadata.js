@@ -65,10 +65,27 @@ export const generateDoctorMetadata = (doctor) => {
   const specialization = doctor.specialization || 'Healthcare Professional';
   const location = doctor.city || doctor.location || doctor.state || 'Midnapore';
   
+  // Extract clinic information
+  let clinicInfo = '';
+  let clinicKeywords = '';
+  if (doctor.clinicDetails && doctor.clinicDetails.length > 0) {
+    // Get primary clinic or first clinic
+    const primaryClinic = doctor.clinicDetails.find(c => c.isPrimary) || doctor.clinicDetails[0];
+    const clinicName = primaryClinic.clinicName || primaryClinic.clinic?.name;
+    
+    if (clinicName) {
+      clinicInfo = ` Available at ${clinicName}.`;
+      clinicKeywords = `, ${clinicName}, ${clinicName} ${location}`;
+    }
+  }
+  
   return {
     title: `Dr. ${name} - ${specialization} in ${location} | DrHelp.in`,
-    description: `Book appointment with Dr. ${name}, a qualified ${specialization} in ${location}. ${doctor.experience ? `${doctor.experience} years of experience.` : ''} View profile, availability, and patient reviews.`,
-    keywords: `Dr. ${name}, ${specialization} ${location}, book doctor appointment, ${specialization.toLowerCase()} near me`,
+    description: `Book appointment with Dr. ${name}, a qualified ${specialization} in ${location}. ${doctor.experience ? `${doctor.experience} years of experience.` : ''}${clinicInfo} View profile, availability, and patient reviews.`,
+    keywords: `Dr. ${name}, ${specialization} ${location}, book doctor appointment, ${specialization.toLowerCase()} near me${clinicKeywords}`,
+    doctorName: `Dr. ${name}`,
+    location: location,
+    specialty: specialization,
   };
 };
 
@@ -127,5 +144,68 @@ export const generateBlogMetadata = (post) => {
     description: post.excerpt || post.description || post.title,
     keywords: `${post.category || 'health'}, ${post.tags?.join(', ') || 'healthcare, medical advice'}`,
   };
+};
+
+// Generate structured data (JSON-LD) for doctor
+export const generateDoctorStructuredData = (doctor) => {
+  if (!doctor) return null;
+  
+  const name = doctor.name || `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim();
+  const location = doctor.city || doctor.location || doctor.state || 'Midnapore';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://drhelp.in';
+  
+  // Build address
+  const address = {
+    "@type": "PostalAddress",
+    streetAddress: doctor.address?.street || '',
+    addressLocality: doctor.city || doctor.address?.city || location,
+    addressRegion: doctor.state || doctor.address?.state || '',
+    postalCode: doctor.address?.zipCode || '',
+    addressCountry: doctor.address?.country || 'India'
+  };
+  
+  // Build clinic/workplace info if available
+  let worksFor = null;
+  if (doctor.clinicDetails && doctor.clinicDetails.length > 0) {
+    const primaryClinic = doctor.clinicDetails.find(c => c.isPrimary) || doctor.clinicDetails[0];
+    const clinicName = primaryClinic.clinicName || primaryClinic.clinic?.name;
+    
+    if (clinicName) {
+      worksFor = {
+        "@type": "MedicalClinic",
+        name: clinicName,
+        address: primaryClinic.clinicAddress || address
+      };
+    }
+  }
+  
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Physician",
+    name: `Dr. ${name}`,
+    description: doctor.bio || `${doctor.specialization || 'Healthcare Professional'} in ${location}`,
+    medicalSpecialty: doctor.specialization || 'General Medicine',
+    image: doctor.imageUrl || doctor.image || '',
+    address: address,
+    telephone: doctor.phone || doctor.contactNumber || '',
+    email: doctor.email || '',
+    url: typeof window !== 'undefined' ? window.location.href : `${baseUrl}/doctor/${doctor._id}`,
+    ...(worksFor && { worksFor }),
+    ...(doctor.qualification && { 
+      hasCredential: {
+        "@type": "EducationalOccupationalCredential",
+        credentialCategory: "degree",
+        name: doctor.qualification
+      }
+    }),
+    ...(doctor.experience && {
+      yearsOfExperience: doctor.experience
+    }),
+    ...(doctor.consultationFee && {
+      priceRange: `₹${doctor.consultationFee}`
+    })
+  };
+  
+  return structuredData;
 };
 

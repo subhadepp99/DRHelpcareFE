@@ -20,6 +20,7 @@ import {
   User,
   Truck,
   Image as ImageIcon,
+  FileText,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getEntityImageUrl } from "@/utils/imageUtils";
@@ -92,6 +93,7 @@ export default function AdminLayout({ children }) {
           { name: "Pathology", href: "/admin/pathology", icon: TestTube },
           { name: "Tests", href: "/admin/tests", icon: TestTube },
           { name: "Ambulances", href: "/admin/ambulances", icon: Truck },
+          { name: "Blog", href: "/admin/blog", icon: FileText },
         ]
       : []),
     // Hide Banners, Patients, Users for normal admins

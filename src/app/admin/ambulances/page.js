@@ -260,7 +260,7 @@ export default function AmbulancesPage() {
             : "No ambulances found."}
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
           <table className="w-full table-auto border-collapse border border-gray-300">
             <thead>
               <tr className="bg-gray-50">

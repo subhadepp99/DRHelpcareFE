@@ -3,19 +3,19 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useApi } from "@/hooks/api";
-import { ArrowLeft, Search, X, Share2 } from "lucide-react";
+import { ArrowLeft, Search, X, Share2, MapPin, Navigation, Edit2, Save } from "lucide-react";
 import toast from "react-hot-toast";
 import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import MetaTags from "@/components/common/MetaTags";
-import { generateDoctorMetadata } from "@/utils/metadata";
+import { generateDoctorMetadata, generateDoctorStructuredData } from "@/utils/metadata";
 import FAQAccordion from "@/components/common/FAQAccordion";
 import ReviewSection from "@/components/common/ReviewSection";
 
 export default function DoctorProfilePage() {
   const { id } = useParams();
   const router = useRouter();
-  const { get } = useApi();
+  const { get, put } = useApi();
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,6 +23,8 @@ export default function DoctorProfilePage() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [allDoctors, setAllDoctors] = useState([]);
   const [allLocations, setAllLocations] = useState([]);
+  const [editingLocation, setEditingLocation] = useState(false);
+  const [tempLocation, setTempLocation] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -116,6 +118,85 @@ export default function DoctorProfilePage() {
       );
     }
     setShowSearchResults(false);
+  };
+
+  const handleSaveLocation = async () => {
+    if (!tempLocation.trim()) {
+      toast.error("Please enter a valid location");
+      return;
+    }
+
+    try {
+      await put(`/doctors/${id}`, { pinLocation: tempLocation });
+      setDoctor({ ...doctor, pinLocation: tempLocation });
+      setEditingLocation(false);
+      toast.success("Location updated successfully!");
+    } catch (error) {
+      console.error("Error updating location:", error);
+      toast.error("Failed to update location");
+    }
+  };
+
+  const getMapSrc = (location) => {
+    if (!location) return '';
+    
+    const trimmedLocation = location.trim();
+    
+    // Extract coordinates if it's a lat,lng format
+    const coordMatch = trimmedLocation.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+    if (coordMatch) {
+      return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
+    }
+    
+    // If it's an iframe embed code, extract the src
+    if (trimmedLocation.includes('<iframe')) {
+      const srcMatch = trimmedLocation.match(/src=["']([^"']+)["']/);
+      if (srcMatch) {
+        return srcMatch[1];
+      }
+    }
+    
+    // If it's a Google Maps URL with coordinates in @
+    if (trimmedLocation.includes('google.com/maps') && trimmedLocation.includes('@')) {
+      const coordMatch = trimmedLocation.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+      if (coordMatch) {
+        return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
+      }
+    }
+    
+    // If it's a place URL
+    if (trimmedLocation.includes('google.com/maps/place/')) {
+      const placeMatch = trimmedLocation.match(/google\.com\/maps\/place\/([^/]+)/);
+      if (placeMatch) {
+        return `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(placeMatch[1])}`;
+      }
+    }
+    
+    // Default: treat as address or search query
+    return `https://www.google.com/maps?q=${encodeURIComponent(trimmedLocation)}&output=embed`;
+  };
+
+  const getDirectionsUrl = (location) => {
+    if (!location) return '#';
+    
+    const trimmedLocation = location.trim();
+    
+    // Extract coordinates if it's a lat,lng format
+    const coordMatch = trimmedLocation.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+    if (coordMatch) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${coordMatch[1]},${coordMatch[2]}`;
+    }
+    
+    // If it's a Google Maps URL with coordinates in @
+    if (trimmedLocation.includes('google.com/maps') && trimmedLocation.includes('@')) {
+      const coordMatch = trimmedLocation.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+      if (coordMatch) {
+        return `https://www.google.com/maps/dir/?api=1&destination=${coordMatch[1]},${coordMatch[2]}`;
+      }
+    }
+    
+    // Default: use the location as-is for directions
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(trimmedLocation)}`;
   };
 
   const handleShare = async () => {
@@ -274,6 +355,7 @@ export default function DoctorProfilePage() {
   };
 
   const metadata = generateDoctorMetadata(doctor);
+  const structuredData = generateDoctorStructuredData(doctor);
   
   return (
     <>
@@ -281,6 +363,10 @@ export default function DoctorProfilePage() {
         title={metadata.title}
         description={metadata.description}
         keywords={metadata.keywords}
+        doctorName={metadata.doctorName}
+        location={metadata.location}
+        specialty={metadata.specialty}
+        structuredData={structuredData}
       />
       <Header />
       {/* Breadcrumb Navigation */}
@@ -582,11 +668,11 @@ export default function DoctorProfilePage() {
                       🏥 Associated Clinics
                     </h2>
 
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       {doctor.clinicDetails.map((clinicDetail, index) => (
                         <div
                           key={index}
-                          className="border border-gray-200 dark:border-gray-600 rounded-xl p-4 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                          className="border border-gray-200 dark:border-gray-600 rounded-xl p-6 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -612,11 +698,175 @@ export default function DoctorProfilePage() {
                               )}
                             </div>
                           </div>
+                          
+                          {/* Clinic Location Map */}
+                          {clinicDetail.clinic?.pinLocation && (
+                            <div className="mt-4 space-y-3">
+                              <div className="w-full h-64 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+                                <iframe
+                                  src={getMapSrc(clinicDetail.clinic.pinLocation)}
+                                  width="100%"
+                                  height="100%"
+                                  style={{ border: 0 }}
+                                  allowFullScreen=""
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer-when-downgrade"
+                                  title={`${clinicDetail.clinicName || 'Clinic'} Location`}
+                                ></iframe>
+                              </div>
+                              <a
+                                href={getDirectionsUrl(clinicDetail.clinic.pinLocation)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                              >
+                                <Navigation className="w-4 h-4" />
+                                Get Directions to Clinic
+                              </a>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
+
+                {/* Location Map Section */}
+                <div className="bg-white dark:bg-gray-700 rounded-2xl shadow-lg p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                      <MapPin className="w-6 h-6 mr-2" />
+                      Location
+                    </h2>
+                    {!doctor?.pinLocation && !editingLocation && (
+                      <button
+                        onClick={() => {
+                          setEditingLocation(true);
+                          setTempLocation('');
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Add Location
+                      </button>
+                    )}
+                  </div>
+                  
+                  {doctor?.pinLocation ? (
+                    <div className="space-y-4">
+                      {/* Map */}
+                      <div className="w-full h-96 rounded-xl overflow-hidden border border-gray-300 dark:border-gray-600">
+                        <iframe
+                          src={getMapSrc(doctor.pinLocation)}
+                          width="100%"
+                          height="100%"
+                          style={{ border: 0 }}
+                          allowFullScreen=""
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        ></iframe>
+                      </div>
+
+                      {/* Get Directions Button */}
+                      <div className="flex gap-3">
+                        <a
+                          href={getDirectionsUrl(doctor.pinLocation)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                        >
+                          <Navigation className="w-5 h-5" />
+                          Get Directions
+                        </a>
+                        <button
+                          onClick={() => {
+                            setEditingLocation(true);
+                            setTempLocation(doctor.pinLocation);
+                          }}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-semibold transition-all duration-200"
+                        >
+                          <Edit2 className="w-5 h-5" />
+                          Edit Location
+                        </button>
+                      </div>
+                    </div>
+                  ) : editingLocation ? (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Google Maps Link or Coordinates
+                        </label>
+                        <div className="flex gap-2 mb-2">
+                          <textarea
+                            value={tempLocation}
+                            onChange={(e) => setTempLocation(e.target.value)}
+                            placeholder="Paste coordinates (lat,lng), address, or Google Maps URL..."
+                            className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-800 dark:text-white"
+                            rows="3"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const defaultLocation = tempLocation || `${doctor?.city || 'Midnapore'}, ${doctor?.state || 'West Bengal'}, India`;
+                              const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(defaultLocation)}`;
+                              window.open(mapUrl, '_blank', 'width=800,height=600');
+                              toast.success('Right-click on the map location and select "Copy link" then paste it here');
+                            }}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg whitespace-nowrap h-fit"
+                          >
+                            📍 Choose on Map
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Examples: 
+                          <br />• Coordinates: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">22.321756,87.321045</code>
+                          <br />• Address: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">Hospital Name, City, State</code>
+                          <br />• Google Maps: Right-click on location → "What's here?" → Copy coordinates
+                        </p>
+                      </div>
+
+                      {tempLocation && (
+                        <div className="w-full h-64 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+                          <iframe
+                            src={getMapSrc(tempLocation)}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen=""
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                          ></iframe>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleSaveLocation}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-all duration-200"
+                        >
+                          <Save className="w-5 h-5" />
+                          Save Location
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingLocation(false);
+                            setTempLocation('');
+                          }}
+                          className="px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-xl font-semibold transition-all duration-200"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <MapPin className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        No location pinned yet for this doctor
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 {/* Book Appointment CTA */}
                 <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl shadow-lg p-6 text-center text-white">

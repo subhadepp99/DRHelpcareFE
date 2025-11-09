@@ -16,19 +16,30 @@ export default function SearchSection({
   const { location: contextLocation, setLocation: setContextLocation } =
     useLocationContext();
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  // COMMENTED OUT - Advanced filters disabled
+  // const [showFilters, setShowFilters] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [allLocations, setAllLocations] = useState([]);
-  const [filters, setFilters] = useState({
+  // COMMENTED OUT - Advanced filters disabled
+  // const [filters, setFilters] = useState({
+  //   specialization: "",
+  //   experience: "",
+  //   fee: "",
+  //   rating: "",
+  //   distance: "25",
+  // });
+  
+  // Temporary empty filters for compatibility
+  const filters = {
     specialization: "",
     experience: "",
     fee: "",
     rating: "",
     distance: "25",
-  });
+  };
 
   const searchRef = useRef(null);
   const locationRef = useRef(null);
@@ -200,24 +211,27 @@ export default function SearchSection({
     }
   };
 
-  const handleFilterChange = (key, value) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-  };
+  // COMMENTED OUT - Advanced filter functions disabled
+  // const handleFilterChange = (key, value) => {
+  //   const newFilters = { ...filters, [key]: value };
+  //   setFilters(newFilters);
+  // };
 
-  const clearFilters = () => {
-    setFilters({
-      specialization: "",
-      experience: "",
-      fee: "",
-      rating: "",
-      distance: "25",
-    });
-  };
+  // const clearFilters = () => {
+  //   setFilters({
+  //     specialization: "",
+  //     experience: "",
+  //     fee: "",
+  //     rating: "",
+  //     distance: "25",
+  //   });
+  // };
 
-  const hasActiveFilters = Object.values(filters).some(
-    (filter) => filter !== "" && filter !== "25"
-  );
+  // const hasActiveFilters = Object.values(filters).some(
+  //   (filter) => filter !== "" && filter !== "25"
+  // );
+  
+  const hasActiveFilters = false; // Disabled filters always return false
   const isSearchDisabled = !(searchQuery || "").trim() && !hasActiveFilters;
 
   const specialtyPills = [
@@ -436,8 +450,8 @@ export default function SearchSection({
             </div> */}
           </div>
 
-          {/* Right-aligned Filters */}
-          <div className="flex justify-end">
+          {/* COMMENTED OUT - Advanced Filters Button disabled */}
+          {/* <div className="flex justify-end">
             <button
               type="button"
               onClick={() => setShowFilters(!showFilters)}
@@ -453,10 +467,15 @@ export default function SearchSection({
                 <span className="w-2 h-2 bg-primary-600 rounded-full"></span>
               )}
             </button>
-          </div>
+          </div> */}
         </div>
 
-        {/* Enhanced Filters Panel */}
+        {/* 
+        ============================================
+        COMMENTED OUT - Enhanced Filters Panel 
+        ============================================
+        To re-enable: Replace {false && (...)} with the AnimatePresence code below
+        
         <AnimatePresence>
           {showFilters && (
             <motion.div
@@ -467,152 +486,20 @@ export default function SearchSection({
               className="mt-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
             >
               <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Advanced Filters
-                  </h3>
-                  {hasActiveFilters && (
-                    <button
-                      type="button"
-                      onClick={clearFilters}
-                      className="flex items-center space-x-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    >
-                      <X className="w-4 h-4" />
-                      <span>Clear all</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Specialization Filter */}
-                  {((searchType || "all") === "all" ||
-                    (searchType || "all") === "doctors") && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Specialization
-                      </label>
-                      <select
-                        value={filters.specialization}
-                        onChange={(e) =>
-                          handleFilterChange("specialization", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-                      >
-                        <option value="">All Specializations</option>
-                        {specializations.map((spec) => (
-                          <option key={spec} value={spec.toLowerCase()}>
-                            {spec}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Experience Filter */}
-                  {(searchType === "all" || searchType === "doctors") && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Experience
-                      </label>
-                      <select
-                        value={filters.experience}
-                        onChange={(e) =>
-                          handleFilterChange("experience", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-                      >
-                        <option value="">Any Experience</option>
-                        {experienceRanges.map((range) => (
-                          <option key={range.value} value={range.value}>
-                            {range.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Fee Filter */}
-                  {(searchType === "all" || searchType === "doctors") && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Consultation Fee
-                      </label>
-                      <select
-                        value={filters.fee}
-                        onChange={(e) =>
-                          handleFilterChange("fee", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-                      >
-                        <option value="">Any Fee</option>
-                        {feeRanges.map((range) => (
-                          <option key={range.value} value={range.value}>
-                            {range.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Rating Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Minimum Rating
-                    </label>
-                    <select
-                      value={filters.rating}
-                      onChange={(e) =>
-                        handleFilterChange("rating", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-                    >
-                      <option value="">Any Rating</option>
-                      {ratings.map((rating) => (
-                        <option key={rating.value} value={rating.value}>
-                          {rating.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Distance Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Distance
-                    </label>
-                    <select
-                      value={filters.distance}
-                      onChange={(e) =>
-                        handleFilterChange("distance", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-                    >
-                      {distances.map((distance) => (
-                        <option key={distance.value} value={distance.value}>
-                          Within {distance.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Apply Filters Button */}
-                  <div className="flex items-end">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSearch(filters);
-                        setShowFilters(false);
-                      }}
-                      className="w-full btn-primary"
-                    >
-                      Apply Filters
-                    </button>
-                  </div>
-                </div>
+                ... full filter panel code ...
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+        ============================================
+        */}
+        {false && (
+          <AnimatePresence>
+            <motion.div>
+              {/* Advanced Filters Panel - DISABLED */}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </form>
 
       {/* Location Modal */}

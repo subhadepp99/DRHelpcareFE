@@ -15,16 +15,40 @@ import {
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { useApi } from "@/hooks/useApi";
 import toast from "react-hot-toast";
 
 export default function BlogPostPage() {
   const router = useRouter();
   const params = useParams();
   const slug = params?.slug;
+  const { get } = useApi();
   const [liked, setLiked] = useState(false);
+  const [post, setPost] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Sample blog posts data - In production, this would come from an API
-  const blogPosts = {
+  useEffect(() => {
+    if (slug) {
+      fetchBlogPost();
+    }
+  }, [slug]);
+
+  const fetchBlogPost = async () => {
+    try {
+      setLoading(true);
+      const response = await get(`/blogs/slug/${slug}`);
+      setPost(response.data?.blog || response.data);
+    } catch (error) {
+      console.error("Error fetching blog post:", error);
+      // Fallback to sample data
+      setPost(sampleBlogPosts[slug]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sample blog posts data for fallback
+  const sampleBlogPosts = {
     "healthcare-services-midnapore": {
       title: "Comprehensive Healthcare Services Now Available in Midnapore",
       author: "Dr. Rajesh Kumar",
@@ -406,8 +430,6 @@ export default function BlogPostPage() {
     },
   };
 
-  const post = slug ? blogPosts[slug] : null;
-
   const handleShare = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
@@ -418,6 +440,18 @@ export default function BlogPostPage() {
     setLiked(!liked);
     toast.success(liked ? "Removed from favorites" : "Added to favorites");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 py-24 flex items-center justify-center">
+          <div className="spinner w-12 h-12"></div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -481,11 +515,11 @@ export default function BlogPostPage() {
             </div>
             <div className="flex items-center">
               <Calendar className="w-5 h-5 mr-2" />
-              <span>{post.date}</span>
+              <span>{post.date || (post.publishedDate ? new Date(post.publishedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }))}</span>
             </div>
             <div className="flex items-center">
               <Clock className="w-5 h-5 mr-2" />
-              <span>{post.readTime}</span>
+              <span>{post.readTime || '5 min read'}</span>
             </div>
           </div>
 
@@ -511,11 +545,19 @@ export default function BlogPostPage() {
             </button>
           </div>
 
-          {/* Featured Image Placeholder */}
+          {/* Featured Image */}
           <div className="relative h-96 bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-800 dark:to-primary-900 rounded-xl mb-12 overflow-hidden">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-9xl">📰</span>
-            </div>
+            {post.imageUrl && post.imageUrl !== "/images/blog-default.jpg" ? (
+              <img
+                src={post.imageUrl}
+                alt={post.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-9xl">📰</span>
+              </div>
+            )}
           </div>
 
           {/* Article Content */}
