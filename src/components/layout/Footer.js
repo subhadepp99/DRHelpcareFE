@@ -58,7 +58,7 @@ export default function Footer() {
     {
       name: "Instagram",
       icon: Instagram,
-      href: "https://www.instagram.com/doctorhelpcare?igsh=b3pocTdmb2dyeXNi",
+      href: "https://www.instagram.com/drhelp.in?igsh=b3pocTdmb2dyeXNi",
     },
     {
       name: "LinkedIn",

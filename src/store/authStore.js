@@ -117,7 +117,21 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
 
     try {
-      const response = await api.post("/auth/register", userData);
+      const response = await api.post("/auth/register", userData, {
+        headers: {
+          "X-Skip-Unauth-Redirect": "true",
+        },
+      });
+
+      // Check if the request was successful
+      if (!response.data?.success && response.data?.success !== undefined) {
+        set({ isLoading: false });
+        return {
+          success: false,
+          message: response.data?.message || "Registration failed",
+        };
+      }
+
       let token, user;
       if (response.data?.data) {
         token = response.data.data.token;
@@ -125,6 +139,15 @@ export const useAuthStore = create((set, get) => ({
       } else {
         token = response.data.token;
         user = response.data.user;
+      }
+
+      // Validate that we have the required data
+      if (!token || !user) {
+        set({ isLoading: false });
+        return {
+          success: false,
+          message: "Registration response missing token or user data",
+        };
       }
 
       localStorage.setItem("token", token);
@@ -141,9 +164,13 @@ export const useAuthStore = create((set, get) => ({
       return { success: true, user };
     } catch (error) {
       set({ isLoading: false });
+      console.error("Registration error:", error);
       return {
         success: false,
-        message: error.response?.data?.message || "Registration failed",
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Registration failed",
       };
     }
   },

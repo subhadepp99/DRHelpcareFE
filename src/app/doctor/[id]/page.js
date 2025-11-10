@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useApi } from "@/hooks/api";
-import { ArrowLeft, Search, X, Share2, MapPin, Navigation, Edit2, Save } from "lucide-react";
+import { ArrowLeft, Search, X, Share2, MapPin, Navigation } from "lucide-react";
 import toast from "react-hot-toast";
 import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
@@ -15,7 +15,7 @@ import ReviewSection from "@/components/common/ReviewSection";
 export default function DoctorProfilePage() {
   const { id } = useParams();
   const router = useRouter();
-  const { get, put } = useApi();
+  const { get } = useApi();
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,8 +23,6 @@ export default function DoctorProfilePage() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [allDoctors, setAllDoctors] = useState([]);
   const [allLocations, setAllLocations] = useState([]);
-  const [editingLocation, setEditingLocation] = useState(false);
-  const [tempLocation, setTempLocation] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -118,23 +116,6 @@ export default function DoctorProfilePage() {
       );
     }
     setShowSearchResults(false);
-  };
-
-  const handleSaveLocation = async () => {
-    if (!tempLocation.trim()) {
-      toast.error("Please enter a valid location");
-      return;
-    }
-
-    try {
-      await put(`/doctors/${id}`, { pinLocation: tempLocation });
-      setDoctor({ ...doctor, pinLocation: tempLocation });
-      setEditingLocation(false);
-      toast.success("Location updated successfully!");
-    } catch (error) {
-      console.error("Error updating location:", error);
-      toast.error("Failed to update location");
-    }
   };
 
   const getMapSrc = (location) => {
@@ -731,28 +712,16 @@ export default function DoctorProfilePage() {
                   </div>
                 )}
 
-                {/* Location Map Section */}
-                <div className="bg-white dark:bg-gray-700 rounded-2xl shadow-lg p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                      <MapPin className="w-6 h-6 mr-2" />
-                      Location
-                    </h2>
-                    {!doctor?.pinLocation && !editingLocation && (
-                      <button
-                        onClick={() => {
-                          setEditingLocation(true);
-                          setTempLocation('');
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        Add Location
-                      </button>
-                    )}
-                  </div>
-                  
-                  {doctor?.pinLocation ? (
+                {/* Location Map Section - Only show if pinLocation exists */}
+                {doctor?.pinLocation && (
+                  <div className="bg-white dark:bg-gray-700 rounded-2xl shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                        <MapPin className="w-6 h-6 mr-2" />
+                        Location
+                      </h2>
+                    </div>
+                    
                     <div className="space-y-4">
                       {/* Map */}
                       <div className="w-full h-96 rounded-xl overflow-hidden border border-gray-300 dark:border-gray-600">
@@ -778,95 +747,10 @@ export default function DoctorProfilePage() {
                           <Navigation className="w-5 h-5" />
                           Get Directions
                         </a>
-                        <button
-                          onClick={() => {
-                            setEditingLocation(true);
-                            setTempLocation(doctor.pinLocation);
-                          }}
-                          className="inline-flex items-center gap-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-semibold transition-all duration-200"
-                        >
-                          <Edit2 className="w-5 h-5" />
-                          Edit Location
-                        </button>
                       </div>
                     </div>
-                  ) : editingLocation ? (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Google Maps Link or Coordinates
-                        </label>
-                        <div className="flex gap-2 mb-2">
-                          <textarea
-                            value={tempLocation}
-                            onChange={(e) => setTempLocation(e.target.value)}
-                            placeholder="Paste coordinates (lat,lng), address, or Google Maps URL..."
-                            className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-800 dark:text-white"
-                            rows="3"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const defaultLocation = tempLocation || `${doctor?.city || 'Midnapore'}, ${doctor?.state || 'West Bengal'}, India`;
-                              const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(defaultLocation)}`;
-                              window.open(mapUrl, '_blank', 'width=800,height=600');
-                              toast.success('Right-click on the map location and select "Copy link" then paste it here');
-                            }}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg whitespace-nowrap h-fit"
-                          >
-                            📍 Choose on Map
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Examples: 
-                          <br />• Coordinates: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">22.321756,87.321045</code>
-                          <br />• Address: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">Hospital Name, City, State</code>
-                          <br />• Google Maps: Right-click on location → "What's here?" → Copy coordinates
-                        </p>
-                      </div>
-
-                      {tempLocation && (
-                        <div className="w-full h-64 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
-                          <iframe
-                            src={getMapSrc(tempLocation)}
-                            width="100%"
-                            height="100%"
-                            style={{ border: 0 }}
-                            allowFullScreen=""
-                            loading="lazy"
-                            referrerPolicy="no-referrer-when-downgrade"
-                          ></iframe>
-                        </div>
-                      )}
-
-                      <div className="flex gap-3">
-                        <button
-                          onClick={handleSaveLocation}
-                          className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-all duration-200"
-                        >
-                          <Save className="w-5 h-5" />
-                          Save Location
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingLocation(false);
-                            setTempLocation('');
-                          }}
-                          className="px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-xl font-semibold transition-all duration-200"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <MapPin className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        No location pinned yet for this doctor
-                      </p>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Book Appointment CTA */}
                 <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl shadow-lg p-6 text-center text-white">
