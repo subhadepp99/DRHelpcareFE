@@ -69,7 +69,6 @@ export default function TestDetailPage({ params }) {
 
       setTest(matchedTest);
     } catch (error) {
-      console.error("Error fetching test details:", error);
       setError("Failed to load test details");
     } finally {
       setLoading(false);

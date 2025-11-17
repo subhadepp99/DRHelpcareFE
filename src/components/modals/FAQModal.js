@@ -41,7 +41,6 @@ export default function FAQModal({
       const { data } = await get(`/faqs/public?${params.toString()}`);
       setFaqs(data?.data?.faqs || []);
     } catch (error) {
-      console.error("Failed to fetch FAQs:", error);
       toast.error("Failed to fetch FAQs");
     } finally {
       setLoading(false);
@@ -81,7 +80,6 @@ export default function FAQModal({
         resetForm();
       }
     } catch (error) {
-      console.error("Failed to add FAQ:", error);
       toast.error("Failed to add FAQ");
     } finally {
       setIsSubmitting(false);
@@ -118,7 +116,6 @@ export default function FAQModal({
         resetForm();
       }
     } catch (error) {
-      console.error("Failed to update FAQ:", error);
       toast.error("Failed to update FAQ");
     } finally {
       setIsSubmitting(false);
@@ -134,7 +131,6 @@ export default function FAQModal({
       setFaqs((prev) => prev.filter((f) => f._id !== id));
       toast.success("FAQ deleted successfully");
     } catch (error) {
-      console.error("Failed to delete FAQ:", error);
       toast.error("Failed to delete FAQ");
     } finally {
       setIsDeleting(false);

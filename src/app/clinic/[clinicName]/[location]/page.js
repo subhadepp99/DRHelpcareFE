@@ -27,6 +27,8 @@ import BookingModal from "@/components/modals/BookingModal";
 import { useApi } from "@/hooks/useApi";
 import FAQAccordion from "@/components/common/FAQAccordion";
 import ReviewSection from "@/components/common/ReviewSection";
+import MetaTags from "@/components/common/MetaTags";
+import { generateClinicMetadata, generateClinicStructuredData } from "@/utils/metadata";
 
 import Image from "next/image";
 import { getImageUrl } from "@/utils/imageUtils";
@@ -62,7 +64,6 @@ export default function ClinicDetailsPage() {
 
       if (clinicId) {
         // If ID is provided, fetch directly by ID
-        console.log("Fetching clinic details by ID:", clinicId);
         const detailsResponse = await get(`/clinics/by-id/${clinicId}`);
         if (detailsResponse.data?.data.clinic) {
           setClinic(detailsResponse.data.data.clinic);
@@ -74,10 +75,6 @@ export default function ClinicDetailsPage() {
         const clinicName = decodeURIComponent(params.clinicName);
         const location = decodeURIComponent(params.location);
 
-        console.log("Fetching clinic details by search:", {
-          clinicName,
-          location,
-        });
 
         const searchResponse = await get(
           `/clinics/search?name=${encodeURIComponent(
@@ -85,11 +82,8 @@ export default function ClinicDetailsPage() {
           )}&location=${encodeURIComponent(location)}`
         );
 
-        console.log("Search response:", searchResponse);
-
         if (searchResponse.data?.clinics?.length > 0) {
           const foundClinicId = searchResponse.data.clinics[0]._id;
-          console.log("Found clinic ID:", foundClinicId);
 
           // Now get full clinic details by ID
           const detailsResponse = await get(`/clinics/by-id/${foundClinicId}`);
@@ -104,7 +98,6 @@ export default function ClinicDetailsPage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching clinic details:", error);
       setError("Failed to load clinic details");
     }
   };
@@ -126,7 +119,6 @@ export default function ClinicDetailsPage() {
         setAllLocations(Array.from(locations));
       }
     } catch (error) {
-      console.error("Error fetching clinics and locations:", error);
     }
   };
 
@@ -252,7 +244,6 @@ export default function ClinicDetailsPage() {
         return { status: "Closed", color: "red" };
       }
     } catch (error) {
-      console.error("Error parsing operating hours:", error);
       return { status: "Not Available", color: "gray" };
     }
   };
@@ -317,8 +308,17 @@ export default function ClinicDetailsPage() {
     return null;
   }
 
+  const metadata = generateClinicMetadata(clinic);
+  const structuredData = generateClinicStructuredData(clinic);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <MetaTags
+        title={metadata.title}
+        description={metadata.description}
+        keywords={metadata.keywords}
+        structuredData={structuredData}
+      />
       <Header />
 
       <main className="pt-20">
@@ -500,7 +500,7 @@ export default function ClinicDetailsPage() {
                 {/* Description */}
                 {clinic.description && (
                   <div className="mb-4">
-                    <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed">
+                    <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed break-words whitespace-normal px-2 sm:px-0 max-w-full">
                       {clinic.description}
                     </p>
                   </div>
@@ -521,17 +521,6 @@ export default function ClinicDetailsPage() {
                   </h3>
 
                   <div className="space-y-3">
-                    {clinic.phone && (
-                      <div className="flex items-center text-gray-600 dark:text-gray-400">
-                        <Phone className="w-5 h-5 mr-3 text-primary-600" />
-                        <a
-                          href={`tel:${clinic.phone}`}
-                          className="hover:text-primary-600 transition-colors"
-                        >
-                          {clinic.phone}
-                        </a>
-                      </div>
-                    )}
 
                     {clinic.email && (
                       <div className="flex items-center text-gray-600 dark:text-gray-400">
@@ -691,7 +680,6 @@ export default function ClinicDetailsPage() {
                       .filter((d) => d.isActive)
                       .map((doctorInfo, index) => {
                         // Debug logging to see the actual data structure
-                        console.log("Doctor Info:", doctorInfo);
 
                         // Handle different possible data structures
                         const doctor = doctorInfo.doctor || doctorInfo;
@@ -794,12 +782,6 @@ export default function ClinicDetailsPage() {
                   <Calendar className="w-5 h-5 mr-2 inline" />
                   Book Appointment
                 </button>
-                {clinic.phone && (
-                  <button className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                    <Phone className="w-5 h-5 mr-2 inline" />
-                    Call Now
-                  </button>
-                )}
                 <button
                   onClick={handleShare}
                   className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition"

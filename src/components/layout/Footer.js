@@ -84,7 +84,7 @@ export default function Footer() {
                   <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
                     <Heart className="w-6 h-6 text-white" />
                   </div>
-                  <span className="text-xl font-bold">HealthCare</span>
+                  <span className="text-xl font-bold">Dr Help</span>
                 </div>
                 <p className="text-gray-300 mb-6 leading-relaxed">
                   Your trusted partner in healthcare. Find qualified doctors,

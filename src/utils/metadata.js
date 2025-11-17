@@ -93,12 +93,17 @@ export const generateClinicMetadata = (clinic) => {
   if (!clinic) return pageMetadata.search;
   
   const name = clinic.name || 'Medical Clinic';
-  const location = clinic.city || clinic.location || clinic.state || 'Midnapore';
+  const location = clinic.place || clinic.address?.city || clinic.city || clinic.location || clinic.address?.state || clinic.state || 'Midnapore';
+  const state = clinic.address?.state || clinic.state || '';
+  const doctorCount = clinic.doctors?.filter(d => d.isActive).length || 0;
+  const doctorInfo = doctorCount > 0 ? ` ${doctorCount} experienced doctor${doctorCount > 1 ? 's' : ''} available.` : '';
   
   return {
     title: `${name} - Clinic in ${location} | DrHelp.in`,
-    description: `${name} in ${location}. ${clinic.description || 'Quality healthcare services with experienced doctors and modern facilities.'} Book appointments online.`,
-    keywords: `${name}, clinic ${location}, medical center, healthcare facility`,
+    description: `${name} in ${location}.${doctorInfo} ${clinic.description || 'Quality healthcare services with experienced doctors and modern facilities.'} Book appointments online.`,
+    keywords: `${name}, clinic ${location}, ${name} ${location}, medical center ${location}, healthcare facility, book clinic appointment${state ? `, clinic ${state}` : ''}`,
+    clinicName: name,
+    location: location,
   };
 };
 
@@ -203,6 +208,90 @@ export const generateDoctorStructuredData = (doctor) => {
     }),
     ...(doctor.consultationFee && {
       priceRange: `₹${doctor.consultationFee}`
+    })
+  };
+  
+  return structuredData;
+};
+
+// Generate structured data (JSON-LD) for clinic
+export const generateClinicStructuredData = (clinic) => {
+  if (!clinic) return null;
+  
+  const name = clinic.name || 'Medical Clinic';
+  const location = clinic.place || clinic.address?.city || clinic.city || clinic.location || clinic.address?.state || clinic.state || 'Midnapore';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://drhelp.in';
+  
+  // Build address
+  const address = {
+    "@type": "PostalAddress",
+    streetAddress: clinic.address?.street || clinic.address || '',
+    addressLocality: clinic.place || clinic.address?.city || clinic.city || location,
+    addressRegion: clinic.address?.state || clinic.state || '',
+    postalCode: clinic.address?.zipCode || clinic.address?.pincode || '',
+    addressCountry: clinic.address?.country || 'India'
+  };
+  
+  // Build opening hours if available
+  let openingHours = null;
+  if (clinic.openingHours || clinic.timings) {
+    const hours = clinic.openingHours || clinic.timings;
+    if (Array.isArray(hours) && hours.length > 0) {
+      openingHours = hours.map(day => {
+        if (day.isOpen) {
+          return `${day.dayOfWeek} ${day.openTime}-${day.closeTime}`;
+        }
+        return null;
+      }).filter(Boolean);
+    }
+  }
+  
+  // Build doctors list
+  let medicalSpecialty = [];
+  if (clinic.doctors && clinic.doctors.length > 0) {
+    clinic.doctors
+      .filter(d => d.isActive)
+      .forEach(doctorInfo => {
+        const doctor = doctorInfo.doctor || doctorInfo;
+        if (doctor.specialization || doctor.department) {
+          const specialty = doctor.specialization || doctor.department?.name || doctor.department;
+          if (specialty && !medicalSpecialty.includes(specialty)) {
+            medicalSpecialty.push(specialty);
+          }
+        }
+      });
+  }
+  
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "MedicalClinic",
+    name: name,
+    description: clinic.description || `Medical clinic in ${location} providing quality healthcare services.`,
+    image: clinic.imageUrl || clinic.image || '',
+    address: address,
+    telephone: clinic.phone || clinic.contactNumber || clinic.phoneNumber || '',
+    email: clinic.email || '',
+    url: typeof window !== 'undefined' ? window.location.href : `${baseUrl}/clinic/${encodeURIComponent(name.replace(/\s+/g, '-').toLowerCase())}/${encodeURIComponent(location)}`,
+    ...(openingHours && openingHours.length > 0 && { openingHoursSpecification: openingHours.map(hours => {
+      const [day, timeRange] = hours.split(' ');
+      const [open, close] = timeRange.split('-');
+      return {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: day,
+        opens: open,
+        closes: close
+      };
+    })}),
+    ...(medicalSpecialty.length > 0 && { medicalSpecialty: medicalSpecialty }),
+    ...(clinic.is24Hours && { 
+      openingHours: "Mo-Su 00:00-23:59"
+    }),
+    ...(clinic.rating && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: clinic.rating.average || clinic.rating || 0,
+        reviewCount: clinic.rating.count || 0
+      }
     })
   };
   

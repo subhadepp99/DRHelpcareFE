@@ -30,7 +30,6 @@ export default function BookingsPage() {
       const response = await get("/bookings/my-bookings");
       setBookings(response.data?.bookings || []);
     } catch (error) {
-      console.error("Error fetching bookings:", error);
       toast.error("Failed to fetch bookings");
     } finally {
       setLoading(false);

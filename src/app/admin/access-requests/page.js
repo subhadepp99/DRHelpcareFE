@@ -37,7 +37,6 @@ export default function AccessRequestsPage() {
       setAccessRequests(response.data.accessRequests);
     } catch (error) {
       toast.error("Failed to fetch access requests");
-      console.error("Error fetching access requests:", error);
     } finally {
       setLoading(false);
     }
@@ -52,7 +51,6 @@ export default function AccessRequestsPage() {
       fetchAccessRequests();
     } catch (error) {
       toast.error("Failed to review access request");
-      console.error("Error reviewing access request:", error);
     }
   };
 
@@ -66,7 +64,6 @@ export default function AccessRequestsPage() {
       fetchAccessRequests();
     } catch (error) {
       toast.error("Failed to delete access request");
-      console.error("Error deleting access request:", error);
     }
   };
 

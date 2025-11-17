@@ -55,12 +55,10 @@ export default function UsersPage() {
     try {
       setLoading(true);
       const response = await get("/users");
-      console.log("Users API response:", response); // Debug log
       const users = response.data?.data?.users || response.data?.users || [];
       setUsers(users);
     } catch (error) {
       toast.error("Failed to fetch users");
-      console.error("Error fetching users:", error);
     } finally {
       setLoading(false);
     }
@@ -115,7 +113,6 @@ export default function UsersPage() {
       toast.error(
         selectedUser ? "Failed to update user" : "Failed to add user"
       );
-      console.error("Error saving user:", error);
     }
   };
 
@@ -128,7 +125,6 @@ export default function UsersPage() {
       setAccessRequestData({ requestedRole: "admin", reason: "" });
     } catch (error) {
       toast.error("Failed to submit access request");
-      console.error("Error submitting access request:", error);
     }
   };
 
@@ -169,7 +165,6 @@ export default function UsersPage() {
       fetchUsers();
     } catch (error) {
       toast.error("Failed to delete user");
-      console.error("Error deleting user:", error);
     }
   };
 
@@ -181,7 +176,6 @@ export default function UsersPage() {
       fetchUsers();
     } catch (error) {
       toast.error("Failed to deactivate user");
-      console.error("Error deactivating user:", error);
     }
   };
 
@@ -193,7 +187,6 @@ export default function UsersPage() {
       fetchUsers();
     } catch (error) {
       toast.error("Failed to reactivate user");
-      console.error("Error reactivating user:", error);
     }
   };
 

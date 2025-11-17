@@ -65,7 +65,6 @@ export default function AdminClinics() {
       const res = await get(`/clinics?limit=1000${qs}`);
       setClinics(res.data.clinics || res.data.data?.clinics || []);
     } catch (err) {
-      console.error("Failed to fetch clinics:", err);
       toast.error("Failed to fetch clinics.");
       setClinics([]);
     } finally {
@@ -284,7 +283,6 @@ export default function AdminClinics() {
       toast.success("Clinic deleted successfully!");
       fetchClinics();
     } catch (err) {
-      console.error("Failed to delete clinic:", err);
       toast.error("Failed to delete clinic.");
     } finally {
       setIsDeleting(false);
@@ -423,10 +421,6 @@ export default function AdminClinics() {
         formData.append("imageUrl", form.imageUrl);
       }
 
-      console.log(
-        "Submitting clinic with image:",
-        imageFile ? "File selected" : "URL only"
-      );
 
       if (editing) {
         await put(`/clinics/${editing._id}`, formData);
@@ -438,7 +432,6 @@ export default function AdminClinics() {
       setModalOpen(false);
       fetchClinics();
     } catch (err) {
-      console.error("Failed to save clinic:", err);
       toast.error(
         "Failed to save clinic: " +
           (err?.response?.data?.message || err.message || "Unknown error")

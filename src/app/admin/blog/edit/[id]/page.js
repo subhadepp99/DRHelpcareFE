@@ -58,7 +58,6 @@ export default function EditBlogPage() {
         isPublished: blog.isPublished || false,
       });
     } catch (error) {
-      console.error("Error fetching blog post:", error);
       toast.error("Failed to load blog post");
       router.push("/admin/blog");
     } finally {
@@ -98,7 +97,6 @@ export default function EditBlogPage() {
       toast.success("Blog post updated successfully!");
       router.push("/admin/blog");
     } catch (error) {
-      console.error("Error updating blog post:", error);
       toast.error(error.response?.data?.message || "Failed to update blog post");
     } finally {
       setLoading(false);

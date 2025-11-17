@@ -53,7 +53,6 @@ export const getImageUrl = (imagePath) => {
           return `data:${imagePath.contentType};base64,${base64}`;
         }
       } catch (err) {
-        console.warn("Failed to parse buffer image object:", err);
       }
 
       return null;
@@ -77,24 +76,20 @@ export const getImageUrl = (imagePath) => {
   // If it's a relative uploads path
   if (pathStr.startsWith("/uploads/")) {
     const fullUrl = `${API_BASE_URL}${pathStr}`;
-    console.log("Generated image URL:", fullUrl, "from path:", pathStr);
     return fullUrl;
   }
   if (pathStr.startsWith("uploads/")) {
     const fullUrl = `${API_BASE_URL}/${pathStr}`;
-    console.log("Generated image URL:", fullUrl, "from path:", pathStr);
     return fullUrl;
   }
 
   // If it's just a filename, assume it's in uploads folder
   if (!pathStr.includes("/")) {
     const fullUrl = `${API_BASE_URL}/uploads/${pathStr}`;
-    console.log("Generated image URL:", fullUrl, "from filename:", pathStr);
     return fullUrl;
   }
 
   // Otherwise return as-is
-  console.log("Returning path as-is:", pathStr);
   return pathStr;
 };
 
@@ -106,7 +101,6 @@ export const getImageUrl = (imagePath) => {
  */
 export const getEntityImageUrl = (entity, imageField = "imageUrl") => {
   if (!entity) {
-    console.log("getEntityImageUrl: Entity is null or undefined");
     return null;
   }
 
@@ -118,23 +112,15 @@ export const getEntityImageUrl = (entity, imageField = "imageUrl") => {
     entity.image,
   ];
 
-  console.log(
-    "getEntityImageUrl: Entity:",
-    entity.name || entity._id,
-    "Candidates:",
-    candidates
-  );
 
   // Iterate in order and return the first resolvable URL.
   for (const candidate of candidates) {
     const url = getImageUrl(candidate);
     if (url) {
-      console.log("getEntityImageUrl: Resolved URL:", url);
       return url;
     }
   }
 
-  console.log("getEntityImageUrl: No valid image found.");
   return null;
 };
 
@@ -158,14 +144,8 @@ export const testImageUrl = async (url) => {
 
   try {
     const response = await fetch(url, { method: "HEAD" });
-    console.log(
-      `Image URL test for ${url}: ${response.ok ? "SUCCESS" : "FAILED"} (${
-        response.status
-      })`
-    );
     return response.ok;
   } catch (error) {
-    console.error(`Image URL test failed for ${url}:`, error);
     return false;
   }
 };
@@ -174,11 +154,4 @@ export const testImageUrl = async (url) => {
  * Debug function to log current API configuration
  */
 export const debugApiConfig = () => {
-  console.log("Image Utils Debug:");
-  console.log("- API Base URL:", API_BASE_URL);
-  console.log(
-    "- Window location:",
-    typeof window !== "undefined" ? window.location.origin : "Server-side"
-  );
-  console.log("- Environment API URL:", process.env.NEXT_PUBLIC_API_URL);
 };

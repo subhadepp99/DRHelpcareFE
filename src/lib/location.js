@@ -19,7 +19,6 @@ export async function reverseGeocode(lat, lng) {
       country: find("country"),
     };
   } catch (e) {
-    console.error("Reverse geocode failed", e);
     return { city: "", state: "", country: "" };
   }
 }

@@ -47,7 +47,6 @@ export default function PathologyDetailsPage() {
 
       if (pathologyId) {
         // If ID is provided, fetch directly by ID
-        console.log("Fetching pathology details by ID:", pathologyId);
         const detailsResponse = await get(`/pathology/by-id/${pathologyId}`);
         if (detailsResponse.data?.data[0].pathology) {
           setPathology(detailsResponse.data.data[0].pathology);
@@ -59,10 +58,6 @@ export default function PathologyDetailsPage() {
         const pathologyName = decodeURIComponent(params.pathologyName);
         const location = decodeURIComponent(params.location);
 
-        console.log("Fetching pathology details by search:", {
-          pathologyName,
-          location,
-        });
 
         const searchResponse = await get(
           `/pathology/search?name=${encodeURIComponent(
@@ -70,10 +65,8 @@ export default function PathologyDetailsPage() {
           )}&location=${encodeURIComponent(location)}`
         );
 
-        console.log("Search response:", searchResponse);
         if (searchResponse.data?.data?.pathologies?.length > 0) {
           const foundPathologyId = searchResponse.data.data.pathologies[0]._id;
-          console.log("Found pathology ID:", foundPathologyId);
 
           // Now get full pathology details by ID
           const detailsResponse = await get(
@@ -90,7 +83,6 @@ export default function PathologyDetailsPage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching pathology details:", error);
       setError("Failed to load pathology details");
     }
   };

@@ -154,12 +154,11 @@ export default function SearchSection({
           searchType || "all"
         }`
       );
-      debugger;
+      // debugger;
       const data = await response.json();
       setSuggestions(data.suggestions || []);
       setShowSuggestions((data.suggestions || []).length > 0);
     } catch (error) {
-      console.error("Error fetching suggestions:", error);
       setSuggestions([]);
     }
   };
@@ -169,7 +168,6 @@ export default function SearchSection({
     try {
       const response = await fetch("/api/search/locations");
       const data = await response.json();
-      debugger;
       const list = Array.isArray(data.locations) ? data.locations : [];
       setAllLocations(list);
       // Initialize suggestion list based on current input
@@ -184,7 +182,6 @@ export default function SearchSection({
       }
       setShowLocationSuggestions(true);
     } catch (error) {
-      console.error("Error fetching locations:", error);
       setLocationSuggestions([]);
     }
   };

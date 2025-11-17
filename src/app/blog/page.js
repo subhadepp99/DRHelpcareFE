@@ -68,7 +68,6 @@ export default function BlogPage() {
 
       setBlogPosts(cleanedBlogs);
     } catch (error) {
-      console.error("Error fetching blog posts:", error);
       setBlogPosts([]);
     } finally {
       setLoading(false);

@@ -38,8 +38,45 @@ export default function RootLayout({ children }) {
           <meta name="description" content="DrHelp helps you find trusted doctors, clinics, pathology labs, and ambulance services in Tamluk, Haldia, Contai, and nearby areas. Book medical services easily and get care when you need it most." />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <meta name="fast2sms" content="pdVH66wTFsGd4GOM811gavI2ReWPGnpq" />
+          <meta name="google-site-verification" content="Sb0LAXuh7dfZaO7VE7VO82ywyM3K4eMCRNOiJNFo8wA" />
+          {/* Google Tag Manager */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-MWQPKM9H');`,
+            }}
+          />
+          {/* End Google Tag Manager */}
+          {/* Google Analytics */}
+          <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-QTCTZFJHCG"
+          />
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-QTCTZFJHCG');
+            `,
+            }}
+          />
         </head>
         <body className={inter.className}>
+          {/* Google Tag Manager (noscript) */}
+          <noscript>
+            <iframe
+              src="https://www.googletagmanager.com/ns.html?id=GTM-MWQPKM9H"
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+          {/* End Google Tag Manager (noscript) */}
           <div className="min-h-screen flex items-center justify-center">
             <div className="spinner w-8 h-8"></div>
           </div>
@@ -55,8 +92,45 @@ export default function RootLayout({ children }) {
         <meta name="description" content="DrHelp helps you find trusted doctors, clinics, pathology labs, and ambulance services in Tamluk, Haldia, Contai, and nearby areas. Book medical services easily and get care when you need it most." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="fast2sms" content="pdVH66wTFsGd4GOM811gavI2ReWPGnpq" />
+        <meta name="google-site-verification" content="Sb0LAXuh7dfZaO7VE7VO82ywyM3K4eMCRNOiJNFo8wA" />
+        {/* Google Tag Manager */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-MWQPKM9H');`,
+          }}
+        />
+        {/* End Google Tag Manager */}
+        {/* Google Analytics */}
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-QTCTZFJHCG"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-QTCTZFJHCG');
+          `,
+          }}
+        />
       </head>
       <body className={inter.className}>
+        {/* Google Tag Manager (noscript) */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-MWQPKM9H"
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
+        {/* End Google Tag Manager (noscript) */}
         <QueryClientProvider client={queryClient}>
           <ThemeProvider attribute="class" defaultTheme="light">
             <LocationProvider>

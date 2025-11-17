@@ -64,7 +64,6 @@ export default function DoctorProfilePage() {
         setAllLocations(Array.from(locations));
       }
     } catch (error) {
-      console.error("Error fetching doctors and locations:", error);
     }
   };
 
@@ -466,25 +465,27 @@ export default function DoctorProfilePage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
           {/* Hero Section with Gradient Background */}
-          <div className="relative bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 h-48 md:h-56">
+          <div className="relative bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 min-h-[200px] md:h-56">
             <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-            <div className="relative z-10 h-full flex items-center justify-center">
-              <div className="text-center text-white">
-                <h1 className="text-4xl md:text-5xl font-bold mb-2">
+            <div className="relative z-10 h-full flex items-center justify-center py-6 md:py-0">
+              <div className="text-center text-white px-4">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2">
                   Dr.{" "}
                   {doctor.name ||
                     `${doctor.firstName || ""} ${doctor.lastName || ""}` ||
                     "Unknown Doctor"}
                 </h1>
-                <p className="text-xl opacity-90">
+                <p className="text-lg sm:text-xl opacity-90">
                   {doctor.specialization || "Medical Specialist"}
                 </p>
                 {/* Department Name */}
-                <p className="text-lg opacity-80 mt-1">
+                <p className="text-sm sm:text-base md:text-lg opacity-80 mt-1 px-2 break-words">
                   Department:{" "}
-                  {typeof doctor.department === "object"
-                    ? doctor.department?.name || "General Medicine"
-                    : doctor.department || "General Medicine"}
+                  <span className="whitespace-normal">
+                    {typeof doctor.department === "object"
+                      ? doctor.department?.name || "General Medicine"
+                      : doctor.department || "General Medicine"}
+                  </span>
                 </p>
               </div>
             </div>
@@ -539,40 +540,40 @@ export default function DoctorProfilePage() {
                     👨‍⚕️ About Doctor
                   </h2>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-5">
-                      <div className="flex items-start">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-0">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
                           Qualification:
                         </span>
-                        <span className="text-gray-900 dark:text-white flex-1">
+                        <span className="text-gray-900 dark:text-white flex-1 break-words whitespace-normal ml-0.5 sm:ml-0.5">
                           {doctor.qualification || "Not specified"}
                         </span>
                       </div>
                       <div className="flex items-start">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
                           Experience:
                         </span>
-                        <span className="text-gray-900 dark:text-white flex-1">
+                        <span className="text-gray-900 dark:text-white flex-1 ml-0.5">
                           {doctor.experience || 0} years
                         </span>
                       </div>
                       <div className="flex items-start">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
                           Consultation:
                         </span>
-                        <span className="text-primary-600 font-bold flex-1">
+                        <span className="text-primary-600 font-bold flex-1 ml-0.5">
                           ₹{doctor.consultationFee || doctor.doctorFees || 0}
                         </span>
                       </div>
                     </div>
 
-                    <div className="space-y-5">
+                    <div className="space-y-2">
                       <div className="flex items-start">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
                           Location:
                         </span>
-                        <div className="text-gray-900 dark:text-white flex-1">
+                        <div className="text-gray-900 dark:text-white flex-1 ml-0.5 break-words">
                           {/* Display full address from database */}
                           {(() => {
                             const addressParts = [];
@@ -609,18 +610,18 @@ export default function DoctorProfilePage() {
                         </div>
                       </div>
                       <div className="flex items-start">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
                           Specialty:
                         </span>
-                        <span className="text-gray-900 dark:text-white flex-1">
+                        <span className="text-gray-900 dark:text-white flex-1 ml-0.5">
                           {doctor.specialization || "General Medicine"}
                         </span>
                       </div>
                       <div className="flex items-start">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium min-w-[140px] mr-4">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
                           Department:
                         </span>
-                        <span className="text-gray-900 dark:text-white flex-1">
+                        <span className="text-gray-900 dark:text-white flex-1 ml-0.5 break-words">
                           {typeof doctor.department === "object"
                             ? doctor.department?.name || "General Medicine"
                             : doctor.department || "General Medicine"}
@@ -635,7 +636,7 @@ export default function DoctorProfilePage() {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                         Biography
                       </h3>
-                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed break-words whitespace-normal px-2 sm:px-0 max-w-full">
                         {doctor.bio}
                       </p>
                     </div>

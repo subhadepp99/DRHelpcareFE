@@ -81,7 +81,6 @@ export default function Pathology() {
       setAllTests(tests);
       setFilteredTests(tests);
     } catch (error) {
-      console.error("Error fetching pathology data:", error);
       setTestPackages([]);
       setFilteredPackages([]);
       setAllTests([]);

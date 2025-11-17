@@ -48,7 +48,6 @@ export default function PharmaciesPage() {
         res.data?.data?.pharmacies || res.data?.pharmacies || [];
       setPharmacies(pharmacies);
     } catch (err) {
-      console.error("Failed to fetch pharmacies:", err);
       toast.error("Failed to fetch pharmacies.");
       setError("Failed to load pharmacies data.");
       setPharmacies([]);
@@ -94,7 +93,6 @@ export default function PharmaciesPage() {
       toast.success("Pharmacy deleted successfully!");
       fetchPharmacies();
     } catch (err) {
-      console.error("Failed to delete pharmacy:", err);
       toast.error(
         "Failed to delete pharmacy: " +
           (err?.response?.data?.message || err.message || "Unknown error")
@@ -153,7 +151,6 @@ export default function PharmaciesPage() {
       imageUrl: form.imageUrl,
     };
 
-    console.log("Submitting pharmacy payload:", payload); // Debug log
 
     try {
       if (editing) {
@@ -166,7 +163,6 @@ export default function PharmaciesPage() {
       setModalOpen(false);
       fetchPharmacies();
     } catch (err) {
-      console.error("Failed to save pharmacy:", err);
       toast.error(
         "Failed to save pharmacy: " +
           (err?.response?.data?.message || err.message || "Unknown error")

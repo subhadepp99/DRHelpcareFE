@@ -71,12 +71,10 @@ export default function TestsPage() {
     try {
       setLoading(true);
       const response = await get("/tests/admin/all");
-      console.log("Tests API response:", response);
       const tests = response.data?.data?.tests || response.data?.tests || [];
       setTests(tests);
     } catch (error) {
       toast.error("Failed to fetch tests");
-      console.error("Error fetching tests:", error);
     } finally {
       setLoading(false);
     }
@@ -89,7 +87,6 @@ export default function TestsPage() {
         response.data?.data?.pathologies || response.data?.pathologies || [];
       setPathologies(pathologies);
     } catch (error) {
-      console.error("Error fetching pathologies:", error);
     }
   };
 
@@ -162,7 +159,6 @@ export default function TestsPage() {
       resetForm();
       fetchTests();
     } catch (error) {
-      console.error("Error saving test:", error);
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
@@ -222,7 +218,6 @@ export default function TestsPage() {
       fetchTests();
     } catch (error) {
       toast.error("Failed to delete test");
-      console.error("Error deleting test:", error);
     }
   };
 

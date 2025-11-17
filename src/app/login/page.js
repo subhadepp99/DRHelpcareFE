@@ -80,14 +80,12 @@ export default function LoginPage() {
         toast.error(response.data?.message || "Failed to send OTP");
       }
     } catch (error) {
-      console.error("Send OTP error:", error);
       toast.error("Failed to send OTP. Please try again.");
     }
   };
 
   // Verify OTP and login
   const handleVerifyOTP = async () => {
-    debugger;
     if (!otp || otp.length !== 4) {
       toast.error("Enter the 4-digit OTP");
       return;
@@ -148,7 +146,6 @@ export default function LoginPage() {
           } catch (_) {}
         }
         const role = payload.user?.role;
-        console.log("OTP verification successful, user role:", role);
         if (role === "user") {
           router.push("/");
           toast.success("Login successful!");
@@ -163,11 +160,9 @@ export default function LoginPage() {
           toast.error("Invalid user role");
         }
       } else {
-        console.log("OTP verification failed:", response.data?.message);
         toast.error(response.data?.message || "Login failed");
       }
     } catch (error) {
-      console.error("Verify OTP error:", error);
       toast.error("Invalid OTP. Please try again.");
     }
   };
@@ -198,34 +193,26 @@ export default function LoginPage() {
         toast.error(response.data?.message || "Failed to resend OTP");
       }
     } catch (error) {
-      console.error("Resend OTP error:", error);
       toast.error("Failed to resend OTP. Please try again.");
     }
   };
 
   const onSubmit = async (data) => {
     try {
-      console.log("Attempting login with:", data.identifier);
       const result = await login({
         identifier: data.identifier,
         password: data.password,
       });
 
-      console.log("Login result:", result);
-
       // Check if login was successful
       if (result && result.success) {
-        console.log("Login successful, user role:", result.user?.role);
-
         // Ensure we have a user object
         if (!result.user) {
-          console.error("No user data in response");
           toast.error("Login successful but no user data received");
           return;
         }
 
         if (result.user.role === "user") {
-          console.log("Redirecting user to home page");
           router.push("/");
           toast.success("Login successful!");
         } else if (
@@ -233,24 +220,15 @@ export default function LoginPage() {
             result.user.role
           )
         ) {
-          console.log("Redirecting admin to admin panel");
           toast.success("Redirecting to admin panel...");
           router.push("/admin");
         } else {
-          console.error("Invalid user role:", result.user.role);
           toast.error("Invalid user role");
         }
       } else {
-        console.log("Login failed:", result?.message);
         toast.error(result?.message || "Login failed");
       }
     } catch (error) {
-      console.error("Login error:", error);
-      console.error("Error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
       toast.error("An error occurred during login");
     }
   };

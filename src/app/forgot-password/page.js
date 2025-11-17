@@ -61,7 +61,6 @@ export default function ForgotPasswordPage() {
         toast.error(response.data?.message || "Failed to send OTP");
       }
     } catch (error) {
-      console.error("Send OTP error:", error);
       toast.error("Failed to send OTP. Please try again.");
     }
   };
@@ -103,7 +102,6 @@ export default function ForgotPasswordPage() {
         }
       }
     } catch (error) {
-      console.error("Verify OTP error:", error);
       toast.error("Invalid OTP. Please try again.");
     }
   };
@@ -129,7 +127,6 @@ export default function ForgotPasswordPage() {
         toast.error(response.data?.message || "Failed to reset password");
       }
     } catch (error) {
-      console.error("Reset password error:", error);
       toast.error("Failed to reset password. Please try again.");
     }
   };
@@ -150,7 +147,6 @@ export default function ForgotPasswordPage() {
         toast.error(response.data?.message || "Failed to resend OTP");
       }
     } catch (error) {
-      console.error("Resend OTP error:", error);
       toast.error("Failed to resend OTP. Please try again.");
     }
   };

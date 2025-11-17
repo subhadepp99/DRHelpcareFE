@@ -57,7 +57,6 @@ export default function AmbulancesPage() {
         res.data?.data?.ambulances || res.data?.ambulances || [];
       setAmbulances(ambulances);
     } catch (err) {
-      console.error("Failed to fetch ambulances:", err);
       toast.error("Failed to fetch ambulances.");
       setError("Failed to load ambulances data.");
       setAmbulances([]);
@@ -105,7 +104,6 @@ export default function AmbulancesPage() {
       toast.success("Ambulance deleted successfully!");
       fetchAmbulances();
     } catch (err) {
-      console.error("Failed to delete ambulance:", err);
       toast.error(
         "Failed to delete ambulance: " +
           (err?.response?.data?.message || err.message || "Unknown error")
@@ -191,7 +189,6 @@ export default function AmbulancesPage() {
       setModalOpen(false);
       fetchAmbulances();
     } catch (err) {
-      console.error("Failed to save ambulance:", err);
       toast.error(
         "Failed to save ambulance: " +
           (err?.response?.data?.message || err.message || "Unknown error")

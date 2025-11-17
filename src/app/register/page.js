@@ -97,7 +97,6 @@ export default function RegisterPage() {
         toast.error(response.data?.message || "Failed to send OTP");
       }
     } catch (error) {
-      console.error("Send OTP error:", error);
       toast.error("Failed to send OTP. Please try again.");
     }
   };
@@ -138,7 +137,6 @@ export default function RegisterPage() {
         toast.error(response.data?.message || "Failed to resend OTP");
       }
     } catch (error) {
-      console.error("Resend OTP error:", error);
       toast.error("Failed to resend OTP. Please try again.");
     }
   };
@@ -188,9 +186,7 @@ export default function RegisterPage() {
         return;
       }
 
-      console.log("Sending registration with OTP:", { ...formData, otp: otp });
       const result = await registerUser({ ...formData, otp: otp });
-      console.log("Registration result:", result);
 
       if (result.success) {
         setOtpError("");
@@ -204,14 +200,12 @@ export default function RegisterPage() {
           result.message ||
           "We couldn't complete your registration right now. Please try again after some time. If the issue persists, contact the administrator.";
         setOtpError(message);
-        console.error("Registration failed:", message);
         // Don't clear OTP, let user try again
       }
     } catch (error) {
       const fallbackMessage =
         error.message ||
         "We couldn't complete your registration right now. Please try again after some time. If the issue persists, contact the administrator.";
-      console.error("Registration error:", error);
       setOtpError(fallbackMessage);
       // Stay on the OTP screen, don't redirect
     }

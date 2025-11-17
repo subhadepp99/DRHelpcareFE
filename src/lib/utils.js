@@ -127,7 +127,6 @@ export const getImageUrl = (imagePath) => {
   const cleanPath = imagePath.startsWith("/") ? imagePath.slice(1) : imagePath;
   const fullUrl = apiUrl ? `${apiUrl}/${cleanPath}` : `/${cleanPath}`;
 
-  console.log("Image URL construction:", { imagePath, apiUrl, fullUrl });
 
   return fullUrl;
 };

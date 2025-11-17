@@ -51,21 +51,11 @@ export default function DepartmentsPage() {
     try {
       setLoading(true);
       const response = await get("/departments?limit=1000");
-      console.log("Department API response:", response); // Debug log
       const departments =
         response.data?.data?.departments || response.data?.departments || [];
-      console.log(
-        "Departments with doctor counts:",
-        departments.map((dept) => ({
-          name: dept.name,
-          doctorCount: dept.doctorCount,
-          doctors: dept.doctors?.length || 0,
-        }))
-      );
       setDepartments(departments);
     } catch (error) {
       toast.error("Failed to fetch departments");
-      console.error("Error fetching departments:", error);
     } finally {
       setLoading(false);
     }
@@ -107,7 +97,6 @@ export default function DepartmentsPage() {
           ? "Failed to update department"
           : "Failed to add department"
       );
-      console.error("Error saving department:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -136,7 +125,6 @@ export default function DepartmentsPage() {
       fetchDepartments();
     } catch (error) {
       toast.error("Failed to delete department");
-      console.error("Error deleting department:", error);
     }
   };
 
@@ -185,7 +173,6 @@ export default function DepartmentsPage() {
       toast.success("Image updated successfully");
       fetchDepartments();
     } catch (err) {
-      console.error("Row image upload failed", err);
       toast.error("Failed to update image");
     }
   };
@@ -205,7 +192,6 @@ export default function DepartmentsPage() {
       const list = res.data?.data?.doctors || res.data?.doctors || [];
       setDoctorsModalDoctors(list);
     } catch (e) {
-      console.error("Failed to load doctors for department", e);
       toast.error("Failed to load doctors");
     } finally {
       setDoctorsModalLoading(false);
@@ -311,12 +297,6 @@ export default function DepartmentsPage() {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredDepartments.map((department) => {
                 const imgSrc = getEntityImageUrl(department);
-                console.log(
-                  "Admin Departments Table: Department:",
-                  department.name,
-                  "Image URL:",
-                  imgSrc
-                );
 
                 return (
                   <tr
@@ -333,10 +313,6 @@ export default function DepartmentsPage() {
                                 alt={department.name}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
-                                  console.error(
-                                    "Admin Departments: Image failed to load:",
-                                    imgSrc
-                                  );
                                   const target = e.target;
                                   const fallback = target.nextSibling;
                                   if (target && fallback) {
@@ -344,12 +320,7 @@ export default function DepartmentsPage() {
                                     fallback.style.display = "flex";
                                   }
                                 }}
-                                onLoad={() => {
-                                  console.log(
-                                    "Admin Departments: Image loaded successfully:",
-                                    imgSrc
-                                  );
-                                }}
+                                onLoad={() => {}}
                               />
                               <div
                                 className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800"

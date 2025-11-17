@@ -12,12 +12,6 @@ export default function DepartmentCard({ department }) {
     const depName = encodeURIComponent(
       department?.name || department?.heading || ""
     );
-    console.log("DepartmentCard clicked:", {
-      department,
-      depName,
-      name: department?.name,
-      heading: department?.heading,
-    });
     router.push(`/search?type=doctors&department=${depName}`);
   };
 
@@ -36,12 +30,6 @@ export default function DepartmentCard({ department }) {
           }
 
           const imageSrc = getEntityImageUrl(department, "imageUrl");
-          console.log(
-            "DepartmentCard: Department:",
-            department?.name,
-            "Image URL:",
-            imageSrc
-          );
 
           if (imageSrc) {
             return (
@@ -51,10 +39,6 @@ export default function DepartmentCard({ department }) {
                   alt={department?.heading || department?.name || "Department"}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    console.error(
-                      "DepartmentCard: Image failed to load:",
-                      imageSrc
-                    );
                     const target = e.target;
                     const fallback = target.nextSibling;
                     if (target && fallback) {
@@ -62,12 +46,7 @@ export default function DepartmentCard({ department }) {
                       fallback.style.display = "flex";
                     }
                   }}
-                  onLoad={() => {
-                    console.log(
-                      "DepartmentCard: Image loaded successfully:",
-                      imageSrc
-                    );
-                  }}
+                  onLoad={() => {}}
                 />
                 <div
                   className="w-full h-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800"
@@ -85,10 +64,6 @@ export default function DepartmentCard({ department }) {
               </>
             );
           } else {
-            console.log(
-              "DepartmentCard: No image source available for department:",
-              department?.name
-            );
             return (
               <div className="w-full h-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
                 <div className="text-center">

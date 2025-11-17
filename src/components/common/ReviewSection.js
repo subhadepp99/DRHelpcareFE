@@ -38,7 +38,6 @@ export default function ReviewSection({ entityType, entityId, entityName }) {
         );
       }
     } catch (error) {
-      console.error("Error fetching reviews:", error);
     } finally {
       setLoading(false);
     }
@@ -53,7 +52,6 @@ export default function ReviewSection({ entityType, entityId, entityName }) {
         setComment(response.data.data.comment);
       }
     } catch (error) {
-      console.error("Error fetching user review:", error);
     }
   };
 
@@ -99,7 +97,6 @@ export default function ReviewSection({ entityType, entityId, entityName }) {
         }
       }
     } catch (error) {
-      console.error("Error submitting review:", error);
       toast.error(error.response?.data?.message || "Failed to submit review");
     } finally {
       setSubmitting(false);
@@ -128,7 +125,6 @@ export default function ReviewSection({ entityType, entityId, entityName }) {
         fetchReviews();
       }
     } catch (error) {
-      console.error("Error deleting review:", error);
       toast.error("Failed to delete review");
     }
   };

@@ -15,7 +15,6 @@ export function LocationProvider({ children }) {
       try {
         setLocation(JSON.parse(savedLocation));
       } catch (error) {
-        console.error("Error loading saved location:", error);
       }
     }
   }, []);

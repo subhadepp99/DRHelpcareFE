@@ -66,7 +66,6 @@ export default function NewBlogPage() {
       toast.success("Blog post created successfully!");
       router.push("/admin/blog");
     } catch (error) {
-      console.error("Error creating blog post:", error);
       toast.error(error.response?.data?.message || "Failed to create blog post");
     } finally {
       setLoading(false);

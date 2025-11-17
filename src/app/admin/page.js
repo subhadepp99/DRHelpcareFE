@@ -141,7 +141,6 @@ export default function AdminDashboard() {
         }
       }
     } catch (err) {
-      console.error("Dashboard data fetch error:", err);
       toast.error("Failed to load dashboard data. Please try again.");
     } finally {
       setLoading(false);
@@ -222,7 +221,6 @@ export default function AdminDashboard() {
         } data refreshed successfully`
       );
     } catch (err) {
-      console.error(`Retry ${type} error:`, err);
       toast.error(`Failed to refresh ${type} data`);
     }
   };

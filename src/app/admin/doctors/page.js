@@ -64,6 +64,7 @@ export default function AdminDoctorsPage() {
     imageUrl: "", // Ensure imageUrl is always present
     pinLocation: "", // Google Maps location URL or embed link
     selectedClinics: [],
+    isFeatured: false,
   });
 
   // Fetch doctors from the API using the Node backend endpoint
@@ -76,7 +77,6 @@ export default function AdminDoctorsPage() {
       ); // Add populate to get department names and clinic details
       setDoctors(res.data.doctors || res.data.data?.doctors || []);
     } catch (err) {
-      console.error("Failed to fetch doctors:", err);
       toast.error("Failed to fetch doctors.");
       setDoctors([]);
     } finally {
@@ -89,10 +89,8 @@ export default function AdminDoctorsPage() {
     try {
       const res = await get("/departments");
       const depts = res.data?.data?.departments || res.data?.departments || [];
-      console.log("Fetched departments:", depts); // Debug departments
       setDepartments(depts);
     } catch (err) {
-      console.error("Failed to fetch departments:", err);
       toast.error("Failed to fetch departments.");
       setDepartments([]);
     }
@@ -103,10 +101,8 @@ export default function AdminDoctorsPage() {
     try {
       const res = await get("/clinics?limit=1000");
       const clinicList = res.data?.data?.clinics || res.data?.clinics || [];
-      console.log("Fetched clinics:", clinicList); // Debug clinics
       setClinics(clinicList);
     } catch (err) {
-      console.error("Failed to fetch clinics:", err);
       toast.error("Failed to fetch clinics.");
       setClinics([]);
     }
@@ -148,6 +144,7 @@ export default function AdminDoctorsPage() {
       imageUrl: "", // Ensure imageUrl is reset
       pinLocation: "",
       selectedClinics: [],
+      isFeatured: false,
     });
     setModalOpen(true);
   };
@@ -173,6 +170,7 @@ export default function AdminDoctorsPage() {
         doc.clinicDetails?.map((cd) => cd.clinic?._id || cd.clinic) ||
         doc.clinics ||
         [],
+      isFeatured: doc.isFeatured || false,
     });
     setModalOpen(true);
   };
@@ -189,7 +187,6 @@ export default function AdminDoctorsPage() {
         setDoctors((prev) => prev.filter((doc) => doc._id !== id));
         toast.success("Doctor deleted successfully!");
       } catch (err) {
-        console.error("Failed to delete doctor:", err);
         toast.error(
           "Failed to delete doctor: " +
             (err?.response?.data?.message || err.message || "Unknown error")
@@ -276,15 +273,13 @@ export default function AdminDoctorsPage() {
     }
     setIsSubmitting(true); // Set submitting state
 
-    console.log("Submitting doctor form:", form); // Debug log
-    console.log("Department value:", form.department); // Debug department specifically
-
     const payload = {
       ...form,
       experience: Number(form.experience),
       consultationFee: Number(form.consultationFee),
       doctorFees: Number(form.doctorFees) || Number(form.consultationFee),
       imageUrl: form.imageUrl || "", // Always include imageUrl
+      isFeatured: form.isFeatured || false,
     };
 
     // Convert selected clinics to clinicDetails structure
@@ -329,14 +324,9 @@ export default function AdminDoctorsPage() {
       return;
     }
 
-    console.log("Doctor payload:", payload); // Debug log
-    console.log("Department in payload:", payload.department); // Debug department in payload
-
     try {
       if (editingDoctor) {
-        console.log("Updating doctor:", editingDoctor._id); // Debug log
         const response = await put(`/doctors/${editingDoctor._id}`, payload);
-        console.log("Update response:", response); // Debug log
 
         setDoctors((prev) =>
           prev.map((doc) =>
@@ -345,17 +335,13 @@ export default function AdminDoctorsPage() {
         );
         toast.success("Doctor updated successfully!");
       } else {
-        console.log("Creating new doctor"); // Debug log
         const res = await post("/doctors", payload);
-        console.log("Create response:", res); // Debug log
 
         setDoctors((prev) => [...prev, res.data]);
         toast.success("Doctor added successfully!");
       }
       setModalOpen(false);
     } catch (err) {
-      console.error("Failed to save doctor:", err);
-      console.error("Error response:", err?.response); // Debug log
       toast.error(
         "Could not save doctor: " +
           (err?.response?.data?.message || err.message || "Unknown error")
@@ -921,6 +907,41 @@ export default function AdminDoctorsPage() {
                 alt="Doctor Preview"
                 className="w-20 h-20 rounded-full object-cover mx-auto mt-2"
               />
+            )}
+            {/* Featured Doctor Checkbox */}
+            <div className="flex items-center space-x-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+              <input
+                type="checkbox"
+                name="isFeatured"
+                id="isFeatured"
+                checked={form.isFeatured || false}
+                onChange={(e) => {
+                  // Exclude current doctor from count if editing
+                  const featuredCount = doctors.filter(d => 
+                    d.isFeatured && (!editingDoctor || d._id !== editingDoctor._id)
+                  ).length;
+                  if (e.target.checked && featuredCount >= 25) {
+                    toast.error("Maximum 25 doctors can be featured. Please unfeature another doctor first.");
+                    return;
+                  }
+                  setForm((prev) => ({
+                    ...prev,
+                    isFeatured: e.target.checked,
+                  }));
+                }}
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <label htmlFor="isFeatured" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer flex-1">
+                <span className="font-semibold">Feature on Home Page</span>
+                <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Show this doctor in the "Featured Doctors" section (Max 25 doctors)
+                </span>
+              </label>
+            </div>
+            {doctors.filter(d => d.isFeatured).length > 0 && (
+              <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
+                Currently {doctors.filter(d => d.isFeatured).length} of 25 doctors are featured
+              </p>
             )}
             <button
               type="submit"

@@ -87,7 +87,6 @@ export default function AdminLoginPage() {
         toast.error(response.data?.message || "Failed to send OTP");
       }
     } catch (error) {
-      console.error("Send OTP error:", error);
       toast.error("Failed to send OTP. Please try again.");
     }
   };
@@ -198,7 +197,6 @@ export default function AdminLoginPage() {
         setVerifyError(msg);
       }
     } catch (error) {
-      console.error("Verify OTP error:", error);
       const msg = error.response?.data?.message || error.message;
       setVerifyError(msg || "Login failed. Please try again.");
     }
@@ -232,7 +230,6 @@ export default function AdminLoginPage() {
         toast.error(response.data?.message || "Failed to resend OTP");
       }
     } catch (error) {
-      console.error("Resend OTP error:", error);
       toast.error("Failed to resend OTP. Please try again.");
     }
   };

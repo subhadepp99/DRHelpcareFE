@@ -66,10 +66,6 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      console.log("User loaded in profile page:", user);
-      console.log("User ID (id):", user.id);
-      console.log("User ID (_id):", user._id);
-      console.log("User object keys:", Object.keys(user));
       reset({
         firstName: user.firstName,
         lastName: user.lastName,
@@ -96,11 +92,9 @@ export default function ProfilePage() {
       if (response.data?.success) {
         setBookings(response.data.bookings || []);
       } else {
-        console.error("Failed to fetch bookings:", response.data?.message);
         toast.error("Failed to fetch bookings");
       }
     } catch (error) {
-      console.error("Error fetching bookings:", error);
       toast.error("Failed to fetch bookings");
     } finally {
       setBookingsLoading(false);
@@ -130,17 +124,10 @@ export default function ProfilePage() {
         // Get the user ID (try _id first, then id)
         const userId = user._id || user.id;
         if (!userId) {
-          console.error("User ID not found:", user);
           toast.error("User ID not found. Please log in again.");
           return;
         }
 
-        console.log("🔄 Auto-updating profile picture for user ID:", userId);
-        console.log("📁 File details:", {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        });
 
         const formData = new FormData();
         formData.append("profileImage", file);
@@ -151,17 +138,10 @@ export default function ProfilePage() {
           },
         });
 
-        console.log("✅ Profile picture update response:", response);
-        console.log("📊 Response data:", response.data);
-        console.log(
-          "🖼️ New profile image URL:",
-          response.data?.data?.profileImageUrl
-        );
 
         // Merge full server user payload to ensure profileImage/profileImageUrl are in store/localStorage
         const serverUser = response.data?.data;
         const mergedUser = serverUser ? { ...user, ...serverUser } : user;
-        console.log("👤 Updated user data:", mergedUser);
         updateUser(mergedUser);
 
         // Clear preview states
@@ -170,7 +150,6 @@ export default function ProfilePage() {
 
         toast.success("Profile picture updated successfully!");
       } catch (error) {
-        console.error("❌ Profile picture update error:", error);
         toast.error("Failed to update profile picture");
         // Reset the image selection on error
         setProfileImage(null);
@@ -203,15 +182,12 @@ export default function ProfilePage() {
       // Get the user ID (try _id first, then id)
       const userId = user._id || user.id;
       if (!userId) {
-        console.error("User ID not found:", user);
         toast.error("User ID not found. Please log in again.");
         return;
       }
 
-      console.log("Updating profile for user ID:", userId);
 
       const apiUrl = `/users/${userId}`;
-      console.log("API URL:", apiUrl);
 
       const response = await put(apiUrl, formData, {
         headers: {
@@ -219,8 +195,6 @@ export default function ProfilePage() {
         },
       });
 
-      console.log("Profile update response:", response);
-      console.log("Response data:", response.data);
 
       // Update user with both form data and new profile image URL if available
       const updatedUserData = {
@@ -230,14 +204,12 @@ export default function ProfilePage() {
           getEntityImageUrl(user, "profileImageUrl"),
       };
 
-      console.log("Updated user data:", updatedUserData);
       updateUser(updatedUserData);
       toast.success("Profile updated successfully!");
       setEditMode(false);
       setProfileImage(null);
       setImagePreview(null);
     } catch (error) {
-      console.error("Profile update error:", error);
       toast.error("Failed to update profile");
     } finally {
       setLoading(false);
@@ -283,10 +255,6 @@ export default function ProfilePage() {
                             alt="Profile"
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              console.log(
-                                "Profile image failed to load:",
-                                e.target.src
-                              );
                               e.target.style.display = "none";
                               const fallback =
                                 e.target.parentElement.querySelector(
@@ -295,10 +263,6 @@ export default function ProfilePage() {
                               if (fallback) fallback.style.display = "flex";
                             }}
                             onLoad={(e) => {
-                              console.log(
-                                "Profile image loaded:",
-                                e.target.src
-                              );
                             }}
                           />
                         ) : (
@@ -881,7 +845,6 @@ export default function ProfilePage() {
                                 )
                               ) {
                                 // Call deactivate API
-                                console.log("Deactivating account...");
                               }
                             }}
                             className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
@@ -912,7 +875,6 @@ export default function ProfilePage() {
                                   )
                                 ) {
                                   // Call delete API
-                                  console.log("Deleting account...");
                                 }
                               }
                             }}

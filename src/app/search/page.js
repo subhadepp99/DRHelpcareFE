@@ -46,6 +46,7 @@ export default function SearchPage() {
   );
   const [sortBy, setSortBy] = useState("relevance");
   const [viewMode, setViewMode] = useState("grid");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   // COMMENTED OUT - Advanced filters disabled
   // const [showFilters, setShowFilters] = useState(false);
   // const [filters, setFilters] = useState({
@@ -82,14 +83,6 @@ export default function SearchPage() {
   // Debug department parameter
   useEffect(() => {
     const departmentParam = searchParams.get("department");
-    console.log(
-      "Search page loaded with department parameter:",
-      departmentParam
-    );
-    console.log(
-      "Decoded department:",
-      departmentParam ? decodeURIComponent(departmentParam) : "none"
-    );
   }, [searchParams]);
 
   // Location typeahead (dynamic from backend)
@@ -168,12 +161,10 @@ export default function SearchPage() {
           searchType || "all"
         }`
       );
-      debugger;
       const data = await res.json();
       setSuggestions(data.suggestions || []);
       setShowSuggestions((data.suggestions || []).length > 0);
     } catch (e) {
-      console.error("Suggestion fetch failed", e);
       setSuggestions([]);
       setShowSuggestions(false);
     }
@@ -205,6 +196,7 @@ export default function SearchPage() {
       }
 
       // Use converted location from pincode first, then context location, then manual input
+      // Only add location if it exists - allow search without location
       if (convertedLocation) {
         if (convertedLocation.city) queryParams.set("city", convertedLocation.city);
         if (convertedLocation.state) queryParams.set("state", convertedLocation.state);
@@ -219,21 +211,13 @@ export default function SearchPage() {
         if (userLocation.lat) queryParams.set("lat", userLocation.lat);
         if (userLocation.lng) queryParams.set("lng", userLocation.lng);
       } else {
-        // Fallback to manual location input
+        // Fallback to manual location input - only add if exists
         const cityParam = (selectedLocation || locationInput || "").trim();
         if (cityParam) queryParams.set("city", cityParam);
       }
-
-      console.log("Search query params:", queryParams.toString());
-      console.log("Search type:", searchType);
-      console.log("Search query:", searchQuery);
-      console.log("Department filter:", filters.department);
-      console.log("User location:", userLocation);
+      // Note: Search can work without location - backend should handle this
 
       const response = await get(`/search?${queryParams.toString()}`);
-      console.log("Search response:", response.data);
-      console.log("Search results:", response.data?.results);
-      console.log("Ambulance results:", response.data?.results?.ambulances);
       
       const newResults = response.data?.results || {};
       
@@ -266,18 +250,9 @@ export default function SearchPage() {
         Array.isArray(arr) && arr.length === RESULTS_PER_PAGE
       );
       
-      console.log("Has more results?", hasMoreResults);
-      console.log("Results lengths:", {
-        doctors: newResults.doctors?.length || 0,
-        clinics: newResults.clinics?.length || 0,
-        ambulances: newResults.ambulances?.length || 0,
-        pathologies: newResults.pathologies?.length || 0
-      });
-      
       setHasMore(hasMoreResults);
       setIsLoadingMore(false);
     } catch (error) {
-      console.error("Search error:", error);
       if (!append) {
         setResults({});
       }
@@ -312,6 +287,7 @@ export default function SearchPage() {
     // 1. Query has 3+ characters, OR
     // 2. A specific type is selected, OR  
     // 3. Location is provided (even without query)
+    // 4. Query exists and search type is doctors (allow doctor name search without location)
     const hasLocation = locationInput || selectedLocation || userLocation?.city || convertedLocation?.city;
     
     // Create a signature of current search params
@@ -330,22 +306,24 @@ export default function SearchPage() {
     const paramsChanged = JSON.stringify(currentParams) !== JSON.stringify(lastSearchParams.current);
     
     if (!paramsChanged) {
-      console.log("⏭️ Skipping search - params unchanged");
       return; // Don't search if nothing changed
     }
     
+    // Allow search if:
+    // - Query has 3+ chars, OR
+    // - Search type is not "all", OR
+    // - Has location, OR
+    // - Query exists and searching for doctors (allow doctor name search without location)
     if (
       searchQuery.trim().length >= 3 ||
       searchType !== "all" ||
-      hasLocation
+      hasLocation ||
+      (searchQuery.trim().length > 0 && searchType === "doctors")
     ) {
       // Debounce search by 500ms for query changes, immediate for other changes
       const delay = paramsChanged && currentParams.searchQuery !== lastSearchParams.current.searchQuery ? 500 : 0;
       
-      console.log(`🔍 Auto-search scheduled (${delay}ms delay)`);
-      
       searchTimeoutRef.current = setTimeout(() => {
-        console.log("🔍 Auto-search triggered");
         lastSearchParams.current = currentParams;
         setPage(1); // Reset to page 1 for new searches
         performSearch(1, false);
@@ -361,22 +339,15 @@ export default function SearchPage() {
 
   // Infinite Scroll - Load more when user scrolls to bottom
   useEffect(() => {
-    console.log("Infinite scroll setup - hasMore:", hasMore, "isLoadingMore:", isLoadingMore, "apiLoading:", apiLoading);
-    
     if (!hasMore || isLoadingMore || apiLoading) {
-      console.log("Skipping observer setup - conditions not met");
       return;
     }
 
-    console.log("Setting up intersection observer for infinite scroll");
-    
     const observer = new IntersectionObserver(
       (entries) => {
         const target = entries[0];
-        console.log("Observer triggered - isIntersecting:", target.isIntersecting);
         
         if (target.isIntersecting && hasMore && !isLoadingMore && !apiLoading) {
-          console.log("🔄 Loading more results... Current page:", page);
           const nextPage = page + 1;
           setPage(nextPage);
           setIsLoadingMore(true);
@@ -392,16 +363,12 @@ export default function SearchPage() {
 
     const currentRef = loadMoreRef.current;
     if (currentRef) {
-      console.log("Observer attached to element");
       observer.observe(currentRef);
-    } else {
-      console.log("⚠️ Load more ref not found");
     }
 
     return () => {
       if (currentRef) {
         observer.unobserve(currentRef);
-        console.log("Observer cleaned up");
       }
     };
   }, [hasMore, isLoadingMore, apiLoading, page, performSearch]);
@@ -483,7 +450,6 @@ export default function SearchPage() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    console.log("🔍 New search triggered - resetting to page 1");
     setPage(1);
     setHasMore(false);
     setResults({}); // Clear previous results
@@ -548,7 +514,6 @@ export default function SearchPage() {
       
       setSuggestedResults(suggested);
     } catch (error) {
-      console.error("Error fetching suggested results:", error);
       setSuggestedResults({});
     }
   };
@@ -766,39 +731,41 @@ export default function SearchPage() {
             </div>
 
             {/* Controls */}
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
               <div className="flex items-center space-x-4">
-                {/* COMMENTED OUT - Advanced filters button disabled */}
-                {/* <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center space-x-2 px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                {/* Advanced toggle for mobile */}
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="sm:hidden flex items-center space-x-2 px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-600 rounded-lg"
                 >
                   <SlidersHorizontal className="w-4 h-4" />
-                  <span>Filters</span>
-                </button> */}
+                  <span>Advanced</span>
+                </button>
 
+                {/* Location tag - hidden on mobile unless advanced is open */}
                 {selectedLocation && (
-                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                  <div className={`flex items-center text-sm text-gray-600 dark:text-gray-400 ${showAdvanced ? 'flex' : 'hidden sm:flex'}`}>
                     <MapPin className="w-4 h-4 mr-1" />
                     <span>{selectedLocation}</span>
                   </div>
                 )}
 
-                {/* COMMENTED OUT - Filter department badge disabled */}
-                {/* {filters.department && (
-                  <div className="flex items-center text-sm text-primary-600 dark:text-primary-400">
+                {/* Department filter badge - hidden on mobile unless advanced is open */}
+                {filters.department && (
+                  <div className={`flex items-center text-sm text-primary-600 dark:text-primary-400 ${showAdvanced ? 'flex' : 'hidden sm:flex'}`}>
                     <span className="bg-primary-100 dark:bg-primary-900 px-2 py-1 rounded-full text-xs font-medium">
                       Department: {decodeURIComponent(filters.department)}
                     </span>
                   </div>
-                )} */}
+                )}
 
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   {getTotalResults()} results found
                 </span>
               </div>
 
-              <div className="flex items-center space-x-4">
+              {/* Sort and View controls - hidden on mobile unless advanced is open */}
+              <div className={`flex items-center space-x-4 ${showAdvanced ? 'flex' : 'hidden sm:flex'}`}>
                 {/* Sort select */}
                 <select
                   value={sortBy}
@@ -1430,7 +1397,6 @@ export default function SearchPage() {
         isOpen={isLocationModalOpen}
         onClose={() => setIsLocationModalOpen(false)}
         onLocationSelect={(location) => {
-          console.log("Location selected from modal:", location);
           const locationText = location.state
             ? `${location.city}, ${location.state}`
             : location.city;

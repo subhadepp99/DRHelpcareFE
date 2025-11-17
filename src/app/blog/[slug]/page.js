@@ -39,7 +39,6 @@ export default function BlogPostPage() {
       const response = await get(`/blogs/slug/${slug}`);
       setPost(response.data?.blog || response.data);
     } catch (error) {
-      console.error("Error fetching blog post:", error);
       // Fallback to sample data
       setPost(sampleBlogPosts[slug]);
     } finally {

@@ -70,25 +70,21 @@ export default function PathologyPage() {
   const fetchPathologies = async () => {
     try {
       const response = await get("/pathologies");
-      console.log("Pathology API response:", response); // Debug log
       const pathologies =
         response.data?.data?.pathologies || response.data?.pathologies || [];
       setPathologies(pathologies);
     } catch (error) {
       toast.error("Failed to fetch pathologies");
-      console.error("Error fetching pathologies:", error);
     }
   };
 
   const fetchTests = async () => {
     try {
       const response = await get("/tests/admin/all");
-      console.log("Tests API response:", response);
       const tests = response.data?.data?.tests || response.data?.tests || [];
       setTests(tests);
     } catch (error) {
       toast.error("Failed to fetch tests");
-      console.error("Error fetching tests:", error);
     } finally {
       setLoading(false);
     }
@@ -149,23 +145,8 @@ export default function PathologyPage() {
         }
       });
 
-      // Debug: Log what's being sent
-      console.log("Form data being sent:", formData);
-      console.log("FormData entries:");
       for (let [key, value] of formDataToSend.entries()) {
-        console.log(`${key}: ${value}`);
       }
-
-      // Additional debugging for required fields
-      console.log("Required fields check:");
-      console.log("- name:", formData.name);
-      console.log("- category:", formData.category);
-      console.log("- price:", formData.price);
-      console.log("- sampleType:", formData.sampleType);
-      console.log("- address:", formData.address);
-      console.log("- place:", formData.place);
-      console.log("- state:", formData.state);
-      console.log("- zipCode:", formData.zipCode);
 
       // Add image file if selected
       if (selectedImage) {
@@ -186,9 +167,6 @@ export default function PathologyPage() {
       fetchPathologies();
       fetchTests();
     } catch (error) {
-      console.error("Error saving pathology:", error);
-      console.error("Error response:", error.response);
-      console.error("Error data:", error.response?.data);
 
       // Show more specific error message
       const errorMessage =
@@ -246,7 +224,6 @@ export default function PathologyPage() {
       fetchPathologies();
     } catch (error) {
       toast.error("Failed to delete pathology");
-      console.error("Error deleting pathology:", error);
     }
   };
 
@@ -310,7 +287,6 @@ export default function PathologyPage() {
       // Optimistic update: refresh list or update local state
       fetchPathologies();
     } catch (err) {
-      console.error("Row image update failed", err);
       toast.error("Failed to update image");
     }
   };

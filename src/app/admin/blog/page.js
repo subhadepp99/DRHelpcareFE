@@ -36,7 +36,6 @@ export default function BlogAdminPage() {
       const response = await get("/blogs?limit=100");
       setPosts(response.data?.blogs || response.data || []);
     } catch (error) {
-      console.error("Error fetching blog posts:", error);
       toast.error("Failed to load blog posts");
       setPosts([]);
     } finally {
@@ -52,7 +51,6 @@ export default function BlogAdminPage() {
       toast.success("Blog post deleted successfully");
       fetchPosts();
     } catch (error) {
-      console.error("Error deleting post:", error);
       toast.error("Failed to delete blog post");
     }
   };
@@ -65,7 +63,6 @@ export default function BlogAdminPage() {
       toast.success("Post status updated");
       fetchPosts();
     } catch (error) {
-      console.error("Error updating post:", error);
       toast.error("Failed to update post status");
     }
   };

@@ -21,7 +21,6 @@ export const pincodeToLocation = async (pincode) => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     
     if (!apiKey) {
-      console.warn('Google Maps API key not configured');
       return null;
     }
     
@@ -65,7 +64,6 @@ export const pincodeToLocation = async (pincode) => {
     
     return null;
   } catch (error) {
-    console.error('Error converting pincode to location:', error);
     return null;
   }
 };

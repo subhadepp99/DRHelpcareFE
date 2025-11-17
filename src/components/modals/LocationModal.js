@@ -22,7 +22,6 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
       try {
         setRecentLocations(JSON.parse(stored));
       } catch (error) {
-        console.error("Error loading recent locations:", error);
       }
     }
     
@@ -79,7 +78,6 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
           toast.success(`Location set to ${locationData.city}`);
           onClose();
         } catch (error) {
-          console.error("Error detecting location:", error);
           toast.error(
             "Failed to detect location. Please try entering pincode."
           );
@@ -89,7 +87,6 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
       },
       (error) => {
         setDetecting(false);
-        console.error("Geolocation error:", error);
 
         if (error.code === error.PERMISSION_DENIED) {
           toast.error(
@@ -239,7 +236,6 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
 
       toast.error("Failed to find location. Please try again.");
     } catch (error) {
-      console.error("Error searching location:", error);
       toast.error("Failed to find location. Please check your input.");
     } finally {
       setSearching(false);
@@ -264,7 +260,6 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
       localStorage.setItem("recentLocations", JSON.stringify(recent));
       setRecentLocations(recent);
     } catch (error) {
-      console.error("Error saving recent location:", error);
     }
   };
 

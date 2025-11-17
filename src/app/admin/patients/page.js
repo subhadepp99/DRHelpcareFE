@@ -32,7 +32,6 @@ export default function PatientsPage() {
       setPatients(response.data.patients || []);
     } catch (error) {
       toast.error("Failed to fetch patients");
-      console.error("Error fetching patients:", error);
     } finally {
       setLoading(false);
     }
