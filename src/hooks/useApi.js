@@ -23,6 +23,12 @@ export const useApi = () => {
         return response;
       } catch (err) {
         setLoading(false);
+        
+        // Don't show errors for cancelled requests
+        if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+          throw err;
+        }
+        
         setError(err);
 
         if (!options.silent) {

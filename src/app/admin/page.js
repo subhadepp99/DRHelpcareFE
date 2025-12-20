@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -18,6 +18,7 @@ import {
   Truck,
   RefreshCw,
   AlertCircle,
+  Bell,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import StatsCard from "@/components/admin/StatsCard";
@@ -26,6 +27,7 @@ import RecentActivity from "@/components/admin/RecentActivity";
 import MetaTags from "@/components/common/MetaTags";
 import { pageMetadata } from "@/utils/metadata";
 import toast from "react-hot-toast";
+import SlotNotificationsModal from "@/components/modals/SlotNotificationsModal";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -39,10 +41,35 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  const fetchNotificationCount = useCallback(async () => {
+    try {
+      const response = await get("/dashboard/slot-notifications", { silent: true });
+      const data = response.data?.data || response.data || {};
+      const notifications = data.notifications || [];
+      setNotificationCount(notifications.length);
+    } catch (error) {
+      // Silently fail for notification count
+      setNotificationCount(0);
+    }
+  }, [get]);
 
   useEffect(() => {
     fetchData();
-  }, [period]);
+    fetchNotificationCount();
+  }, [period, fetchNotificationCount]);
+
+  // Fetch notification count periodically
+  useEffect(() => {
+    fetchNotificationCount(); // Initial fetch
+    const interval = setInterval(() => {
+      fetchNotificationCount();
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(interval);
+  }, [fetchNotificationCount]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -415,6 +442,18 @@ export default function AdminDashboard() {
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex gap-3">
+          <button
+            onClick={() => setShowNotifications(true)}
+            className="relative px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors flex items-center gap-2"
+          >
+            <Bell className="w-4 h-4" />
+            Notifications
+            {notificationCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                {notificationCount > 99 ? "99+" : notificationCount}
+              </span>
+            )}
+          </button>
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
@@ -754,6 +793,15 @@ export default function AdminDashboard() {
         </button>
       </div>
       </div>
+
+      {/* Slot Notifications Modal */}
+      <SlotNotificationsModal
+        isOpen={showNotifications}
+        onClose={() => {
+          setShowNotifications(false);
+          fetchNotificationCount(); // Refresh count when modal closes
+        }}
+      />
     </>
   );
 }

@@ -156,15 +156,39 @@ export default function SearchPage() {
   // Fetch search suggestions (now supports empty string for defaults)
   const fetchSuggestions = async (query) => {
     try {
+      // Clear any existing timeout
+      if (suggestionsTimeoutRef.current) {
+        clearTimeout(suggestionsTimeoutRef.current);
+      }
+      
+      // Cancel any pending suggestions request
+      if (suggestionsAbortControllerRef.current) {
+        suggestionsAbortControllerRef.current.abort();
+      }
+
+      // Debounce suggestions by 200ms
+      await new Promise((resolve) => {
+        suggestionsTimeoutRef.current = setTimeout(resolve, 200);
+      });
+      
+      // Create new AbortController for this request
+      const abortController = new AbortController();
+      suggestionsAbortControllerRef.current = abortController;
+      
       const res = await fetch(
         `/api/search/suggestions?q=${encodeURIComponent(query)}&type=${
           searchType || "all"
-        }`
+        }`,
+        { signal: abortController.signal }
       );
       const data = await res.json();
       setSuggestions(data.suggestions || []);
       setShowSuggestions((data.suggestions || []).length > 0);
     } catch (e) {
+      // Ignore aborted requests
+      if (e.name === 'AbortError') {
+        return;
+      }
       setSuggestions([]);
       setShowSuggestions(false);
     }
@@ -182,6 +206,24 @@ export default function SearchPage() {
 
   const performSearch = useCallback(async (pageNum = 1, append = false) => {
     try {
+      // Prevent concurrent searches (except for pagination)
+      if (!append && apiLoading) {
+        console.log('Search already in progress, skipping...');
+        return;
+      }
+
+      // Only cancel previous request if this is a NEW search (not pagination)
+      if (!append && abortControllerRef.current) {
+        console.log('Cancelling previous search request (new search started)');
+        abortControllerRef.current.abort();
+      }
+
+      // Create new AbortController for this request
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+      
+      console.log(`Starting search - Page: ${pageNum}, Append: ${append}, Query: ${searchQuery}`);
+
       const queryParams = new URLSearchParams({
         type: searchType,
         sort: sortBy,
@@ -217,7 +259,9 @@ export default function SearchPage() {
       }
       // Note: Search can work without location - backend should handle this
 
-      const response = await get(`/search?${queryParams.toString()}`);
+      const response = await get(`/search?${queryParams.toString()}`, {
+        signal: abortController.signal
+      });
       
       const newResults = response.data?.results || {};
       
@@ -253,11 +297,18 @@ export default function SearchPage() {
       setHasMore(hasMoreResults);
       setIsLoadingMore(false);
     } catch (error) {
+      // Ignore aborted requests - they're intentional cancellations
+      if (error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
+        console.log('Search request cancelled');
+        return;
+      }
+      
       if (!append) {
         setResults({});
       }
       setIsLoadingMore(false);
       setHasMore(false);
+      console.error('Search error:', error);
     }
   }, [
     searchQuery,
@@ -270,12 +321,16 @@ export default function SearchPage() {
     convertedLocation,
     get,
     RESULTS_PER_PAGE,
+    apiLoading,
   ]);
 
   // Use a ref to prevent infinite loops
   const searchTriggerRef = useRef(false);
   const lastSearchParams = useRef({});
   const searchTimeoutRef = useRef(null);
+  const abortControllerRef = useRef(null);
+  const suggestionsAbortControllerRef = useRef(null);
+  const suggestionsTimeoutRef = useRef(null);
 
   useEffect(() => {
     // Clear any existing timeout
@@ -320,8 +375,8 @@ export default function SearchPage() {
       hasLocation ||
       (searchQuery.trim().length > 0 && searchType === "doctors")
     ) {
-      // Debounce search by 500ms for query changes, immediate for other changes
-      const delay = paramsChanged && currentParams.searchQuery !== lastSearchParams.current.searchQuery ? 500 : 0;
+      // Debounce search by 800ms for query changes, 300ms for other changes
+      const delay = paramsChanged && currentParams.searchQuery !== lastSearchParams.current.searchQuery ? 800 : 300;
       
       searchTimeoutRef.current = setTimeout(() => {
         lastSearchParams.current = currentParams;
@@ -333,6 +388,16 @@ export default function SearchPage() {
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
+      }
+      if (suggestionsTimeoutRef.current) {
+        clearTimeout(suggestionsTimeoutRef.current);
+      }
+      // Cancel any pending search requests on cleanup
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (suggestionsAbortControllerRef.current) {
+        suggestionsAbortControllerRef.current.abort();
       }
     };
   }, [searchQuery, searchType, locationInput, selectedLocation, userLocation?.city, convertedLocation?.city, filters.department, sortBy, performSearch]);

@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
-  timeout: 30000, // Increased from 10000ms to 30000ms (30 seconds)
+  timeout: 60000, // 60 seconds for complex search queries
   headers: {
     "Content-Type": "application/json",
   },
