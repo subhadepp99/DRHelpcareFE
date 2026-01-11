@@ -10,40 +10,34 @@ import { pageMetadata } from "@/utils/metadata";
 export default function AboutPage() {
   const features = [
     {
-      icon: Heart,
-      title: "Patient-Centered Care",
-      description:
-        "Your health and comfort are our top priorities in every interaction.",
+      icon: Zap,
+      title: "Easy and fast online booking",
+      description: "Book appointments with just a few clicks",
     },
     {
       icon: Users,
-      title: "Expert Network",
-      description:
-        "Connect with qualified healthcare professionals across specialties.",
-    },
-    {
-      icon: Award,
-      title: "Quality Assured",
-      description:
-        "All our partners meet stringent quality and certification standards.",
+      title: "Verified doctors and labs",
+      description: "All healthcare providers are verified and trusted",
     },
     {
       icon: Shield,
-      title: "Secure & Private",
-      description:
-        "Your medical information is protected with enterprise-grade security.",
+      title: "Reliable medical transportation",
+      description: "Fast and safe ambulance and car services",
+    },
+    {
+      icon: Award,
+      title: "Simple and clean user interface",
+      description: "Easy to navigate and user-friendly design",
     },
     {
       icon: Target,
-      title: "Precision Matching",
-      description:
-        "Find the right healthcare provider based on your specific needs.",
+      title: "24/7 emergency support availability",
+      description: "Round-the-clock assistance when you need it",
     },
     {
-      icon: Zap,
-      title: "Instant Booking",
-      description:
-        "Book appointments instantly with real-time availability updates.",
+      icon: Heart,
+      title: "Focus on trust, safety, and convenience",
+      description: "Your health and safety are our priorities",
     },
   ];
 
@@ -68,12 +62,13 @@ export default function AboutPage() {
                 className="text-center"
               >
                 <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
-                  About <span className="text-primary-600">HealthCare</span>
+                  About Us – <span className="text-primary-600">DrHelp.in</span>
                 </h1>
                 <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                  We're revolutionizing healthcare access by connecting patients
-                  with the right healthcare providers at the right time, making
-                  quality healthcare accessible to everyone.
+                  Welcome to DrHelp.in, your trusted digital healthcare companion in West
+                  Bengal. We are dedicated to making healthcare simple, fast, and accessible for
+                  everyone—whether you need to book a doctor, schedule a pathology test, or
+                  arrange a medical car or ambulance.
                 </p>
               </motion.div>
             </div>
@@ -89,21 +84,27 @@ export default function AboutPage() {
                   transition={{ duration: 0.6 }}
                 >
                   <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-                    Our Mission
+                    Who We Are
                   </h2>
                   <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                    To democratize healthcare access by providing a
-                    comprehensive platform that connects patients with qualified
-                    healthcare providers, enabling seamless appointment booking,
-                    and fostering better health outcomes for communities
-                    worldwide.
+                    DrHelp.in is a modern healthcare platform designed to bridge the gap between
+                    patients and essential medical services. Our goal is to help people find
+                    trusted doctors, labs, clinics, and medical transportation—all in one place
+                    with just a few clicks.
                   </p>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed font-semibold">
+                    We bring together:
+                  </p>
+                  <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300 mb-6 ml-4">
+                    <li>Online Doctor Booking</li>
+                    <li>Pathology Test Booking</li>
+                    <li>Car & Ambulance Services</li>
+                    <li>Healthcare Directory Listings</li>
+                    <li>Verified Medical Professionals</li>
+                  </ul>
                   <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                    We believe that everyone deserves access to quality
-                    healthcare, regardless of their location or circumstances.
-                    Our technology bridges the gap between patients and
-                    healthcare providers, making it easier than ever to find,
-                    connect, and receive care.
+                    With a mission to improve healthcare accessibility in every town and district
+                    of West Bengal.
                   </p>
                 </motion.div>
 
@@ -131,11 +132,11 @@ export default function AboutPage() {
                 className="text-center mb-12"
               >
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                  Why Choose HealthCare?
+                  Why Choose DrHelp.in?
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                  We're committed to providing the best healthcare discovery and
-                  booking experience
+                  We believe every patient deserves transparent, reliable, and quick access to
+                  medical help.
                 </p>
               </motion.div>
 
@@ -163,29 +164,212 @@ export default function AboutPage() {
             </div>
           </section>
 
-          {/* Stats Section */}
-          <section className="py-16 bg-primary-600">
+          {/* Mission & Vision */}
+          <section className="py-16 bg-white dark:bg-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+                    Our Mission
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                    To make healthcare accessible, transparent, and convenient for every
+                    person—regardless of location, time, or circumstances.
+                  </p>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+                    Our Vision
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                    To become West Bengal's most trusted and widely used healthcare platform by
+                    connecting millions of people to reliable medical services effortlessly.
+                  </p>
+                </motion.div>
+              </div>
+            </div>
+          </section>
+
+          {/* What We Offer */}
+          <section className="py-16 bg-gray-50 dark:bg-gray-900">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="mb-12"
+              >
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">
+                  What We Offer
+                </h2>
+              </motion.div>
+              <div className="space-y-8">
                 {[
-                  { number: "10,000+", label: "Healthcare Providers" },
-                  { number: "500,000+", label: "Appointments Booked" },
-                  { number: "50+", label: "Cities Covered" },
-                  { number: "4.8/5", label: "User Rating" },
-                ].map((stat, index) => (
+                  {
+                    title: "Online Doctor Booking",
+                    description:
+                      "Find and book appointments with verified doctors across multiple specialties, including general physicians, surgeons, gynecologists, pediatricians, orthopedic experts, and more.",
+                  },
+                  {
+                    title: "Pathology Test Booking",
+                    description:
+                      "Schedule diagnostic tests with trusted labs. Many partner labs offer accurate reports, home sample collection, and affordable packages.",
+                  },
+                  {
+                    title: "Car & Ambulance Booking",
+                    description:
+                      "Book emergency or non-emergency vehicles within minutes. We provide ambulances, medical cars, and local and outstation medical transport.",
+                  },
+                  {
+                    title: "Verified Healthcare Information",
+                    description:
+                      "We verify doctors, clinics, and labs to ensure users receive trustworthy and updated information.",
+                  },
+                ].map((item, index) => (
                   <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, delay: index * 0.1 }}
-                    className="text-white"
+                    className="card p-6"
                   >
-                    <div className="text-3xl md:text-4xl font-bold mb-2">
-                      {stat.number}
-                    </div>
-                    <div className="text-primary-100">{stat.label}</div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                      {item.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                      {item.description}
+                    </p>
                   </motion.div>
                 ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Areas We Serve */}
+          <section className="py-16 bg-white dark:bg-gray-800">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+              >
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+                  Areas We Serve
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  DrHelp.in proudly serves patients across West Bengal, including:
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {[
+                    "Tamluk",
+                    "Haldia",
+                    "Contai",
+                    "Midnapore",
+                    "Kolkata",
+                    "Kharagpur",
+                    "All nearby districts",
+                  ].map((area, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-center"
+                    >
+                      <p className="text-gray-900 dark:text-white font-medium">{area}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-gray-600 dark:text-gray-300 mt-6">
+                  Our service area continues to expand every month.
+                </p>
+              </motion.div>
+            </div>
+          </section>
+
+          {/* Partner & Contact */}
+          <section className="py-16 bg-gray-50 dark:bg-gray-900">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+                    Partner With Us
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">
+                    We welcome:
+                  </p>
+                  <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300 mb-6 ml-4">
+                    <li>Doctors</li>
+                    <li>Clinics</li>
+                    <li>Hospitals</li>
+                    <li>Pathology Labs</li>
+                    <li>Ambulance Providers</li>
+                  </ul>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">
+                    Partner with DrHelp.in to reach more patients and grow your medical services.
+                  </p>
+                  <a
+                    href="mailto:doctorhelpcare@gmail.com"
+                    className="text-primary-600 hover:underline font-semibold"
+                  >
+                    doctorhelpcare@gmail.com
+                  </a>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+                    Get in Touch
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">
+                    Have questions or need assistance?
+                  </p>
+                  <div className="space-y-3">
+                    <p className="text-gray-600 dark:text-gray-300">
+                      <strong>Email:</strong>{" "}
+                      <a
+                        href="mailto:doctorhelpcare@gmail.com"
+                        className="text-primary-600 hover:underline"
+                      >
+                        doctorhelpcare@gmail.com
+                      </a>
+                    </p>
+                    <p className="text-gray-600 dark:text-gray-300">
+                      <strong>Phone:</strong>{" "}
+                      <a
+                        href="tel:+919242141716"
+                        className="text-primary-600 hover:underline"
+                      >
+                        +91-9242141716
+                      </a>
+                    </p>
+                    <p className="text-gray-600 dark:text-gray-300">
+                      <strong>Website:</strong>{" "}
+                      <a
+                        href="https://drhelp.in"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary-600 hover:underline"
+                      >
+                        https://drhelp.in
+                      </a>
+                    </p>
+                  </div>
+                  <p className="text-primary-600 font-semibold mt-6">
+                    We're here to help!
+                  </p>
+                </motion.div>
               </div>
             </div>
           </section>

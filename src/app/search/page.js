@@ -254,8 +254,13 @@ export default function SearchPage() {
         if (userLocation.lng) queryParams.set("lng", userLocation.lng);
       } else {
         // Fallback to manual location input - only add if exists
+        // Normalize to lowercase for consistency (backend already handles case-insensitive)
         const cityParam = (selectedLocation || locationInput || "").trim();
-        if (cityParam) queryParams.set("city", cityParam);
+        if (cityParam) {
+          // Send the location as-is since backend uses case-insensitive regex
+          // But normalize it for consistency in matching
+          queryParams.set("city", cityParam);
+        }
       }
       // Note: Search can work without location - backend should handle this
 

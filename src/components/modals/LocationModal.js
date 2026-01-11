@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { pincodeToLocation } from "@/utils/locationUtils";
 
-export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
+export default function LocationModal({ isOpen, onClose, onLocationSelect, mandatory = false }) {
   const [selectedTab, setSelectedTab] = useState("detect"); // detect or pincode or city
   const [pincode, setPincode] = useState("");
   const [city, setCity] = useState("");
@@ -73,16 +73,40 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
             formattedAddress: data.display_name || "Current Location",
           };
 
-          saveToRecentLocations(locationData);
-          onLocationSelect(locationData);
+          // Save to recent locations - this shouldn't throw, but handle gracefully
+          try {
+            saveToRecentLocations(locationData);
+          } catch (saveError) {
+            console.error("Error saving to recent locations:", saveError);
+            // Continue even if saving fails
+          }
+
+          // Location detection was successful, show success toast first
           toast.success(`Location set to ${locationData.city}`);
-          onClose();
+          
+          // Handle location selection - wrap in try-catch to prevent errors from showing wrong toast
+          try {
+            onLocationSelect(locationData);
+            setDetecting(false);
+            onClose();
+          } catch (selectionError) {
+            // If location selection fails, log it but don't show error toast
+            // since location detection was successful
+            console.error("Error during location selection:", selectionError);
+            setDetecting(false);
+            // Still close the modal even if selection had an error
+            try {
+              onClose();
+            } catch (closeError) {
+              console.error("Error closing modal:", closeError);
+            }
+          }
         } catch (error) {
+          // Only show error toast if location detection itself fails
+          setDetecting(false);
           toast.error(
             "Failed to detect location. Please try entering pincode."
           );
-        } finally {
-          setDetecting(false);
         }
       },
       (error) => {
@@ -279,8 +303,8 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+          onClick={mandatory ? undefined : onClose}
+          className={`absolute inset-0 bg-black/50 backdrop-blur-sm z-[9998] ${mandatory ? 'cursor-not-allowed' : 'cursor-pointer'}`}
         />
 
         {/* Modal */}
@@ -294,14 +318,16 @@ export default function LocationModal({ isOpen, onClose, onLocationSelect }) {
           <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
               <MapPin className="w-6 h-6 mr-2 text-blue-600" />
-              Select Location
+              {mandatory ? "Please Select Your Location" : "Select Location"}
             </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
+            {!mandatory && (
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            )}
           </div>
 
           {/* Content */}

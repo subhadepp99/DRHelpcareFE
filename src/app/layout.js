@@ -8,7 +8,8 @@ import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "@/store/authStore";
 import { useEffect, useState } from "react";
 import FloatingContactButtons from "@/components/common/FloatingContactButtons";
-import { LocationProvider } from "@/contexts/LocationContext";
+import { LocationProvider, useLocation } from "@/contexts/LocationContext";
+import LocationModal from "@/components/modals/LocationModal";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,6 +21,37 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Component to handle mandatory location modal
+function LocationModalWrapper() {
+  const {
+    location,
+    setLocation,
+    isLocationModalOpen,
+    closeLocationModal,
+    isInitialized,
+  } = useLocation();
+  const isMandatory = !location && isLocationModalOpen;
+
+  const handleLocationSelect = (newLocation) => {
+    setLocation(newLocation);
+    closeLocationModal();
+  };
+
+  // Don't render until initialized to avoid flash
+  if (!isInitialized) {
+    return null;
+  }
+
+  return (
+    <LocationModal
+      isOpen={isLocationModalOpen}
+      onClose={isMandatory ? undefined : closeLocationModal}
+      onLocationSelect={handleLocationSelect}
+      mandatory={isMandatory}
+    />
+  );
+}
 
 export default function RootLayout({ children }) {
   const [mounted, setMounted] = useState(false);
@@ -34,11 +66,22 @@ export default function RootLayout({ children }) {
     return (
       <html lang="en">
         <head>
-          <title>Find Doctors, Clinics & Pathology Labs in Midnapore | DrHelp.in</title>
-          <meta name="description" content="DrHelp helps you find trusted doctors, clinics, pathology labs, and ambulance services in Tamluk, Haldia, Contai, and nearby areas. Book medical services easily and get care when you need it most." />
+          <title>
+            Find Doctors, Clinics & Pathology Labs in Midnapore | DrHelp.in
+          </title>
+          <link rel="icon" href="/images/logo.png" type="image/png" />
+          <link rel="shortcut icon" href="/images/logo.png" type="image/png" />
+          <link rel="apple-touch-icon" href="/images/logo.png" />
+          <meta
+            name="description"
+            content="DrHelp helps you find trusted doctors, clinics, pathology labs, and ambulance services in Tamluk, Haldia, Contai, and nearby areas. Book medical services easily and get care when you need it most."
+          />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <meta name="fast2sms" content="pdVH66wTFsGd4GOM811gavI2ReWPGnpq" />
-          <meta name="google-site-verification" content="Sb0LAXuh7dfZaO7VE7VO82ywyM3K4eMCRNOiJNFo8wA" />
+          <meta
+            name="google-site-verification"
+            content="Sb0LAXuh7dfZaO7VE7VO82ywyM3K4eMCRNOiJNFo8wA"
+          />
           {/* Google Tag Manager */}
           <script
             dangerouslySetInnerHTML={{
@@ -88,11 +131,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>Find Doctors, Clinics & Pathology Labs in Midnapore | DrHelp.in</title>
-        <meta name="description" content="DrHelp helps you find trusted doctors, clinics, pathology labs, and ambulance services in Tamluk, Haldia, Contai, and nearby areas. Book medical services easily and get care when you need it most." />
+        <title>
+          Find Doctors, Clinics & Pathology Labs in Midnapore | DrHelp.in
+        </title>
+        <link rel="icon" href="/images/logo.png" type="image/png" />
+        <link rel="shortcut icon" href="/images/logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/images/logo.png" />
+        <meta
+          name="description"
+          content="DrHelp helps you find trusted doctors, clinics, pathology labs, and ambulance services in Tamluk, Haldia, Contai, and nearby areas. Book medical services easily and get care when you need it most."
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="fast2sms" content="pdVH66wTFsGd4GOM811gavI2ReWPGnpq" />
-        <meta name="google-site-verification" content="Sb0LAXuh7dfZaO7VE7VO82ywyM3K4eMCRNOiJNFo8wA" />
+        <meta
+          name="google-site-verification"
+          content="Sb0LAXuh7dfZaO7VE7VO82ywyM3K4eMCRNOiJNFo8wA"
+        />
         {/* Google Tag Manager */}
         <script
           dangerouslySetInnerHTML={{
@@ -136,6 +190,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             <LocationProvider>
               {children}
               <FloatingContactButtons />
+              <LocationModalWrapper />
             </LocationProvider>
             <Toaster
               position="top-right"
