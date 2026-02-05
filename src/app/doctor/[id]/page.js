@@ -49,7 +49,7 @@ export default function DoctorProfilePage() {
 
   const fetchAllDoctorsAndLocations = async () => {
     try {
-      const doctorsResponse = await get("/doctors?limit=1000");
+      const doctorsResponse = await get("/doctors?limit=150");
       if (doctorsResponse.data?.data?.doctors) {
         const doctors = doctorsResponse.data.data.doctors;
         setAllDoctors(doctors);

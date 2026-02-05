@@ -35,6 +35,9 @@ export default function AdminDoctorsPage() {
   const [departments, setDepartments] = useState([]);
   const [clinics, setClinics] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false); // New state for form submission
   const [isDeleting, setIsDeleting] = useState(false); // New state for deletion
   const [modalOpen, setModalOpen] = useState(false);
@@ -68,19 +71,47 @@ export default function AdminDoctorsPage() {
   });
 
   // Fetch doctors from the API using the Node backend endpoint
-  const fetchDoctors = async (term = "") => {
-    setLoading(true);
+  const fetchDoctors = async (term = "", page = 1, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const qs = term ? `&search=${encodeURIComponent(term)}` : "";
       const res = await get(
-        `/doctors?limit=1000&populate=department,clinicDetails.clinic${qs}`
-      ); // Add populate to get department names and clinic details
-      setDoctors(res.data.doctors || res.data.data?.doctors || []);
+        `/doctors?limit=150&page=${page}&populate=department,clinicDetails.clinic${qs}`
+      ); // Load 150 at a time for better performance
+      const newDoctors = res.data.doctors || res.data.data?.doctors || [];
+      const pagination = res.data.pagination || res.data.data?.pagination;
+      
+      if (append) {
+        setDoctors((prev) => [...prev, ...newDoctors]);
+      } else {
+        setDoctors(newDoctors);
+        setCurrentPage(1);
+      }
+      
+      // Check if there are more pages
+      if (pagination) {
+        setHasMore(page < pagination.pages);
+        setCurrentPage(page);
+      } else {
+        setHasMore(newDoctors.length === 150); // If we got 150, there might be more
+      }
     } catch (err) {
       toast.error("Failed to fetch doctors.");
-      setDoctors([]);
+      if (!append) setDoctors([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreDoctors = () => {
+    if (!loadingMore && hasMore) {
+      fetchDoctors(search, currentPage + 1, true);
     }
   };
 
@@ -117,7 +148,7 @@ export default function AdminDoctorsPage() {
   // Live search with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
-      fetchDoctors(search.trim());
+      fetchDoctors(search.trim(), 1, false);
     }, 300);
     return () => clearTimeout(handler);
   }, [search]);
@@ -525,6 +556,31 @@ export default function AdminDoctorsPage() {
             ))}
           </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Load More Button */}
+      {!loading && doctors.length > 0 && hasMore && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={loadMoreDoctors}
+            disabled={loadingMore}
+            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {loadingMore ? (
+              <>
+                <div className="spinner w-4 h-4"></div>
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                <span>Load More</span>
+                <span className="text-sm opacity-75">
+                  ({doctors.length} loaded)
+                </span>
+              </>
+            )}
+          </button>
         </div>
       )}
 

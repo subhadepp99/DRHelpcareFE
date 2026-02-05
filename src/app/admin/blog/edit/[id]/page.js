@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Upload, X } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import toast from "react-hot-toast";
 
@@ -12,6 +12,9 @@ export default function EditBlogPage() {
   const { get, put } = useApi();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     excerpt: "",
@@ -20,7 +23,6 @@ export default function EditBlogPage() {
     category: "Healthcare",
     tags: "",
     readTime: "5 min read",
-    imageUrl: "",
     isPublished: false,
   });
 
@@ -54,9 +56,14 @@ export default function EditBlogPage() {
         category: blog.category || "Healthcare",
         tags: Array.isArray(blog.tags) ? blog.tags.join(", ") : "",
         readTime: blog.readTime || "5 min read",
-        imageUrl: blog.imageUrl || "",
         isPublished: blog.isPublished || false,
       });
+
+      // Set current image preview if image exists
+      if (blog.imageUrl && blog.imageUrl !== "/images/blog-default.jpg") {
+        setCurrentImageUrl(blog.imageUrl);
+        setImagePreview(blog.imageUrl);
+      }
     } catch (error) {
       toast.error("Failed to load blog post");
       router.push("/admin/blog");
@@ -71,6 +78,37 @@ export default function EditBlogPage() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
+        return;
+      }
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size should be less than 5MB");
+        return;
+      }
+      setSelectedImage(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(currentImageUrl);
+    // Reset file input
+    const fileInput = document.getElementById("image-upload");
+    if (fileInput) fileInput.value = "";
   };
 
   const handleSubmit = async (e) => {
@@ -89,10 +127,26 @@ export default function EditBlogPage() {
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
 
-      const response = await put(`/blogs/${params.id}`, {
-        ...formData,
-        tags: tagsArray,
-      });
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append("title", formData.title);
+      formDataToSend.append("excerpt", formData.excerpt);
+      formDataToSend.append("content", formData.content);
+      formDataToSend.append("author", formData.author);
+      formDataToSend.append("category", formData.category);
+      formDataToSend.append("tags", JSON.stringify(tagsArray));
+      formDataToSend.append("readTime", formData.readTime);
+      formDataToSend.append("isPublished", formData.isPublished ? "true" : "false");
+
+      // Add image file if a new one is selected
+      if (selectedImage) {
+        formDataToSend.append("image", selectedImage);
+      } else if (currentImageUrl && currentImageUrl !== "/images/blog-default.jpg") {
+        // Keep existing imageUrl if no new file is uploaded
+        formDataToSend.append("imageUrl", currentImageUrl);
+      }
+
+      const response = await put(`/blogs/${params.id}`, formDataToSend);
 
       toast.success("Blog post updated successfully!");
       router.push("/admin/blog");
@@ -257,19 +311,53 @@ export default function EditBlogPage() {
           </div>
         </div>
 
-        {/* Image URL */}
+        {/* Image Upload */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Image URL
+            Featured Image
           </label>
-          <input
-            type="text"
-            name="imageUrl"
-            value={formData.imageUrl}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-            placeholder="https://example.com/image.jpg"
-          />
+          <div className="space-y-4">
+            {imagePreview ? (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full h-64 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                />
+                {selectedImage && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Click to upload an image
+                </p>
+                <p className="text-xs text-gray-500">
+                  PNG, JPG, GIF up to 5MB
+                </p>
+              </div>
+            )}
+            <input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-900 dark:file:text-primary-300"
+            />
+            {currentImageUrl && !selectedImage && (
+              <p className="text-xs text-gray-500">
+                Current image will be kept if no new image is uploaded
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Publish Status */}

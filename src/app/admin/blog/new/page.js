@@ -10,6 +10,8 @@ export default function NewBlogPage() {
   const router = useRouter();
   const { post } = useApi();
   const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     excerpt: "",
@@ -18,7 +20,6 @@ export default function NewBlogPage() {
     category: "Healthcare",
     tags: "",
     readTime: "5 min read",
-    imageUrl: "",
     isPublished: false,
   });
 
@@ -42,6 +43,37 @@ export default function NewBlogPage() {
     }));
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
+        return;
+      }
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size should be less than 5MB");
+        return;
+      }
+      setSelectedImage(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    // Reset file input
+    const fileInput = document.getElementById("image-upload");
+    if (fileInput) fileInput.value = "";
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -58,10 +90,23 @@ export default function NewBlogPage() {
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
 
-      const response = await post("/blogs", {
-        ...formData,
-        tags: tagsArray,
-      });
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append("title", formData.title);
+      formDataToSend.append("excerpt", formData.excerpt);
+      formDataToSend.append("content", formData.content);
+      formDataToSend.append("author", formData.author);
+      formDataToSend.append("category", formData.category);
+      formDataToSend.append("tags", JSON.stringify(tagsArray));
+      formDataToSend.append("readTime", formData.readTime);
+      formDataToSend.append("isPublished", formData.isPublished ? "true" : "false");
+
+      // Add image file if selected
+      if (selectedImage) {
+        formDataToSend.append("image", selectedImage);
+      }
+
+      const response = await post("/blogs", formDataToSend);
 
       toast.success("Blog post created successfully!");
       router.push("/admin/blog");
@@ -216,19 +261,46 @@ export default function NewBlogPage() {
           </div>
         </div>
 
-        {/* Image URL */}
+        {/* Image Upload */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Image URL
+            Featured Image
           </label>
-          <input
-            type="text"
-            name="imageUrl"
-            value={formData.imageUrl}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-            placeholder="https://example.com/image.jpg"
-          />
+          <div className="space-y-4">
+            {imagePreview ? (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full h-64 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Click to upload an image
+                </p>
+                <p className="text-xs text-gray-500">
+                  PNG, JPG, GIF up to 5MB
+                </p>
+              </div>
+            )}
+            <input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-900 dark:file:text-primary-300"
+            />
+          </div>
         </div>
 
         {/* Publish Status */}

@@ -174,13 +174,19 @@ export default function BlogAdminPage() {
               className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow"
             >
               {/* Post Image */}
-              {post.image && (
-                <img
-                  src={post.image}
-                  alt={post.title}
-                  className="w-full h-48 object-cover"
-                />
-              )}
+              <div className="relative h-48 bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-800 dark:to-primary-900">
+                {post.imageUrl && post.imageUrl !== "/images/blog-default.jpg" ? (
+                  <img
+                    src={post.imageUrl}
+                    alt={post.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <FileText className="w-12 h-12 text-gray-400" />
+                  </div>
+                )}
+              </div>
 
               {/* Post Content */}
               <div className="p-4">
