@@ -26,10 +26,12 @@ export default function BlogPostPage() {
   const [liked, setLiked] = useState(false);
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (slug) {
       fetchBlogPost();
+      setImageError(false);
     }
   }, [slug]);
 
@@ -37,8 +39,13 @@ export default function BlogPostPage() {
     try {
       setLoading(true);
       const response = await get(`/blogs/slug/${slug}`);
-      setPost(response.data?.blog || response.data);
+      const blogData = response.data?.blog || response.data;
+      console.log("Blog data received:", blogData);
+      console.log("ImageUrl:", blogData?.imageUrl);
+      console.log("Image object:", blogData?.image);
+      setPost(blogData);
     } catch (error) {
+      console.error("Error fetching blog:", error);
       // Fallback to sample data
       setPost(sampleBlogPosts[slug]);
     } finally {
@@ -546,11 +553,18 @@ export default function BlogPostPage() {
 
           {/* Featured Image */}
           <div className="relative h-96 bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-800 dark:to-primary-900 rounded-xl mb-12 overflow-hidden">
-            {post.imageUrl && post.imageUrl !== "/images/blog-default.jpg" ? (
+            {post.imageUrl && 
+             post.imageUrl !== "/images/blog-default.jpg" && 
+             post.imageUrl.trim() !== "" &&
+             !imageError ? (
               <img
                 src={post.imageUrl}
                 alt={post.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-top"
+                onError={() => {
+                  console.error("Image failed to load:", post.imageUrl);
+                  setImageError(true);
+                }}
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
