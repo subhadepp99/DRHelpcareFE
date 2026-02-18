@@ -201,10 +201,21 @@ export default function SearchSection({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if ((searchQuery || "").trim() && (searchQuery || "").length >= 3) {
-      if (onSearch) {
-        onSearch({ selectedLocation });
-      }
+    const normalizedQuery = (searchQuery || "").trim();
+    const effectiveLocation = (selectedLocation || locationInput || "").trim();
+
+    // Allow location-only search when query is blank.
+    // If query exists, keep minimum length guard.
+    if (normalizedQuery && normalizedQuery.length < 3) {
+      return;
+    }
+
+    if (!normalizedQuery && !effectiveLocation) {
+      return;
+    }
+
+    if (onSearch) {
+      onSearch({ selectedLocation: effectiveLocation });
     }
   };
 
@@ -229,7 +240,10 @@ export default function SearchSection({
   // );
   
   const hasActiveFilters = false; // Disabled filters always return false
-  const isSearchDisabled = !(searchQuery || "").trim() && !hasActiveFilters;
+  const isSearchDisabled =
+    !(searchQuery || "").trim() &&
+    !(selectedLocation || locationInput || "").trim() &&
+    !hasActiveFilters;
 
   const specialtyPills = [
     "Dentist",
@@ -327,8 +341,14 @@ export default function SearchSection({
                         onClick={() => {
                           if (suggestion.type !== "info" && setSearchQuery) {
                             setSearchQuery(suggestion.text);
+                            setShowSuggestions(false);
+                            // Trigger search when suggestion is clicked
+                            if (onSearch && suggestion.text.length >= 3) {
+                              onSearch({ selectedLocation });
+                            }
+                          } else {
+                            setShowSuggestions(false);
                           }
-                          setShowSuggestions(false);
                         }}
                       >
                         <div className="font-medium text-gray-900 dark:text-white">

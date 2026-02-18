@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -49,24 +49,19 @@ export default function SearchPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   // COMMENTED OUT - Advanced filters disabled
   // const [showFilters, setShowFilters] = useState(false);
-  // const [filters, setFilters] = useState({
-  //   specialization: "",
-  //   experience: "",
-  //   fee: "",
-  //   rating: "",
-  //   distance: "",
-  //   department: searchParams.get("department") || "",
-  // });
-  
-  // Temporary empty filters object for compatibility
-  const filters = {
+  const [departmentFilter, setDepartmentFilter] = useState(
+    searchParams.get("department") || ""
+  );
+
+  // Temporary empty filters object for compatibility with child components
+  const filters = useMemo(() => ({
     specialization: "",
     experience: "",
     fee: "",
     rating: "",
     distance: "",
-    department: searchParams.get("department") || "",
-  };
+    department: departmentFilter,
+  }), [departmentFilter]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   
@@ -204,14 +199,8 @@ export default function SearchPage() {
     }
   };
 
-  const performSearch = useCallback(async (pageNum = 1, append = false) => {
+  const performSearch = useCallback(async (pageNum = 1, append = false, overrideType = null) => {
     try {
-      // Prevent concurrent searches (except for pagination)
-      if (!append && apiLoading) {
-        console.log('Search already in progress, skipping...');
-        return;
-      }
-
       // Only cancel previous request if this is a NEW search (not pagination)
       if (!append && abortControllerRef.current) {
         console.log('Cancelling previous search request (new search started)');
@@ -222,15 +211,18 @@ export default function SearchPage() {
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
       
-      console.log(`Starting search - Page: ${pageNum}, Append: ${append}, Query: ${searchQuery}`);
+      // Use overrideType if provided, otherwise use state searchType
+      const searchTypeToUse = overrideType !== null ? overrideType : searchType;
+      
+      console.log(`Starting search - Page: ${pageNum}, Append: ${append}, Query: ${searchQuery}, Type: ${searchTypeToUse}`);
 
       const queryParams = new URLSearchParams({
-        type: searchType,
+        type: searchTypeToUse,
         sort: sortBy,
-        ...filters,
         page: pageNum,
         limit: RESULTS_PER_PAGE,
       });
+      if (departmentFilter) queryParams.set("department", departmentFilter);
       
       // Only add search query if it's not empty
       if (searchQuery && searchQuery.trim()) {
@@ -319,18 +311,110 @@ export default function SearchPage() {
     searchQuery,
     searchType,
     sortBy,
-    filters,
+    departmentFilter,
     selectedLocation,
     locationInput,
     userLocation,
     convertedLocation,
     get,
     RESULTS_PER_PAGE,
-    apiLoading,
+  ]);
+
+  // Function to handle search type change and trigger search
+  const handleSearchTypeChange = useCallback(async (newType) => {
+    // Update the search type state
+    setSearchType(newType);
+    
+    // Build query params with the new type directly (don't wait for state update)
+    const queryParams = new URLSearchParams({
+      type: newType,
+      sort: sortBy,
+      page: 1,
+      limit: RESULTS_PER_PAGE,
+    });
+    if (departmentFilter) queryParams.set("department", departmentFilter);
+    
+    // Only add search query if it's not empty
+    if (searchQuery && searchQuery.trim()) {
+      queryParams.set("q", searchQuery.trim());
+    }
+
+    // Add location
+    if (convertedLocation) {
+      if (convertedLocation.city) queryParams.set("city", convertedLocation.city);
+      if (convertedLocation.state) queryParams.set("state", convertedLocation.state);
+      if (convertedLocation.lat) queryParams.set("lat", convertedLocation.lat);
+      if (convertedLocation.lng) queryParams.set("lng", convertedLocation.lng);
+    } else if (userLocation) {
+      if (userLocation.city) queryParams.set("city", userLocation.city);
+      if (userLocation.state) queryParams.set("state", userLocation.state);
+      if (userLocation.pincode) queryParams.set("pincode", userLocation.pincode);
+      if (userLocation.lat) queryParams.set("lat", userLocation.lat);
+      if (userLocation.lng) queryParams.set("lng", userLocation.lng);
+    } else {
+      const cityParam = (selectedLocation || locationInput || "").trim();
+      if (cityParam) {
+        queryParams.set("city", cityParam);
+      }
+    }
+
+    try {
+      // Cancel any previous search
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new AbortController for this request
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      // Perform the search
+      const response = await get(`/search?${queryParams.toString()}`, {
+        signal: abortController.signal
+      });
+      
+      const newResults = response.data?.results || {};
+      setResults(newResults);
+      
+      const totalResults = Object.values(newResults).reduce((sum, arr) => 
+        sum + (Array.isArray(arr) ? arr.length : 0), 0
+      );
+      
+      if (totalResults === 0) {
+        // Optionally fetch suggested results (function defined later)
+        setSuggestedResults({});
+      } else {
+        setSuggestedResults({});
+      }
+      
+      const hasMoreResults = Object.values(newResults).some(arr => 
+        Array.isArray(arr) && arr.length === RESULTS_PER_PAGE
+      );
+      setHasMore(hasMoreResults);
+      setIsLoadingMore(false);
+    } catch (error) {
+      // Ignore aborted requests
+      if (error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
+        return;
+      }
+      console.error('Search error:', error);
+      setResults({});
+      setIsLoadingMore(false);
+      setHasMore(false);
+    }
+  }, [
+    searchQuery,
+    sortBy,
+    departmentFilter,
+    selectedLocation,
+    locationInput,
+    userLocation,
+    convertedLocation,
+    get,
+    RESULTS_PER_PAGE,
   ]);
 
   // Use a ref to prevent infinite loops
-  const searchTriggerRef = useRef(false);
   const lastSearchParams = useRef({});
   const searchTimeoutRef = useRef(null);
   const abortControllerRef = useRef(null);
@@ -371,12 +455,10 @@ export default function SearchPage() {
     
     // Allow search if:
     // - Query has 3+ chars, OR
-    // - Search type is not "all", OR
-    // - Has location, OR
+    // - Has location (supports location-only search), OR
     // - Query exists and searching for doctors (allow doctor name search without location)
     if (
       searchQuery.trim().length >= 3 ||
-      searchType !== "all" ||
       hasLocation ||
       (searchQuery.trim().length > 0 && searchType === "doctors")
     ) {
@@ -397,7 +479,11 @@ export default function SearchPage() {
       if (suggestionsTimeoutRef.current) {
         clearTimeout(suggestionsTimeoutRef.current);
       }
-      // Cancel any pending search requests on cleanup
+    };
+  }, [searchQuery, searchType, locationInput, selectedLocation, userLocation?.city, convertedLocation?.city, departmentFilter, sortBy, performSearch]);
+
+  useEffect(() => {
+    return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -405,7 +491,7 @@ export default function SearchPage() {
         suggestionsAbortControllerRef.current.abort();
       }
     };
-  }, [searchQuery, searchType, locationInput, selectedLocation, userLocation?.city, convertedLocation?.city, filters.department, sortBy, performSearch]);
+  }, []);
 
   // Infinite Scroll - Load more when user scrolls to bottom
   useEffect(() => {
@@ -475,7 +561,7 @@ export default function SearchPage() {
     if (searchType !== "all") params.set("type", searchType);
     const cityParam = (selectedLocation || locationInput || "").trim();
     if (cityParam) params.set("city", cityParam);
-    if (filters.department) params.set("department", filters.department);
+    if (departmentFilter) params.set("department", departmentFilter);
     const newUrl = `/search${params.toString() ? `?${params.toString()}` : ""}`;
     router.replace(newUrl, { shallow: true });
   }, [
@@ -483,7 +569,7 @@ export default function SearchPage() {
     searchType,
     selectedLocation,
     locationInput,
-    filters.department,
+    departmentFilter,
     router,
   ]);
 
@@ -520,6 +606,18 @@ export default function SearchPage() {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    const hasQuery = searchQuery.trim().length > 0;
+    const hasLocation = !!(
+      (selectedLocation || locationInput || "").trim() ||
+      userLocation?.city ||
+      convertedLocation?.city
+    );
+
+    if (!hasQuery && !hasLocation) {
+      toast.error("Please select an area to search nearby results.");
+      return;
+    }
+
     setPage(1);
     setHasMore(false);
     setResults({}); // Clear previous results
@@ -622,7 +720,7 @@ export default function SearchPage() {
     { value: "clinics", label: "Clinics", icon: "🏥" },
     // { value: "pharmacies", label: "Pharmacies", icon: "💊" },
     { value: "ambulance", label: "Ambulance", icon: "🚑" },
-    { value: "pathology", label: "Pathology", icon: "⚕️" },
+    // { value: "pathology", label: "Pathology", icon: "⚕️" },
   ];
 
   const sortOptions = [
@@ -714,10 +812,7 @@ export default function SearchPage() {
                           onClick={() => {
                             if (s.type !== "info") {
                               if (s.type === "department" && s.value) {
-                                setFilters((prev) => ({
-                                  ...prev,
-                                  department: encodeURIComponent(s.value),
-                                }));
+                                setDepartmentFilter(encodeURIComponent(s.value));
                               }
                               setSearchQuery(s.text || "");
                               setShowSuggestions(false);
@@ -783,7 +878,7 @@ export default function SearchPage() {
               {searchTypes.map((type) => (
                 <button
                   key={type.value}
-                  onClick={() => setSearchType(type.value)}
+                  onClick={() => handleSearchTypeChange(type.value)}
                   className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     searchType === type.value
                       ? "bg-primary-600 text-white"

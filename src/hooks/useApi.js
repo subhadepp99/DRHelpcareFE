@@ -32,7 +32,7 @@ export const useApi = () => {
         setError(err);
 
         if (!options.silent) {
-          toast.error(err.response?.data?.message || "An error occurred");
+          toast.error(err.response?.data?.message || "There seems to be some issue with the server. Please try again later.");
         }
 
         throw err;

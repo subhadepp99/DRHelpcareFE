@@ -252,7 +252,7 @@ export default function AdminLoginPage() {
         toast.error(result.message || "Login failed");
       }
     } catch (error) {
-      toast.error("An error occurred during login");
+      toast.error("There seems to be some issue with the server. Please try again later.");
     }
   };
 
