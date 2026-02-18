@@ -8,7 +8,10 @@ import toast from "react-hot-toast";
 import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import MetaTags from "@/components/common/MetaTags";
-import { generateDoctorMetadata, generateDoctorStructuredData } from "@/utils/metadata";
+import {
+  generateDoctorMetadata,
+  generateDoctorStructuredData,
+} from "@/utils/metadata";
 import FAQAccordion from "@/components/common/FAQAccordion";
 import ReviewSection from "@/components/common/ReviewSection";
 
@@ -63,8 +66,7 @@ export default function DoctorProfilePage() {
         });
         setAllLocations(Array.from(locations));
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const handleSearch = (query) => {
@@ -83,7 +85,7 @@ export default function DoctorProfilePage() {
         doctor.specialization?.toLowerCase().includes(query.toLowerCase()) ||
         doctor.city?.toLowerCase().includes(query.toLowerCase()) ||
         doctor.state?.toLowerCase().includes(query.toLowerCase()) ||
-        doctor.location?.toLowerCase().includes(query.toLowerCase())
+        doctor.location?.toLowerCase().includes(query.toLowerCase()),
     );
 
     setSearchResults(results);
@@ -100,7 +102,7 @@ export default function DoctorProfilePage() {
       (doctor) =>
         doctor.city?.toLowerCase().includes(location.toLowerCase()) ||
         doctor.state?.toLowerCase().includes(location.toLowerCase()) ||
-        doctor.location?.toLowerCase().includes(location.toLowerCase())
+        doctor.location?.toLowerCase().includes(location.toLowerCase()),
     );
 
     if (results.length === 1) {
@@ -110,71 +112,83 @@ export default function DoctorProfilePage() {
       // Multiple results - navigate to search page with proper query
       router.push(
         `/search?q=${encodeURIComponent(
-          location
-        )}&type=doctors&location=${encodeURIComponent(location)}`
+          location,
+        )}&type=doctors&location=${encodeURIComponent(location)}`,
       );
     }
     setShowSearchResults(false);
   };
 
   const getMapSrc = (location) => {
-    if (!location) return '';
-    
+    if (!location) return "";
+
     const trimmedLocation = location.trim();
-    
+
     // Extract coordinates if it's a lat,lng format
-    const coordMatch = trimmedLocation.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+    const coordMatch = trimmedLocation.match(
+      /^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/,
+    );
     if (coordMatch) {
       return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
     }
-    
+
     // If it's an iframe embed code, extract the src
-    if (trimmedLocation.includes('<iframe')) {
+    if (trimmedLocation.includes("<iframe")) {
       const srcMatch = trimmedLocation.match(/src=["']([^"']+)["']/);
       if (srcMatch) {
         return srcMatch[1];
       }
     }
-    
+
     // If it's a Google Maps URL with coordinates in @
-    if (trimmedLocation.includes('google.com/maps') && trimmedLocation.includes('@')) {
+    if (
+      trimmedLocation.includes("google.com/maps") &&
+      trimmedLocation.includes("@")
+    ) {
       const coordMatch = trimmedLocation.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
       if (coordMatch) {
         return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
       }
     }
-    
+
     // If it's a place URL
-    if (trimmedLocation.includes('google.com/maps/place/')) {
-      const placeMatch = trimmedLocation.match(/google\.com\/maps\/place\/([^/]+)/);
+    if (trimmedLocation.includes("google.com/maps/place/")) {
+      const placeMatch = trimmedLocation.match(
+        /google\.com\/maps\/place\/([^/]+)/,
+      );
       if (placeMatch) {
         return `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(placeMatch[1])}`;
       }
     }
-    
+
     // Default: treat as address or search query
     return `https://www.google.com/maps?q=${encodeURIComponent(trimmedLocation)}&output=embed`;
   };
 
   const getDirectionsUrl = (location) => {
-    if (!location) return '#';
-    
+    if (!location) return "#";
+
     const trimmedLocation = location.trim();
-    
+
     // Extract coordinates if it's a lat,lng format
-    const coordMatch = trimmedLocation.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+    const coordMatch = trimmedLocation.match(
+      /^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/,
+    );
     if (coordMatch) {
       return `https://www.google.com/maps/dir/?api=1&destination=${coordMatch[1]},${coordMatch[2]}`;
     }
-    
+
     // If it's a Google Maps URL with coordinates in @
-    if (trimmedLocation.includes('google.com/maps') && trimmedLocation.includes('@')) {
+    if (
+      trimmedLocation.includes("google.com/maps") &&
+      trimmedLocation.includes("@")
+    ) {
       const coordMatch = trimmedLocation.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
       if (coordMatch) {
         return `https://www.google.com/maps/dir/?api=1&destination=${coordMatch[1]},${coordMatch[2]}`;
       }
     }
-    
+
     // Default: use the location as-is for directions
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(trimmedLocation)}`;
   };
@@ -336,7 +350,7 @@ export default function DoctorProfilePage() {
 
   const metadata = generateDoctorMetadata(doctor);
   const structuredData = generateDoctorStructuredData(doctor);
-  
+
   return (
     <>
       <MetaTags
@@ -614,10 +628,12 @@ export default function DoctorProfilePage() {
                           Specialty:
                         </span>
                         <span className="text-gray-900 dark:text-white flex-1 ml-0.5">
-                          {doctor.specialization || "General Medicine"}
+                          {typeof doctor.department === "object"
+                            ? doctor.department?.name || "General Medicine"
+                            : doctor.department || "General Medicine"}
                         </span>
                       </div>
-                      <div className="flex items-start">
+                      {/* <div className="flex items-start">
                         <span className="text-gray-600 dark:text-gray-300 font-medium">
                           Department:
                         </span>
@@ -626,7 +642,7 @@ export default function DoctorProfilePage() {
                             ? doctor.department?.name || "General Medicine"
                             : doctor.department || "General Medicine"}
                         </span>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
 
@@ -680,24 +696,28 @@ export default function DoctorProfilePage() {
                               )}
                             </div>
                           </div>
-                          
+
                           {/* Clinic Location Map */}
                           {clinicDetail.clinic?.pinLocation && (
                             <div className="mt-4 space-y-3">
                               <div className="w-full h-64 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
                                 <iframe
-                                  src={getMapSrc(clinicDetail.clinic.pinLocation)}
+                                  src={getMapSrc(
+                                    clinicDetail.clinic.pinLocation,
+                                  )}
                                   width="100%"
                                   height="100%"
                                   style={{ border: 0 }}
                                   allowFullScreen=""
                                   loading="lazy"
                                   referrerPolicy="no-referrer-when-downgrade"
-                                  title={`${clinicDetail.clinicName || 'Clinic'} Location`}
+                                  title={`${clinicDetail.clinicName || "Clinic"} Location`}
                                 ></iframe>
                               </div>
                               <a
-                                href={getDirectionsUrl(clinicDetail.clinic.pinLocation)}
+                                href={getDirectionsUrl(
+                                  clinicDetail.clinic.pinLocation,
+                                )}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200"
@@ -722,7 +742,7 @@ export default function DoctorProfilePage() {
                         Location
                       </h2>
                     </div>
-                    
+
                     <div className="space-y-4">
                       {/* Map */}
                       <div className="w-full h-96 rounded-xl overflow-hidden border border-gray-300 dark:border-gray-600">

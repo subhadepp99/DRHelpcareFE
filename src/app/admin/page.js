@@ -44,9 +44,44 @@ export default function AdminDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
 
+  const normalizeBookingStats = (payload) => {
+    const raw =
+      payload?.data?.data?.bookingStats ||
+      payload?.data?.bookingStats ||
+      payload?.bookingStats ||
+      [];
+
+    if (!Array.isArray(raw)) return [];
+
+    return raw.map((item) => {
+      const statusMap = Array.isArray(item.bookings)
+        ? item.bookings.reduce((acc, entry) => {
+            if (entry?.status) acc[entry.status] = entry.count || 0;
+            return acc;
+          }, {})
+        : {};
+
+      const label = item.date || item._id || item.label;
+
+      return {
+        ...item,
+        _id: label,
+        date: label,
+        total: item.total || 0,
+        pending: item.pending ?? statusMap.pending ?? 0,
+        confirmed: item.confirmed ?? statusMap.confirmed ?? 0,
+        cancelled: item.cancelled ?? statusMap.cancelled ?? 0,
+        completed: item.completed ?? statusMap.completed ?? 0,
+        no_show: item.no_show ?? statusMap.no_show ?? 0,
+      };
+    });
+  };
+
   const fetchNotificationCount = useCallback(async () => {
     try {
-      const response = await get("/dashboard/slot-notifications", { silent: true });
+      const response = await get("/dashboard/slot-notifications", {
+        silent: true,
+      });
       const data = response.data?.data || response.data || {};
       const notifications = data.notifications || [];
       setNotificationCount(notifications.length);
@@ -126,9 +161,7 @@ export default function AdminDashboard() {
               setRegistrationStats(registrationData);
               break;
             case "bookings":
-              const bookingData =
-                data.data?.data?.bookingStats || data.data?.bookingStats || [];
-              setBookingStats(bookingData);
+              setBookingStats(normalizeBookingStats(data));
               break;
             case "departments":
               const departmentData =
@@ -155,13 +188,13 @@ export default function AdminDashboard() {
       const hasErrors = Object.keys(newErrors).length > 0;
       if (!hasErrors) {
         toast.success(
-          `Dashboard data updated successfully for ${period} period`
+          `Dashboard data updated successfully for ${period} period`,
         );
       } else {
         const errorCount = Object.keys(newErrors).length;
         const successCount = 5 - errorCount;
         toast.success(
-          `${successCount} out of 5 data sources loaded successfully`
+          `${successCount} out of 5 data sources loaded successfully`,
         );
         if (errorCount > 0) {
           toast.error(`${errorCount} data sources failed to load`);
@@ -220,11 +253,7 @@ export default function AdminDashboard() {
           setRegistrationStats(registrationData);
           break;
         case "bookings":
-          const bookingData =
-            response.data?.data?.bookingStats ||
-            response.data?.bookingStats ||
-            [];
-          setBookingStats(bookingData);
+          setBookingStats(normalizeBookingStats(response));
           break;
         case "departments":
           const departmentData =
@@ -245,7 +274,7 @@ export default function AdminDashboard() {
       toast.success(
         `${
           type.charAt(0).toUpperCase() + type.slice(1)
-        } data refreshed successfully`
+        } data refreshed successfully`,
       );
     } catch (err) {
       toast.error(`Failed to refresh ${type} data`);
@@ -401,397 +430,400 @@ export default function AdminDashboard() {
       <div className="space-y-8">
         {/* Error Summary Banner */}
         {hasErrors && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-              <div>
-                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
-                  Some data sources failed to load
-                </h3>
-                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                  {Object.keys(errors).length} out of 5 data sources are
-                  unavailable. You can retry individual sources or refresh all
-                  data.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {Object.keys(errors).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => retryData(type)}
-                  className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-800 dark:hover:bg-red-700 text-red-700 dark:text-red-300 rounded-full transition-colors flex items-center gap-1"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  Retry {type.charAt(0).toUpperCase() + type.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Dashboard Overview
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Here's a summary of your healthcare platform with real-time data.
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0 flex gap-3">
-          <button
-            onClick={() => setShowNotifications(true)}
-            className="relative px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors flex items-center gap-2"
-          >
-            <Bell className="w-4 h-4" />
-            Notifications
-            {notificationCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                {notificationCount > 99 ? "99+" : notificationCount}
-              </span>
-            )}
-          </button>
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="input-field min-w-[150px]"
-          >
-            <option value="weekly">Last 7 days</option>
-            <option value="monthly">This month</option>
-            <option value="yearly">This year</option>
-          </select>
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Loading...
-              </>
-            ) : (
-              <>
-                <Activity className="w-4 h-4" />
-                Refresh
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {statsCards.map((card) => (
-          <StatsCard key={card.title} {...card} onRetry={retryData} />
-        ))}
-      </div>
-
-      {/* Additional Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
-          <div className="p-6">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-blue-100 mb-1">
-                  Total Bookings
-                </p>
-                <p className="text-3xl font-bold">{stats.totalBookings || 0}</p>
-                <p className="text-sm text-blue-200 mt-1">
-                  {stats.periodStats?.bookings || 0} this {period}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl bg-blue-400 bg-opacity-30 shadow-lg">
-                <Calendar className="w-8 h-8 text-white" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-green-100 mb-1">
-                  Completed Bookings
-                </p>
-                <p className="text-3xl font-bold">
-                  {stats.completedBookings || 0}
-                </p>
-                <p className="text-sm text-green-200 mt-1">
-                  {stats.totalBookings > 0
-                    ? Math.round(
-                        (stats.completedBookings / stats.totalBookings) * 100
-                      )
-                    : 0}
-                  % completion rate
-                </p>
-              </div>
-              <div className="p-3 rounded-xl bg-green-400 bg-opacity-30 shadow-lg">
-                <TrendingUp className="w-8 h-8 text-white" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-yellow-100 mb-1">
-                  Pending Bookings
-                </p>
-                <p className="text-3xl font-bold">
-                  {stats.pendingBookings || 0}
-                </p>
-                <p className="text-sm text-yellow-200 mt-1">
-                  {stats.totalBookings > 0
-                    ? Math.round(
-                        (stats.pendingBookings / stats.totalBookings) * 100
-                      )
-                    : 0}
-                  % pending rate
-                </p>
-              </div>
-              <div className="p-3 rounded-xl bg-yellow-400 bg-opacity-30 shadow-lg">
-                <Clock className="w-8 h-8 text-white" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-purple-100 mb-1">
-                  Total Users
-                </p>
-                <p className="text-3xl font-bold">{stats.totalUsers || 0}</p>
-                <p className="text-sm text-purple-200 mt-1">
-                  {stats.periodStats?.patients || 0} new this {period}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl bg-purple-400 bg-opacity-30 shadow-lg">
-                <UserPlus className="w-8 h-8 text-white" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Data Summary */}
-      <div className="card bg-gray-50 dark:bg-gray-800">
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Data Summary
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="text-gray-600 dark:text-gray-400">Period:</span>
-              <span className="ml-2 font-medium text-gray-900 dark:text-white capitalize">
-                {period}
-              </span>
-            </div>
-            <div>
-              <span className="text-gray-600 dark:text-gray-400">
-                Last Updated:
-              </span>
-              <span className="ml-2 font-medium text-gray-900 dark:text-white">
-                {lastUpdated ? lastUpdated.toLocaleTimeString() : "Never"}
-              </span>
-            </div>
-            <div>
-              <span className="text-gray-600 dark:text-gray-400">
-                Total Records:
-              </span>
-              <span className="ml-2 font-medium text-gray-900 dark:text-white">
-                {(stats.totalDoctors || 0) +
-                  (stats.totalClinics || 0) +
-                  (stats.totalPharmacies || 0) +
-                  (stats.totalPatients || 0)}
-              </span>
-            </div>
-            <div>
-              <span className="text-gray-600 dark:text-gray-400">
-                Active Status:
-              </span>
-              <span className="ml-2 font-medium text-green-600 dark:text-green-400">
-                ✓ All Systems Operational
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Doctor Registrations
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              New doctor registrations over time
-            </p>
-          </div>
-          <div className="p-6">
-            {doctorStats && doctorStats.length > 0 ? (
-              <DashboardChart
-                data={doctorStats}
-                dataKey="count"
-                name="Doctors"
-                color="#3B82F6"
-                type="area"
-              />
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <BarChart3 className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p>No doctor registration data available</p>
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="card">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              All Registrations
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Platform registrations breakdown
-            </p>
-          </div>
-          <div className="p-6">
-            {registrationStats && registrationStats.length > 0 ? (
-              <DashboardChart
-                data={registrationStats}
-                dataKey="total"
-                name="Total Registrations"
-                color="#10B981"
-                multiline
-              />
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <BarChart3 className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p>No registration data available</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Department Stats */}
-      {departmentStats?.length > 0 && (
-        <div className="card">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Department Overview
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Doctor distribution across departments
-            </p>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {departmentStats.slice(0, 6).map((dept) => (
-                <div
-                  key={dept._id}
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border border-blue-200 dark:border-gray-600 hover:shadow-lg transition-all duration-200 transform hover:scale-105"
-                >
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 dark:text-white truncate">
-                      {dept.heading || dept.name}
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {dept.doctorCount || 0} doctors
-                    </p>
-                  </div>
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 ml-4">
-                    {dept.doctorCount || 0}
-                  </div>
+              <div className="flex items-center">
+                <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+                <div>
+                  <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                    Some data sources failed to load
+                  </h3>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    {Object.keys(errors).length} out of 5 data sources are
+                    unavailable. You can retry individual sources or refresh all
+                    data.
+                  </p>
                 </div>
-              ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {Object.keys(errors).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => retryData(type)}
+                    className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-800 dark:hover:bg-red-700 text-red-700 dark:text-red-300 rounded-full transition-colors flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Retry {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
-            {departmentStats.length > 6 && (
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Showing 6 of {departmentStats.length} departments
-                </p>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Dashboard Overview
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Here's a summary of your healthcare platform with real-time data.
+            </p>
+          </div>
+          <div className="mt-4 sm:mt-0 flex gap-3">
+            <button
+              onClick={() => setShowNotifications(true)}
+              className="relative px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors flex items-center gap-2"
+            >
+              <Bell className="w-4 h-4" />
+              Notifications
+              {notificationCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </span>
+              )}
+            </button>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="input-field min-w-[150px]"
+            >
+              <option value="weekly">Last 7 days</option>
+              <option value="monthly">This month</option>
+              <option value="yearly">This year</option>
+            </select>
+            <button
+              onClick={fetchData}
+              disabled={loading}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <Activity className="w-4 h-4" />
+                  Refresh
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {statsCards.map((card) => (
+            <StatsCard key={card.title} {...card} onRetry={retryData} />
+          ))}
+        </div>
+
+        {/* Additional Stats Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-blue-100 mb-1">
+                    Total Bookings
+                  </p>
+                  <p className="text-3xl font-bold">
+                    {stats.totalBookings || 0}
+                  </p>
+                  <p className="text-sm text-blue-200 mt-1">
+                    {stats.periodStats?.bookings || 0} this {period}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-blue-400 bg-opacity-30 shadow-lg">
+                  <Calendar className="w-8 h-8 text-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-green-100 mb-1">
+                    Completed Bookings
+                  </p>
+                  <p className="text-3xl font-bold">
+                    {stats.completedBookings || 0}
+                  </p>
+                  <p className="text-sm text-green-200 mt-1">
+                    {stats.totalBookings > 0
+                      ? Math.round(
+                          (stats.completedBookings / stats.totalBookings) * 100,
+                        )
+                      : 0}
+                    % completion rate
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-green-400 bg-opacity-30 shadow-lg">
+                  <TrendingUp className="w-8 h-8 text-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-yellow-100 mb-1">
+                    Pending Bookings
+                  </p>
+                  <p className="text-3xl font-bold">
+                    {stats.pendingBookings || 0}
+                  </p>
+                  <p className="text-sm text-yellow-200 mt-1">
+                    {stats.totalBookings > 0
+                      ? Math.round(
+                          (stats.pendingBookings / stats.totalBookings) * 100,
+                        )
+                      : 0}
+                    % pending rate
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-yellow-400 bg-opacity-30 shadow-lg">
+                  <Clock className="w-8 h-8 text-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-purple-100 mb-1">
+                    Total Users
+                  </p>
+                  <p className="text-3xl font-bold">{stats.totalUsers || 0}</p>
+                  <p className="text-sm text-purple-200 mt-1">
+                    {stats.periodStats?.patients || 0} new this {period}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-purple-400 bg-opacity-30 shadow-lg">
+                  <UserPlus className="w-8 h-8 text-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Summary */}
+        <div className="card bg-gray-50 dark:bg-gray-800">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Data Summary
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600 dark:text-gray-400">
+                  Period:
+                </span>
+                <span className="ml-2 font-medium text-gray-900 dark:text-white capitalize">
+                  {period}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-600 dark:text-gray-400">
+                  Last Updated:
+                </span>
+                <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                  {lastUpdated ? lastUpdated.toLocaleTimeString() : "Never"}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-600 dark:text-gray-400">
+                  Total Records:
+                </span>
+                <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                  {(stats.totalDoctors || 0) +
+                    (stats.totalClinics || 0) +
+                    (stats.totalPharmacies || 0) +
+                    (stats.totalPatients || 0)}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-600 dark:text-gray-400">
+                  Active Status:
+                </span>
+                <span className="ml-2 font-medium text-green-600 dark:text-green-400">
+                  ✓ All Systems Operational
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="card">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Doctor Registrations
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                New doctor registrations over time
+              </p>
+            </div>
+            <div className="p-6">
+              {doctorStats && doctorStats.length > 0 ? (
+                <DashboardChart
+                  data={doctorStats}
+                  dataKey="count"
+                  name="Doctors"
+                  color="#3B82F6"
+                  type="area"
+                />
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <BarChart3 className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                  <p>No doctor registration data available</p>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="card">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                All Registrations
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Platform registrations breakdown
+              </p>
+            </div>
+            <div className="p-6">
+              {registrationStats && registrationStats.length > 0 ? (
+                <DashboardChart
+                  data={registrationStats}
+                  dataKey="total"
+                  name="Total Registrations"
+                  color="#10B981"
+                  multiline
+                />
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <BarChart3 className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                  <p>No registration data available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Department Stats */}
+        {departmentStats?.length > 0 && (
+          <div className="card">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Department Overview
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Doctor distribution across departments
+              </p>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {departmentStats.slice(0, 6).map((dept) => (
+                  <div
+                    key={dept._id}
+                    className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border border-blue-200 dark:border-gray-600 hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                  >
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 dark:text-white truncate">
+                        {dept.heading || dept.name}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {dept.doctorCount || 0} doctors
+                      </p>
+                    </div>
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 ml-4">
+                      {dept.doctorCount || 0}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {departmentStats.length > 6 && (
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Showing 6 of {departmentStats.length} departments
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Bookings Chart */}
+        <div className="card">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Appointment Bookings
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Booking trends and status distribution
+            </p>
+          </div>
+          <div className="p-6">
+            {bookingStats && bookingStats.length > 0 ? (
+              <DashboardChart
+                data={bookingStats}
+                dataKey="total"
+                name="Bookings"
+                color="#6366F1"
+              />
+            ) : (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <BarChart3 className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                <p>No booking data available</p>
               </div>
             )}
           </div>
         </div>
-      )}
 
-      {/* Bookings Chart */}
-      <div className="card">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Appointment Bookings
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Booking trends and status distribution
-          </p>
+        {/* Recent Activity */}
+        <div className="card">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Recent Activity
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Latest platform activities and updates
+            </p>
+          </div>
+          <div className="p-6">
+            <RecentActivity />
+          </div>
         </div>
-        <div className="p-6">
-          {bookingStats && bookingStats.length > 0 ? (
-            <DashboardChart
-              data={bookingStats}
-              dataKey="total"
-              name="Bookings"
-              color="#6366F1"
-              multiline
-            />
-          ) : (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <BarChart3 className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-              <p>No booking data available</p>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Recent Activity */}
-      <div className="card">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Recent Activity
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Latest platform activities and updates
-          </p>
+        <div className="flex flex-wrap gap-4 mt-6">
+          <button
+            onClick={() => router.push("/admin/doctors")}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Stethoscope className="w-5 h-5" />
+            Manage Doctors
+          </button>
+          <button
+            onClick={() => router.push("/admin/departments")}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+          >
+            <Building className="w-5 h-5" />
+            Manage Departments
+          </button>
+          <button
+            onClick={() => router.push("/admin/clinics")}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+          >
+            <Building2 className="w-5 h-5" />
+            Manage Clinics
+          </button>
         </div>
-        <div className="p-6">
-          <RecentActivity />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-4 mt-6">
-        <button
-          onClick={() => router.push("/admin/doctors")}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Stethoscope className="w-5 h-5" />
-          Manage Doctors
-        </button>
-        <button
-          onClick={() => router.push("/admin/departments")}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-        >
-          <Building className="w-5 h-5" />
-          Manage Departments
-        </button>
-        <button
-          onClick={() => router.push("/admin/clinics")}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-        >
-          <Building2 className="w-5 h-5" />
-          Manage Clinics
-        </button>
-      </div>
       </div>
 
       {/* Slot Notifications Modal */}

@@ -13,9 +13,23 @@ import {
   AlertCircle,
   UserPlus,
   Edit,
+  Activity,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { formatDistanceToNow } from "date-fns";
+
+const ACTIVITY_META = {
+  doctor_added: { icon: Stethoscope, color: "text-blue-600" },
+  doctor_updated: { icon: Edit, color: "text-yellow-600" },
+  clinic_added: { icon: Building2, color: "text-purple-600" },
+  clinic_registered: { icon: Building2, color: "text-purple-600" },
+  pharmacy_added: { icon: Pill, color: "text-orange-600" },
+  appointment_booked: { icon: Calendar, color: "text-green-600" },
+  appointment_completed: { icon: CheckCircle, color: "text-green-600" },
+  appointment_cancelled: { icon: AlertCircle, color: "text-red-600" },
+  user_registered: { icon: UserPlus, color: "text-indigo-600" },
+  user_updated: { icon: User, color: "text-slate-600" },
+};
 
 export default function RecentActivity() {
   const { get } = useApi();
@@ -28,69 +42,40 @@ export default function RecentActivity() {
 
   const fetchRecentActivity = async () => {
     try {
-      // Try to fetch real data, fallback to mock
       const response = await get("/dashboard/activity");
-      setActivities(response.data.activities || []);
-    } catch (error) {
-      // Mock realistic activity data
-      const mockActivities = [
-        {
-          id: 1,
-          type: "doctor_added",
-          message: "Dr. Sarah Johnson was added to Cardiology department",
-          user: "Admin User",
-          timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-          icon: Stethoscope,
-          color: "text-blue-600",
-        },
-        {
-          id: 2,
-          type: "appointment_booked",
-          message: "New appointment booked with Dr. Michael Brown",
-          user: "John Doe",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-          icon: Calendar,
-          color: "text-green-600",
-        },
-        {
-          id: 3,
-          type: "clinic_registered",
-          message: "City Care Clinic registered successfully",
-          user: "System",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-          icon: Building2,
-          color: "text-purple-600",
-        },
-        {
-          id: 4,
-          type: "pharmacy_added",
-          message: "MedPlus Pharmacy added to network",
-          user: "Admin User",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3), // 3 hours ago
-          icon: Pill,
-          color: "text-orange-600",
-        },
-        {
-          id: 5,
-          type: "user_registered",
-          message: "New user registration: Alice Smith",
-          user: "System",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4), // 4 hours ago
-          icon: UserPlus,
-          color: "text-indigo-600",
-        },
-        {
-          id: 6,
-          type: "doctor_updated",
-          message: "Dr. Robert Wilson updated profile information",
-          user: "Dr. Robert Wilson",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
-          icon: Edit,
-          color: "text-yellow-600",
-        },
-      ];
+      const fetched =
+        response.data?.data?.activities || response.data?.activities || [];
 
-      setActivities(mockActivities);
+      const normalized = fetched.map((activity) => {
+        const meta = ACTIVITY_META[activity.type] || {
+          icon: Activity,
+          color: "text-gray-600",
+        };
+        const timestamp = new Date(activity.timestamp || activity.createdAt);
+        const activityUser =
+          typeof activity.user === "string"
+            ? activity.user
+            : activity.user?.name ||
+              [activity.user?.firstName, activity.user?.lastName]
+                .filter(Boolean)
+                .join(" ") ||
+              activity.user?.username ||
+              "System";
+
+        return {
+          id: activity.id || activity._id,
+          type: activity.type,
+          message: activity.message || "Activity update",
+          user: activityUser || "System",
+          timestamp: Number.isNaN(timestamp.getTime()) ? new Date() : timestamp,
+          icon: meta.icon,
+          color: meta.color,
+        };
+      });
+
+      setActivities(normalized);
+    } catch (error) {
+      setActivities([]);
     } finally {
       setLoading(false);
     }
