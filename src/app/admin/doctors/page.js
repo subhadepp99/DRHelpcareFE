@@ -8,6 +8,7 @@ import Modal from "@/components/common/Modal";
 import DoctorScheduleModal from "@/components/modals/DoctorScheduleModal";
 import DoctorViewModal from "@/components/modals/DoctorViewModal";
 import FAQModal from "@/components/modals/FAQModal";
+import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
 import toast from "react-hot-toast"; // Import toast
 
 const initialForm = {
@@ -410,14 +411,21 @@ export default function AdminDoctorsPage() {
             </div>
           </div>
         </div>
-        <button
-          className="flex items-center px-6 py-2 rounded-md bg-primary-600 hover:bg-primary-700 text-white font-bold shadow-lg space-x-2 transition-all 
-                     active:scale-95 active:shadow-none"
-          onClick={openAddModal}
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add Doctor</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <BackfillImagesButton
+            endpoint="/doctors/backfill-local-images"
+            target="doctor images"
+            onComplete={() => fetchDoctors(search.trim(), 1, false)}
+          />
+          <button
+            className="flex items-center px-6 py-2 rounded-md bg-primary-600 hover:bg-primary-700 text-white font-bold shadow-lg space-x-2 transition-all 
+                       active:scale-95 active:shadow-none"
+            onClick={openAddModal}
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Doctor</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (

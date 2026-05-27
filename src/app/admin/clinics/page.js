@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/authStore";
 import Modal from "@/components/common/Modal";
 import StatesDropdown from "@/components/common/StatesDropdown";
 import FAQModal from "@/components/modals/FAQModal";
+import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
 import toast from "react-hot-toast";
 import { getEntityImageUrl } from "@/utils/imageUtils";
 
@@ -468,13 +469,20 @@ export default function AdminClinics() {
             </div>
           </div>
         </div>
-        <button
-          onClick={openAdd}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Clinic</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <BackfillImagesButton
+            endpoint="/clinics/backfill-local-images"
+            target="clinic images"
+            onComplete={() => fetchClinics(search.trim())}
+          />
+          <button
+            onClick={openAdd}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Clinic</span>
+          </button>
+        </div>
       </div>
 
       {fetching ? (

@@ -19,6 +19,7 @@ import {
 import toast from "react-hot-toast";
 import StatesDropdown from "@/components/common/StatesDropdown";
 import { getEntityImageUrl } from "@/utils/imageUtils";
+import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
 
 export default function TestsPage() {
   const { get, post, put, del } = useApi();
@@ -322,13 +323,20 @@ export default function TestsPage() {
             Manage individual pathology tests
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="mt-4 sm:mt-0 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Add Test
-        </button>
+        <div className="mt-4 sm:mt-0 flex flex-wrap items-center gap-2">
+          <BackfillImagesButton
+            endpoint="/tests/backfill-local-images"
+            target="test images"
+            onComplete={fetchTests}
+          />
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Add Test
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}

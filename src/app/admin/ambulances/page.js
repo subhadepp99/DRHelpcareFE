@@ -13,6 +13,7 @@ import {
 import { useApi } from "@/hooks/useApi";
 import Modal from "@/components/common/Modal";
 import FAQModal from "@/components/modals/FAQModal";
+import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
 import toast from "react-hot-toast";
 import { getEntityImageUrl } from "@/utils/imageUtils";
 
@@ -211,12 +212,19 @@ export default function AmbulancesPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Ambulance Management</h1>
-        <button
-          className="btn-primary flex items-center space-x-2"
-          onClick={openAdd}
-        >
-          <Plus className="w-4 h-4" /> <span>Add Ambulance</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <BackfillImagesButton
+            endpoint="/ambulances/backfill-local-images"
+            target="ambulance images"
+            onComplete={fetchAmbulances}
+          />
+          <button
+            className="btn-primary flex items-center space-x-2"
+            onClick={openAdd}
+          >
+            <Plus className="w-4 h-4" /> <span>Add Ambulance</span>
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}

@@ -5,6 +5,7 @@ import { useApi } from "@/hooks/useApi";
 import { Plus, Trash2, Upload, GripVertical } from "lucide-react";
 import toast from "react-hot-toast";
 import { getImageUrl } from "@/utils/imageUtils";
+import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
 
 export default function AdminBannersPage() {
   const { get, post, del, put } = useApi();
@@ -83,6 +84,11 @@ export default function AdminBannersPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Banners</h1>
+        <BackfillImagesButton
+          endpoint="/banners/backfill-local-images"
+          target="banner images"
+          onComplete={fetchBanners}
+        />
       </div>
 
       {/* Upload Instructions */}

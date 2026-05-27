@@ -9,8 +9,8 @@ import {
   Edit,
   Trash2,
   Eye,
-  Filter,
   RefreshCw,
+  Download,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import toast from "react-hot-toast";
@@ -23,7 +23,7 @@ export default function BlogAdminPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [selectedPost, setSelectedPost] = useState(null);
+  const [backfillLoading, setBackfillLoading] = useState(false);
 
   useEffect(() => {
     fetchPosts();
@@ -67,6 +67,37 @@ export default function BlogAdminPage() {
     }
   };
 
+  const handleBackfillImages = async () => {
+    if (
+      !confirm(
+        "Backfill blog images into client/src/sources/blog and update the database links?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setBackfillLoading(true);
+      const response = await post(
+        "/blogs/backfill-local-images",
+        {},
+        { timeout: 300000 }
+      );
+      const data = response.data || {};
+      toast.success(
+        data.message ||
+          `Backfill complete: ${data.converted || 0} converted, ${
+            data.skipped || 0
+          } skipped`
+      );
+      fetchPosts();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to backfill images");
+    } finally {
+      setBackfillLoading(false);
+    }
+  };
+
   const filteredPosts = posts.filter((post) => {
     const matchesSearch =
       post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -91,13 +122,27 @@ export default function BlogAdminPage() {
               Manage your blog posts and articles
             </p>
           </div>
-          <button
-            onClick={() => router.push("/admin/blog/new")}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Create New Post</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleBackfillImages}
+              disabled={backfillLoading}
+              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {backfillLoading ? (
+                <RefreshCw className="w-5 h-5 animate-spin" />
+              ) : (
+                <Download className="w-5 h-5" />
+              )}
+              <span>{backfillLoading ? "Backfilling..." : "Backfill Images"}</span>
+            </button>
+            <button
+              onClick={() => router.push("/admin/blog/new")}
+              className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Create New Post</span>
+            </button>
+          </div>
         </div>
 
         {/* Search and Filters */}
