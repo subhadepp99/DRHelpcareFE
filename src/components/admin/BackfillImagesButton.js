@@ -18,7 +18,7 @@ export default function BackfillImagesButton({
   const handleBackfill = async () => {
     if (
       !confirm(
-        `Backfill ${target} into client/src/sources and update the database links?`
+        `Backfill ${target} into client/public/sources and update the database links?`
       )
     ) {
       return;

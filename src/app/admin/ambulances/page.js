@@ -107,7 +107,7 @@ export default function AmbulancesPage() {
     } catch (err) {
       toast.error(
         "Failed to delete ambulance: " +
-          (err?.response?.data?.message || err.message || "Unknown error")
+          (err?.response?.data?.message || err.message || "Unknown error"),
       );
     } finally {
       setIsDeleting(false);
@@ -192,7 +192,7 @@ export default function AmbulancesPage() {
     } catch (err) {
       toast.error(
         "Failed to save ambulance: " +
-          (err?.response?.data?.message || err.message || "Unknown error")
+          (err?.response?.data?.message || err.message || "Unknown error"),
       );
     } finally {
       setIsSubmitting(false);
@@ -205,7 +205,7 @@ export default function AmbulancesPage() {
       ambulance.vehicleNumber
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      ambulance.driverName.toLowerCase().includes(searchTerm.toLowerCase())
+      ambulance.driverName.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -213,11 +213,11 @@ export default function AmbulancesPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Ambulance Management</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <BackfillImagesButton
+          {/* <BackfillImagesButton
             endpoint="/ambulances/backfill-local-images"
             target="ambulance images"
             onComplete={fetchAmbulances}
-          />
+          /> */}
           <button
             className="btn-primary flex items-center space-x-2"
             onClick={openAdd}

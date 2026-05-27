@@ -70,7 +70,7 @@ export default function BlogAdminPage() {
   const handleBackfillImages = async () => {
     if (
       !confirm(
-        "Backfill blog images into client/src/sources/blog and update the database links?"
+        "Backfill blog images into client/public/sources/blog and update the database links?",
       )
     ) {
       return;
@@ -81,14 +81,14 @@ export default function BlogAdminPage() {
       const response = await post(
         "/blogs/backfill-local-images",
         {},
-        { timeout: 300000 }
+        { timeout: 300000 },
       );
       const data = response.data || {};
       toast.success(
         data.message ||
           `Backfill complete: ${data.converted || 0} converted, ${
             data.skipped || 0
-          } skipped`
+          } skipped`,
       );
       fetchPosts();
     } catch (error) {
@@ -123,7 +123,7 @@ export default function BlogAdminPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
+            {/* <button
               onClick={handleBackfillImages}
               disabled={backfillLoading}
               className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -134,7 +134,7 @@ export default function BlogAdminPage() {
                 <Download className="w-5 h-5" />
               )}
               <span>{backfillLoading ? "Backfilling..." : "Backfill Images"}</span>
-            </button>
+            </button> */}
             <button
               onClick={() => router.push("/admin/blog/new")}
               className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -220,7 +220,8 @@ export default function BlogAdminPage() {
             >
               {/* Post Image */}
               <div className="relative h-48 bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-800 dark:to-primary-900">
-                {post.imageUrl && post.imageUrl !== "/images/blog-default.jpg" ? (
+                {post.imageUrl &&
+                post.imageUrl !== "/images/blog-default.jpg" ? (
                   <img
                     src={post.imageUrl}
                     alt={post.title}
@@ -271,7 +272,9 @@ export default function BlogAdminPage() {
                       <Eye className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => router.push(`/admin/blog/edit/${post._id}`)}
+                      onClick={() =>
+                        router.push(`/admin/blog/edit/${post._id}`)
+                      }
                       className="p-2 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
                       title="Edit"
                     >
@@ -312,4 +315,3 @@ export default function BlogAdminPage() {
     </div>
   );
 }
-

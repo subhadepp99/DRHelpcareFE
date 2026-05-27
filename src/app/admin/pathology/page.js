@@ -106,14 +106,14 @@ export default function PathologyPage() {
           if (typeof hc.available !== "undefined") {
             formDataToSend.append(
               "homeCollection[available]",
-              String(!!hc.available)
+              String(!!hc.available),
             );
           }
           // fee
           if (typeof hc.fee !== "undefined") {
             formDataToSend.append(
               "homeCollection[fee]",
-              String(Number(hc.fee) || 0)
+              String(Number(hc.fee) || 0),
             );
           }
           // areas (append multiple values if provided)
@@ -121,7 +121,7 @@ export default function PathologyPage() {
             hc.areas
               .filter((a) => a && a.trim())
               .forEach((area) =>
-                formDataToSend.append("homeCollection[areas]", area.trim())
+                formDataToSend.append("homeCollection[areas]", area.trim()),
               );
           }
           // timing
@@ -129,13 +129,13 @@ export default function PathologyPage() {
             if (hc.timing.start !== undefined) {
               formDataToSend.append(
                 "homeCollection[timing][start]",
-                hc.timing.start || ""
+                hc.timing.start || "",
               );
             }
             if (hc.timing.end !== undefined) {
               formDataToSend.append(
                 "homeCollection[timing][end]",
-                hc.timing.end || ""
+                hc.timing.end || "",
               );
             }
           }
@@ -168,7 +168,6 @@ export default function PathologyPage() {
       fetchPathologies();
       fetchTests();
     } catch (error) {
-
       // Show more specific error message
       const errorMessage =
         error.response?.data?.message ||
@@ -177,7 +176,7 @@ export default function PathologyPage() {
       toast.error(
         selectedPathology
           ? `Failed to update pathology: ${errorMessage}`
-          : `Failed to add pathology: ${errorMessage}`
+          : `Failed to add pathology: ${errorMessage}`,
       );
     } finally {
       setIsSubmitting(false);
@@ -313,8 +312,10 @@ export default function PathologyPage() {
   };
 
   const addSelectedTests = () => {
-    const selectedTests = tests.filter(test => selectedTestIds.includes(test._id));
-    const newComponents = selectedTests.map(test => ({
+    const selectedTests = tests.filter((test) =>
+      selectedTestIds.includes(test._id),
+    );
+    const newComponents = selectedTests.map((test) => ({
       name: test.name,
       category: test.category || "",
       price: test.price || 0,
@@ -323,7 +324,7 @@ export default function PathologyPage() {
       referenceRange: test.referenceRange || "",
       testId: test._id,
     }));
-    
+
     setFormData({
       ...formData,
       components: [...formData.components, ...newComponents],
@@ -362,14 +363,14 @@ export default function PathologyPage() {
     (pathology) =>
       pathology.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pathology.place.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pathology.state.toLowerCase().includes(searchTerm.toLowerCase())
+      pathology.state.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const filteredTests = (tests || []).filter(
     (test) =>
       test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       test.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      test.sampleType.toLowerCase().includes(searchTerm.toLowerCase())
+      test.sampleType.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   if (loading) {
@@ -392,14 +393,14 @@ export default function PathologyPage() {
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex flex-wrap items-center gap-2">
-          <BackfillImagesButton
+          {/* <BackfillImagesButton
             endpoint="/pathologies/backfill-local-images"
             target="pathology images"
             onComplete={() => {
               fetchPathologies();
               fetchTests();
             }}
-          />
+          /> */}
           <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
@@ -1235,7 +1236,7 @@ export default function PathologyPage() {
                             updateComponent(
                               index,
                               "price",
-                              parseFloat(e.target.value) || 0
+                              parseFloat(e.target.value) || 0,
                             )
                           }
                           className="input-field w-full"
@@ -1269,7 +1270,7 @@ export default function PathologyPage() {
                             updateComponent(
                               index,
                               "turnaroundTime",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           className="input-field w-full"
@@ -1287,7 +1288,7 @@ export default function PathologyPage() {
                             updateComponent(
                               index,
                               "preparation",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           className="input-field w-full"
@@ -1307,7 +1308,7 @@ export default function PathologyPage() {
                             updateComponent(
                               index,
                               "referenceRange",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           className="input-field w-full"
@@ -1373,7 +1374,7 @@ export default function PathologyPage() {
                             updateComponent(
                               index,
                               "isPackage",
-                              e.target.checked
+                              e.target.checked,
                             )
                           }
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -1447,7 +1448,7 @@ export default function PathologyPage() {
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Select tests from the list below or add a custom test
                 </p>
-                
+
                 {/* Action Buttons */}
                 <div className="flex gap-3 mb-4">
                   <button
@@ -1487,10 +1488,15 @@ export default function PathologyPage() {
                             checked={selectedTestIds.includes(test._id)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedTestIds([...selectedTestIds, test._id]);
+                                setSelectedTestIds([
+                                  ...selectedTestIds,
+                                  test._id,
+                                ]);
                               } else {
                                 setSelectedTestIds(
-                                  selectedTestIds.filter((id) => id !== test._id)
+                                  selectedTestIds.filter(
+                                    (id) => id !== test._id,
+                                  ),
                                 );
                               }
                             }}
@@ -1507,7 +1513,8 @@ export default function PathologyPage() {
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
                               {test.category && `Category: ${test.category}`}
-                              {test.sampleType && ` | Sample: ${test.sampleType}`}
+                              {test.sampleType &&
+                                ` | Sample: ${test.sampleType}`}
                             </p>
                             {test.description && (
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
