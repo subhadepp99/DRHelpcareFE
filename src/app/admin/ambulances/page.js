@@ -13,7 +13,7 @@ import {
 import { useApi } from "@/hooks/useApi";
 import Modal from "@/components/common/Modal";
 import FAQModal from "@/components/modals/FAQModal";
-import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
+// import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
 import toast from "react-hot-toast";
 import { getEntityImageUrl } from "@/utils/imageUtils";
 

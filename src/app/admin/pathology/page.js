@@ -20,15 +20,24 @@ import {
 import toast from "react-hot-toast";
 import StatesDropdown from "@/components/common/StatesDropdown";
 import { getEntityImageUrl } from "@/utils/imageUtils";
-import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
+// import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
+
+const PAGE_SIZE = 12;
 
 export default function PathologyPage() {
   const { get, post, put, del } = useApi();
   const [pathologies, setPathologies] = useState([]);
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("packages"); // "packages" or "tests"
+  const [packagePage, setPackagePage] = useState(1);
+  const [testPage, setTestPage] = useState(1);
+  const [hasMorePackages, setHasMorePackages] = useState(false);
+  const [hasMoreTests, setHasMoreTests] = useState(false);
+  const [packageTotal, setPackageTotal] = useState(0);
+  const [testTotal, setTestTotal] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedPathology, setSelectedPathology] = useState(null);
@@ -64,30 +73,95 @@ export default function PathologyPage() {
   const [selectedTestIds, setSelectedTestIds] = useState([]);
 
   useEffect(() => {
-    fetchPathologies();
-    fetchTests();
-  }, []);
+    const handler = setTimeout(
+      () => {
+        if (activeTab === "packages") {
+          fetchPathologies(1, false);
+        } else {
+          fetchTests(1, false);
+        }
+      },
+      searchTerm ? 300 : 0,
+    );
+    return () => clearTimeout(handler);
+  }, [activeTab, searchTerm]);
 
-  const fetchPathologies = async () => {
+  const fetchPathologies = async (page = 1, append = false) => {
     try {
-      const response = await get("/pathologies");
-      const pathologies =
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      const qs = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_SIZE),
+      });
+      if (searchTerm.trim()) qs.set("search", searchTerm.trim());
+      const response = await get(`/pathologies?${qs.toString()}`);
+      const pathologyList =
         response.data?.data?.pathologies || response.data?.pathologies || [];
-      setPathologies(pathologies);
+      const pagination =
+        response.data?.data?.pagination || response.data?.pagination;
+      setPathologies((prev) =>
+        append ? [...prev, ...pathologyList] : pathologyList,
+      );
+      setPackagePage(page);
+      setPackageTotal(pagination?.totalItems || pathologyList.length);
+      setHasMorePackages(
+        pagination
+          ? page < pagination.total
+          : pathologyList.length === PAGE_SIZE,
+      );
     } catch (error) {
       toast.error("Failed to fetch pathologies");
+      if (!append) setPathologies([]);
+      setHasMorePackages(false);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  const fetchTests = async () => {
+  const fetchTests = async (page = 1, append = false) => {
     try {
-      const response = await get("/tests/admin/all");
-      const tests = response.data?.data?.tests || response.data?.tests || [];
-      setTests(tests);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      const qs = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_SIZE),
+      });
+      if (searchTerm.trim()) qs.set("search", searchTerm.trim());
+      const response = await get(`/tests/admin/all?${qs.toString()}`);
+      const testList = response.data?.data?.tests || response.data?.tests || [];
+      const pagination =
+        response.data?.data?.pagination || response.data?.pagination;
+      setTests((prev) => (append ? [...prev, ...testList] : testList));
+      setTestPage(page);
+      setTestTotal(pagination?.totalItems || testList.length);
+      setHasMoreTests(
+        pagination ? page < pagination.total : testList.length === PAGE_SIZE,
+      );
     } catch (error) {
       toast.error("Failed to fetch tests");
+      if (!append) setTests([]);
+      setHasMoreTests(false);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (loadingMore) return;
+    if (activeTab === "packages" && hasMorePackages) {
+      fetchPathologies(packagePage + 1, true);
+    }
+    if (activeTab === "tests" && hasMoreTests) {
+      fetchTests(testPage + 1, true);
     }
   };
 
@@ -165,8 +239,11 @@ export default function PathologyPage() {
       setShowEditModal(false);
       setSelectedPathology(null);
       resetForm();
-      fetchPathologies();
-      fetchTests();
+      if (activeTab === "packages") {
+        fetchPathologies(1, false);
+      } else {
+        fetchTests(1, false);
+      }
     } catch (error) {
       // Show more specific error message
       const errorMessage =
@@ -221,7 +298,7 @@ export default function PathologyPage() {
     try {
       await del(`/pathologies/${id}`);
       toast.success("Pathology deleted successfully");
-      fetchPathologies();
+      fetchPathologies(packagePage, false);
     } catch (error) {
       toast.error("Failed to delete pathology");
     }
@@ -285,13 +362,16 @@ export default function PathologyPage() {
       await put(`/pathologies/${pathology._id}`, fd);
       toast.success("Image updated");
       // Optimistic update: refresh list or update local state
-      fetchPathologies();
+      fetchPathologies(packagePage, false);
     } catch (err) {
       toast.error("Failed to update image");
     }
   };
 
   const addComponent = () => {
+    if (tests.length === 0) {
+      fetchTests(1, false);
+    }
     setShowTestSelectionModal(true);
   };
 
@@ -359,19 +439,8 @@ export default function PathologyPage() {
     setFormData({ ...formData, components: newComponents });
   };
 
-  const filteredPathologies = (pathologies || []).filter(
-    (pathology) =>
-      pathology.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pathology.place.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pathology.state.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  const filteredTests = (tests || []).filter(
-    (test) =>
-      test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      test.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      test.sampleType.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredPathologies = pathologies || [];
+  const filteredTests = tests || [];
 
   if (loading) {
     return (
@@ -397,8 +466,7 @@ export default function PathologyPage() {
             endpoint="/pathologies/backfill-local-images"
             target="pathology images"
             onComplete={() => {
-              fetchPathologies();
-              fetchTests();
+              fetchPathologies(1, false);
             }}
           /> */}
           <button
@@ -423,7 +491,7 @@ export default function PathologyPage() {
             }`}
           >
             <Package className="w-4 h-4 inline mr-2" />
-            Pathology Packages ({filteredPathologies.length})
+            Pathology Packages ({packageTotal || filteredPathologies.length})
           </button>
           <button
             onClick={() => setActiveTab("tests")}
@@ -434,7 +502,7 @@ export default function PathologyPage() {
             }`}
           >
             <TestTube className="w-4 h-4 inline mr-2" />
-            Individual Tests ({filteredTests.length})
+            Individual Tests ({testTotal || filteredTests.length})
           </button>
         </nav>
       </div>
@@ -823,6 +891,25 @@ export default function PathologyPage() {
           </table>
         </div>
       </div>
+
+      {((activeTab === "packages" && hasMorePackages) ||
+        (activeTab === "tests" && hasMoreTests)) && (
+        <div className="flex justify-center">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingMore
+              ? "Loading..."
+              : `Load More (${
+                  activeTab === "packages"
+                    ? filteredPathologies.length
+                    : filteredTests.length
+                } loaded)`}
+          </button>
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {(showAddModal || showEditModal) && (

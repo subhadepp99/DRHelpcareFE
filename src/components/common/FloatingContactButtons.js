@@ -15,7 +15,9 @@ export default function FloatingContactButtons() {
   // Hide buttons on admin, register, and login pages
   const shouldHide = pathname?.startsWith("/admin") || 
                      pathname === "/register" || 
-                     pathname === "/login";
+                     pathname === "/login" ||
+                     pathname === "/new_homepage" ||
+                     pathname === "/new_page";
 
   const handleCall = () => {
     window.open(`tel:${phoneNumber}`, "_blank");

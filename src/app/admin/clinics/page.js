@@ -7,9 +7,11 @@ import { useAuthStore } from "@/store/authStore";
 import Modal from "@/components/common/Modal";
 import StatesDropdown from "@/components/common/StatesDropdown";
 import FAQModal from "@/components/modals/FAQModal";
-import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
+// import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
 import toast from "react-hot-toast";
 import { getEntityImageUrl } from "@/utils/imageUtils";
+
+const PAGE_SIZE = 20;
 
 const initialForm = {
   name: "",
@@ -33,6 +35,8 @@ export default function AdminClinics() {
   const { user } = useAuthStore();
   const [clinics, setClinics] = useState([]);
   const [fetching, setFetching] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [form, setForm] = useState(initialForm);
@@ -47,31 +51,52 @@ export default function AdminClinics() {
   const [servicesTags, setServicesTags] = useState([]);
   const [facilitiesTags, setFacilitiesTags] = useState([]);
 
-  useEffect(() => {
-    fetchClinics();
-  }, []);
-
   // Live search with debounce
   useEffect(() => {
-    const handler = setTimeout(() => {
-      fetchClinics(search.trim());
-    }, 300);
+    const handler = setTimeout(
+      () => {
+        fetchClinics(search.trim(), 1);
+      },
+      search ? 300 : 0,
+    );
     return () => clearTimeout(handler);
   }, [search]);
 
-  async function fetchClinics(term = "") {
+  async function fetchClinics(term = "", page = 1) {
     setFetching(true);
     try {
       const qs = term ? `&search=${encodeURIComponent(term)}` : "";
-      const res = await get(`/clinics?limit=1000${qs}`);
-      setClinics(res.data.clinics || res.data.data?.clinics || []);
+      const res = await get(
+        `/clinics?limit=${PAGE_SIZE}&page=${page}&compact=true${qs}`,
+      );
+      const clinicList = res.data.clinics || res.data.data?.clinics || [];
+      const pagination =
+        res.data.pagination ||
+        res.data.data?.pagination ||
+        (res.data.data?.totalPages
+          ? { total: res.data.data.totalPages }
+          : null);
+      const pageCount =
+        pagination?.totalPages || pagination?.pages || pagination?.total || 1;
+
+      setClinics(clinicList);
+      setCurrentPage(page);
+      setTotalPages(Math.max(pageCount, 1));
     } catch (err) {
       toast.error("Failed to fetch clinics.");
       setClinics([]);
+      setTotalPages(1);
     } finally {
       setFetching(false);
     }
   }
+
+  const goToClinicPage = (page) => {
+    if (page < 1 || page > totalPages || page === currentPage || fetching) {
+      return;
+    }
+    fetchClinics(search.trim(), page);
+  };
 
   const openAdd = () => {
     if (user?.role === "userDoctor") {
@@ -95,93 +120,112 @@ export default function AdminClinics() {
   // Helper function to safely parse array data that might be stringified multiple times
   const safeParseArray = (value) => {
     if (!value) return [];
-    
+
     // Helper to check if a value is "empty" (should be filtered out)
     const isEmpty = (val) => {
       if (!val) return true;
-      if (typeof val !== 'string') return true;
+      if (typeof val !== "string") return true;
       const trimmed = val.trim();
       // Check for various empty patterns
-      return trimmed === '' || 
-             trimmed === '[]' || 
-             trimmed === '""' || 
-             trimmed === "''" ||
-             trimmed === 'null' ||
-             trimmed === 'undefined' ||
-             /^\[["']*\]$/.test(trimmed) || // Matches [], [""], [''], etc.
-             /^["']+$/.test(trimmed);        // Matches "", '', """, etc.
+      return (
+        trimmed === "" ||
+        trimmed === "[]" ||
+        trimmed === '""' ||
+        trimmed === "''" ||
+        trimmed === "null" ||
+        trimmed === "undefined" ||
+        /^\[["']*\]$/.test(trimmed) || // Matches [], [""], [''], etc.
+        /^["']+$/.test(trimmed)
+      ); // Matches "", '', """, etc.
     };
-    
+
     // Helper to aggressively clean a string value
     const cleanString = (str) => {
-      if (typeof str !== 'string') return str;
-      
+      if (typeof str !== "string") return str;
+
       let cleaned = str.trim();
-      
+
       // Remove all types of brackets and quotes from the edges until we get clean content
       let prevLength = -1;
       while (cleaned.length > 0 && cleaned.length !== prevLength) {
         prevLength = cleaned.length;
-        
+
         // Remove leading/trailing quotes and brackets
-        cleaned = cleaned.replace(/^[\[\]"']+/, '').replace(/[\[\]"']+$/, '').trim();
-        
+        cleaned = cleaned
+          .replace(/^[\[\]"']+/, "")
+          .replace(/[\[\]"']+$/, "")
+          .trim();
+
         // Remove escape characters
-        cleaned = cleaned.replace(/\\"/g, '"').replace(/\\\\/g, '\\').replace(/\\'/g, "'");
+        cleaned = cleaned
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, "\\")
+          .replace(/\\'/g, "'");
       }
-      
+
       return cleaned;
     };
-    
+
     // If already an array, recursively clean each item
     if (Array.isArray(value)) {
-      const cleanedArray = value.map(item => {
-        if (typeof item === 'string') {
-          // Skip empty items immediately
-          if (isEmpty(item)) return null;
-          
-          // First try to clean the string aggressively
-          let cleaned = cleanString(item);
-          
-          // After cleaning, check if it's empty
-          if (isEmpty(cleaned)) return null;
-          
-          // If it still looks like it needs parsing, recurse
-          if (cleaned.startsWith('[') || cleaned.startsWith('"')) {
-            const parsed = safeParseArray(cleaned);
-            return parsed.length > 0 ? parsed : null;
+      const cleanedArray = value
+        .map((item) => {
+          if (typeof item === "string") {
+            // Skip empty items immediately
+            if (isEmpty(item)) return null;
+
+            // First try to clean the string aggressively
+            let cleaned = cleanString(item);
+
+            // After cleaning, check if it's empty
+            if (isEmpty(cleaned)) return null;
+
+            // If it still looks like it needs parsing, recurse
+            if (cleaned.startsWith("[") || cleaned.startsWith('"')) {
+              const parsed = safeParseArray(cleaned);
+              return parsed.length > 0 ? parsed : null;
+            }
+
+            // Final check: if the cleaned string contains commas, it might be multiple values
+            if (cleaned.includes(",")) {
+              return cleaned
+                .split(",")
+                .map((s) => cleanString(s))
+                .filter((s) => s && !isEmpty(s));
+            }
+
+            return cleaned;
           }
-          
-          // Final check: if the cleaned string contains commas, it might be multiple values
-          if (cleaned.includes(',')) {
-            return cleaned.split(',').map(s => cleanString(s)).filter(s => s && !isEmpty(s));
-          }
-          
-          return cleaned;
-        }
-        return null;
-      }).flat(); // Flatten in case of nested arrays
-      
-      return cleanedArray.filter(item => item && !isEmpty(item));
+          return null;
+        })
+        .flat(); // Flatten in case of nested arrays
+
+      return cleanedArray.filter((item) => item && !isEmpty(item));
     }
-    
+
     // If it's a string, try to parse it (handling multiple levels of stringification)
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       let current = value.trim();
-      
+
       // Check if it's empty before processing
       if (isEmpty(current)) return [];
-      
+
       // Remove surrounding quotes if present
-      if ((current.startsWith('"') && current.endsWith('"')) || 
-          (current.startsWith("'") && current.endsWith("'"))) {
+      if (
+        (current.startsWith('"') && current.endsWith('"')) ||
+        (current.startsWith("'") && current.endsWith("'"))
+      ) {
         current = current.slice(1, -1).trim();
         if (isEmpty(current)) return [];
       }
-      
+
       // Try to parse as JSON up to 5 times (handle multiple stringification)
       let attempts = 0;
-      while (attempts < 5 && typeof current === 'string' && (current.startsWith('[') || current.startsWith('"'))) {
+      while (
+        attempts < 5 &&
+        typeof current === "string" &&
+        (current.startsWith("[") || current.startsWith('"'))
+      ) {
         try {
           const parsed = JSON.parse(current);
           if (Array.isArray(parsed)) {
@@ -191,7 +235,7 @@ export default function AdminClinics() {
             return safeParseArray(parsed);
           }
           current = parsed;
-          if (typeof current === 'string') {
+          if (typeof current === "string") {
             current = current.trim();
             if (isEmpty(current)) return [];
           }
@@ -201,17 +245,17 @@ export default function AdminClinics() {
         }
         attempts++;
       }
-      
+
       // If we ended up with a string that looks like a list, split by comma
-      if (typeof current === 'string') {
+      if (typeof current === "string") {
         // Final empty check
         if (isEmpty(current)) return [];
-        
+
         // Clean up escaped characters
-        current = current.replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
-        
+        current = current.replace(/\\"/g, '"').replace(/\\\\/g, "\\").trim();
+
         // If it still looks like JSON, try one more parse
-        if (current.startsWith('[')) {
+        if (current.startsWith("[")) {
           try {
             const parsed = JSON.parse(current);
             if (Array.isArray(parsed)) {
@@ -222,18 +266,18 @@ export default function AdminClinics() {
             // Continue to comma split fallback
           }
         }
-        
+
         // Split by comma as final fallback
         return current
-          .split(',')
-          .map(s => cleanString(s))
-          .filter(s => s && !isEmpty(s));
+          .split(",")
+          .map((s) => cleanString(s))
+          .filter((s) => s && !isEmpty(s));
       }
-      
+
       // If we get here with a plain string, clean and return it
-      return [cleanString(current)].filter(s => s && !isEmpty(s));
+      return [cleanString(current)].filter((s) => s && !isEmpty(s));
     }
-    
+
     return [];
   };
 
@@ -242,11 +286,11 @@ export default function AdminClinics() {
       toast.error("You do not have permission to edit clinics.");
       return;
     }
-    
+
     // Parse services and facilities safely
     const servicesArray = safeParseArray(clinic.services);
     const facilitiesArray = safeParseArray(clinic.facilities);
-    
+
     setServicesTags(servicesArray);
     setFacilitiesTags(facilitiesArray);
 
@@ -282,7 +326,7 @@ export default function AdminClinics() {
     try {
       await del(`/clinics/${id}`);
       toast.success("Clinic deleted successfully!");
-      fetchClinics();
+      fetchClinics(search.trim(), currentPage);
     } catch (err) {
       toast.error("Failed to delete clinic.");
     } finally {
@@ -353,7 +397,7 @@ export default function AdminClinics() {
         const tokens = addTokens(form.facilities);
         if (tokens.length > 0) {
           setFacilitiesTags((prev) =>
-            Array.from(new Set([...prev, ...tokens]))
+            Array.from(new Set([...prev, ...tokens])),
           );
           setForm((prev) => ({ ...prev, facilities: "" }));
         }
@@ -387,12 +431,12 @@ export default function AdminClinics() {
     // Ensure services and facilities are properly formatted (tags + any remaining text)
     const pendingServices = addTokens(form.services || "");
     const servicesArray = Array.from(
-      new Set([...(servicesTags || []), ...pendingServices])
+      new Set([...(servicesTags || []), ...pendingServices]),
     );
 
     const pendingFacilities = addTokens(form.facilities || "");
     const facilitiesArray = Array.from(
-      new Set([...(facilitiesTags || []), ...pendingFacilities])
+      new Set([...(facilitiesTags || []), ...pendingFacilities]),
     );
 
     try {
@@ -401,8 +445,7 @@ export default function AdminClinics() {
 
       // Add all form fields
       formData.append("name", form.name);
-      if (form.description)
-        formData.append("description", form.description);
+      if (form.description) formData.append("description", form.description);
       if (form.registrationNumber)
         formData.append("registrationNumber", form.registrationNumber);
       formData.append("email", form.email);
@@ -422,7 +465,6 @@ export default function AdminClinics() {
         formData.append("imageUrl", form.imageUrl);
       }
 
-
       if (editing) {
         await put(`/clinics/${editing._id}`, formData);
         toast.success("Clinic updated successfully!");
@@ -431,11 +473,11 @@ export default function AdminClinics() {
         toast.success("Clinic added successfully!");
       }
       setModalOpen(false);
-      fetchClinics();
+      fetchClinics(search.trim(), editing ? currentPage : 1);
     } catch (err) {
       toast.error(
         "Failed to save clinic: " +
-          (err?.response?.data?.message || err.message || "Unknown error")
+          (err?.response?.data?.message || err.message || "Unknown error"),
       );
     } finally {
       setIsSubmitting(false);
@@ -470,11 +512,11 @@ export default function AdminClinics() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <BackfillImagesButton
+          {/* <BackfillImagesButton
             endpoint="/clinics/backfill-local-images"
             target="clinic images"
-            onComplete={() => fetchClinics(search.trim())}
-          />
+            onComplete={() => fetchClinics(search.trim(), currentPage)}
+          /> */}
           <button
             onClick={openAdd}
             className="btn-primary flex items-center space-x-2"
@@ -594,6 +636,30 @@ export default function AdminClinics() {
         </div>
       )}
 
+      {!fetching && clinics.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <button
+            type="button"
+            onClick={() => goToClinicPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="px-3 py-2 text-sm text-gray-600">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => goToClinicPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      )}
+
       {modalOpen && (
         <Modal
           title={editing ? "Edit Clinic" : "Add Clinic"}
@@ -618,7 +684,7 @@ export default function AdminClinics() {
                 className="input-field"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Description
@@ -770,10 +836,14 @@ export default function AdminClinics() {
                 <button
                   type="button"
                   onClick={() => {
-                    const defaultLocation = form.pinLocation || `${form.name || 'Clinic'}, ${form.place || form.state || 'Midnapore'}, India`;
+                    const defaultLocation =
+                      form.pinLocation ||
+                      `${form.name || "Clinic"}, ${form.place || form.state || "Midnapore"}, India`;
                     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(defaultLocation)}`;
-                    window.open(mapUrl, '_blank', 'width=800,height=600');
-                    toast.success('Select a location on the map, then copy the URL and paste it here');
+                    window.open(mapUrl, "_blank", "width=800,height=600");
+                    toast.success(
+                      "Select a location on the map, then copy the URL and paste it here",
+                    );
                   }}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded whitespace-nowrap"
                 >
@@ -790,12 +860,19 @@ export default function AdminClinics() {
                     <iframe
                       src={(() => {
                         const location = form.pinLocation.trim();
-                        const coordMatch = location.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+                        const coordMatch = location.match(
+                          /^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/,
+                        );
                         if (coordMatch) {
                           return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
                         }
-                        if (location.includes('google.com/maps') && location.includes('@')) {
-                          const coordMatch = location.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+                        if (
+                          location.includes("google.com/maps") &&
+                          location.includes("@")
+                        ) {
+                          const coordMatch = location.match(
+                            /@(-?\d+\.?\d*),(-?\d+\.?\d*)/,
+                          );
                           if (coordMatch) {
                             return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
                           }

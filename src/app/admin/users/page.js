@@ -19,7 +19,7 @@ import {
 import toast from "react-hot-toast";
 import { getEntityImageUrl } from "@/utils/imageUtils";
 import { useAuthStore } from "@/store/authStore";
-import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
+// import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
 
 export default function UsersPage() {
   const { get, post, put, del, patch } = useApi();
@@ -112,7 +112,7 @@ export default function UsersPage() {
       fetchUsers();
     } catch (error) {
       toast.error(
-        selectedUser ? "Failed to update user" : "Failed to add user"
+        selectedUser ? "Failed to update user" : "Failed to add user",
       );
     }
   };
@@ -149,13 +149,13 @@ export default function UsersPage() {
   const handleDelete = async (id) => {
     if (
       !confirm(
-        "Are you absolutely sure you want to delete this user? This action cannot be undone."
+        "Are you absolutely sure you want to delete this user? This action cannot be undone.",
       )
     )
       return;
     if (
       !confirm(
-        "Final confirmation: This will permanently delete the user and archive their data. Continue?"
+        "Final confirmation: This will permanently delete the user and archive their data. Continue?",
       )
     )
       return;
@@ -259,7 +259,7 @@ export default function UsersPage() {
       user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase())
+      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   if (loading) {
@@ -282,11 +282,11 @@ export default function UsersPage() {
           </p>
         </div>
         <div className="flex gap-3 mt-4 sm:mt-0">
-          <BackfillImagesButton
+          {/* <BackfillImagesButton
             endpoint="/users/backfill-local-images"
             target="profile images"
             onComplete={fetchUsers}
-          />
+          /> */}
           <button
             onClick={() => setShowAccessRequestModal(true)}
             className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 flex items-center gap-2"
@@ -399,7 +399,7 @@ export default function UsersPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(
-                          user.role
+                          user.role,
                         )}`}
                       >
                         {getRoleIcon(user.role)}

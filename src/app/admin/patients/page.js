@@ -14,26 +14,65 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
+const PAGE_SIZE = 12;
+
 export default function PatientsPage() {
   const { get } = useApi();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("lastActivity");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalPatients, setTotalPatients] = useState(0);
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    const handler = setTimeout(() => {
+      fetchPatients(1, false);
+    }, searchTerm ? 300 : 0);
+    return () => clearTimeout(handler);
+  }, [searchTerm, sortBy]);
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (page = 1, append = false) => {
     try {
-      setLoading(true);
-      const response = await get("/patients?sort=lastActivity&order=desc");
-      setPatients(response.data.patients || []);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      const qs = new URLSearchParams({
+        sort: sortBy,
+        order: "desc",
+        page: String(page),
+        limit: String(PAGE_SIZE),
+      });
+      if (searchTerm.trim()) qs.set("search", searchTerm.trim());
+
+      const response = await get(`/patients?${qs.toString()}`);
+      const patientList =
+        response.data.patients || response.data.data?.patients || [];
+      const pagination = response.data.pagination || response.data.data?.pagination;
+
+      setPatients((prev) => (append ? [...prev, ...patientList] : patientList));
+      setCurrentPage(page);
+      setTotalPatients(pagination?.totalItems || patientList.length);
+      setHasMore(
+        pagination ? page < pagination.total : patientList.length === PAGE_SIZE
+      );
     } catch (error) {
       toast.error("Failed to fetch patients");
+      if (!append) setPatients([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMorePatients = () => {
+    if (!loadingMore && hasMore) {
+      fetchPatients(currentPage + 1, true);
     }
   };
 
@@ -63,28 +102,7 @@ export default function PatientsPage() {
     return 0;
   };
 
-  const sortedPatients = [...patients].sort((a, b) => {
-    if (sortBy === "lastActivity") {
-      return getLastActivityTime(b) - getLastActivityTime(a);
-    }
-    if (sortBy === "name") {
-      return (a.firstName + " " + a.lastName).localeCompare(
-        b.firstName + " " + b.lastName
-      );
-    }
-    if (sortBy === "createdAt") {
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    }
-    return 0;
-  });
-
-  const filteredPatients = sortedPatients.filter(
-    (patient) =>
-      patient.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.phone?.includes(searchTerm)
-  );
+  const filteredPatients = patients;
 
   if (loading) {
     return (
@@ -153,7 +171,7 @@ export default function PatientsPage() {
                   Total Patients
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {patients.length}
+                  {totalPatients}
                 </p>
               </div>
             </div>
@@ -335,6 +353,20 @@ export default function PatientsPage() {
           </div>
         </div>
       </div>
+
+      {filteredPatients.length > 0 && hasMore && (
+        <div className="flex justify-center">
+          <button
+            onClick={loadMorePatients}
+            disabled={loadingMore}
+            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingMore
+              ? "Loading..."
+              : `Load More (${patients.length} of ${totalPatients})`}
+          </button>
+        </div>
+      )}
 
       {filteredPatients.length === 0 && (
         <div className="text-center py-12">

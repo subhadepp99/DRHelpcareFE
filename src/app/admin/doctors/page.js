@@ -8,8 +8,10 @@ import Modal from "@/components/common/Modal";
 import DoctorScheduleModal from "@/components/modals/DoctorScheduleModal";
 import DoctorViewModal from "@/components/modals/DoctorViewModal";
 import FAQModal from "@/components/modals/FAQModal";
-import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
+// import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
 import toast from "react-hot-toast"; // Import toast
+
+const PAGE_SIZE = 20;
 
 const initialForm = {
   name: "",
@@ -37,8 +39,7 @@ export default function AdminDoctorsPage() {
   const [clinics, setClinics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false); // New state for form submission
   const [isDeleting, setIsDeleting] = useState(false); // New state for deletion
   const [modalOpen, setModalOpen] = useState(false);
@@ -72,48 +73,33 @@ export default function AdminDoctorsPage() {
   });
 
   // Fetch doctors from the API using the Node backend endpoint
-  const fetchDoctors = async (term = "", page = 1, append = false) => {
-    if (append) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-    }
+  const fetchDoctors = async (term = "", page = 1) => {
+    setLoading(true);
     try {
       const qs = term ? `&search=${encodeURIComponent(term)}` : "";
       const res = await get(
-        `/doctors?limit=150&page=${page}&populate=department,clinicDetails.clinic${qs}`
-      ); // Load 150 at a time for better performance
+        `/doctors?limit=${PAGE_SIZE}&page=${page}&populate=department${qs}`,
+      );
       const newDoctors = res.data.doctors || res.data.data?.doctors || [];
       const pagination = res.data.pagination || res.data.data?.pagination;
-      
-      if (append) {
-        setDoctors((prev) => [...prev, ...newDoctors]);
-      } else {
-        setDoctors(newDoctors);
-        setCurrentPage(1);
-      }
-      
-      // Check if there are more pages
-      if (pagination) {
-        setHasMore(page < pagination.pages);
-        setCurrentPage(page);
-      } else {
-        setHasMore(newDoctors.length === 150); // If we got 150, there might be more
-      }
+
+      setDoctors(newDoctors);
+      setCurrentPage(page);
+      setTotalPages(Math.max(pagination?.pages || pagination?.total || 1, 1));
     } catch (err) {
       toast.error("Failed to fetch doctors.");
-      if (!append) setDoctors([]);
-      setHasMore(false);
+      setDoctors([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   };
 
-  const loadMoreDoctors = () => {
-    if (!loadingMore && hasMore) {
-      fetchDoctors(search, currentPage + 1, true);
+  const goToDoctorPage = (page) => {
+    if (page < 1 || page > totalPages || page === currentPage || loading) {
+      return;
     }
+    fetchDoctors(search.trim(), page);
   };
 
   // Fetch departments from the API
@@ -140,17 +126,19 @@ export default function AdminDoctorsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchDoctors();
-    fetchDepartments();
-    fetchClinics();
-  }, []);
+  const ensureFormOptions = () => {
+    if (departments.length === 0) fetchDepartments();
+    if (clinics.length === 0) fetchClinics();
+  };
 
   // Live search with debounce
   useEffect(() => {
-    const handler = setTimeout(() => {
-      fetchDoctors(search.trim(), 1, false);
-    }, 300);
+    const handler = setTimeout(
+      () => {
+        fetchDoctors(search.trim(), 1);
+      },
+      search ? 300 : 0,
+    );
     return () => clearTimeout(handler);
   }, [search]);
 
@@ -159,6 +147,7 @@ export default function AdminDoctorsPage() {
       toast.error("You do not have permission to add doctors.");
       return;
     }
+    ensureFormOptions();
     setEditingDoctor(null);
     setForm({
       name: "",
@@ -182,6 +171,7 @@ export default function AdminDoctorsPage() {
   };
 
   const openEditModal = (doc) => {
+    ensureFormOptions();
     setEditingDoctor(doc);
     setForm({
       name: doc.name || "",
@@ -216,12 +206,12 @@ export default function AdminDoctorsPage() {
       setIsDeleting(true); // Set deleting state
       try {
         await del(`/doctors/${id}`);
-        setDoctors((prev) => prev.filter((doc) => doc._id !== id));
         toast.success("Doctor deleted successfully!");
+        fetchDoctors(search.trim(), currentPage);
       } catch (err) {
         toast.error(
           "Failed to delete doctor: " +
-            (err?.response?.data?.message || err.message || "Unknown error")
+            (err?.response?.data?.message || err.message || "Unknown error"),
         );
       } finally {
         setIsDeleting(false); // Reset deleting state
@@ -293,7 +283,7 @@ export default function AdminDoctorsPage() {
           ...doc,
           bookingSchedule: Array.isArray(schedule) ? schedule : [],
         };
-      })
+      }),
     );
   };
 
@@ -358,25 +348,18 @@ export default function AdminDoctorsPage() {
 
     try {
       if (editingDoctor) {
-        const response = await put(`/doctors/${editingDoctor._id}`, payload);
-
-        setDoctors((prev) =>
-          prev.map((doc) =>
-            doc._id === editingDoctor._id ? { ...doc, ...payload } : doc
-          )
-        );
+        await put(`/doctors/${editingDoctor._id}`, payload);
         toast.success("Doctor updated successfully!");
       } else {
-        const res = await post("/doctors", payload);
-
-        setDoctors((prev) => [...prev, res.data]);
+        await post("/doctors", payload);
         toast.success("Doctor added successfully!");
       }
       setModalOpen(false);
+      fetchDoctors(search.trim(), editingDoctor ? currentPage : 1);
     } catch (err) {
       toast.error(
         "Could not save doctor: " +
-          (err?.response?.data?.message || err.message || "Unknown error")
+          (err?.response?.data?.message || err.message || "Unknown error"),
       );
     } finally {
       setIsSubmitting(false); // Reset submitting state
@@ -412,11 +395,11 @@ export default function AdminDoctorsPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <BackfillImagesButton
+          {/* <BackfillImagesButton
             endpoint="/doctors/backfill-local-images"
             target="doctor images"
-            onComplete={() => fetchDoctors(search.trim(), 1, false)}
-          />
+            onComplete={() => fetchDoctors(search.trim(), currentPage)}
+          /> */}
           <button
             className="flex items-center px-6 py-2 rounded-md bg-primary-600 hover:bg-primary-700 text-white font-bold shadow-lg space-x-2 transition-all 
                        active:scale-95 active:shadow-none"
@@ -437,157 +420,156 @@ export default function AdminDoctorsPage() {
           <table className="w-full text-left border-collapse border">
             <thead>
               <tr className="bg-gray-100">
-              <th className="border p-2">Photo</th>
-              <th className="border p-2">Name</th>
-              <th className="border p-2">Email</th>
-              <th className="border p-2">Department</th>
-              <th className="border p-2">Phone</th>
-              <th className="border p-2">Clinics</th>
-              <th className="border p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {doctors.map((doc) => (
-              <tr
-                key={doc._id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <td className="border p-2">
-                  {doc.imageUrl ? (
-                    <img
-                      src={doc.imageUrl}
-                      alt={doc.name}
-                      className="w-12 h-12 rounded-full object-cover border"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-500 text-xs">
-                      No Img
-                    </div>
-                  )}
-                </td>
-                <td className="border p-2">
-                  <button
-                    onClick={() => openViewModal(doc)}
-                    className="text-left hover:text-primary-600 hover:underline cursor-pointer font-medium"
-                  >
-                    {doc.name}
-                  </button>
-                </td>
-                <td className="border p-2">{doc.email}</td>
-                <td className="border p-2">
-                  {doc.department?.name || doc.department || "Unknown"}
-                </td>
-                <td className="border p-2">{doc.phone}</td>
-                <td className="border p-2">
-                  {doc.clinicDetails?.length > 0 ? (
-                    <div className="text-xs">
-                      {doc.clinicDetails.slice(0, 2).map((clinic, index) => (
-                        <div key={index} className="mb-1">
-                          {clinic.clinicName ||
-                            clinic.clinic?.name ||
-                            "Unknown Clinic"}
-                          {clinic.isPrimary && (
-                            <span className="text-blue-600 ml-1">
-                              (Primary)
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                      {doc.clinicDetails.length > 2 && (
-                        <span className="text-gray-500">
-                          +{doc.clinicDetails.length - 2} more
-                        </span>
-                      )}
-                    </div>
-                  ) : doc.clinics?.length > 0 ? (
-                    <div className="text-xs">
-                      {doc.clinics.slice(0, 2).map((clinic, index) => (
-                        <div key={index} className="mb-1">
-                          {typeof clinic === "object"
-                            ? clinic.name
-                            : "Clinic ID: " + clinic}
-                        </div>
-                      ))}
-                      {doc.clinics.length > 2 && (
-                        <span className="text-gray-500">
-                          +{doc.clinics.length - 2} more
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-gray-400">No clinics</span>
-                  )}
-                </td>
-                <td className="border p-2 space-x-2">
-                  <button
-                    onClick={() => openViewModal(doc)}
-                    className="p-1 hover:text-blue-600"
-                    title="View Details"
-                  >
-                    <Eye className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => openScheduleModal(doc)}
-                    className="p-1 hover:text-green-600"
-                    title="Manage Schedule"
-                  >
-                    <Calendar className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => openFaqModal(doc)}
-                    className="p-1 hover:text-purple-600"
-                    title="Manage FAQs"
-                  >
-                    <HelpCircle className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => openEditModal(doc)}
-                    className="p-1 hover:text-blue-600"
-                    title="Edit Doctor"
-                  >
-                    <Edit className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(doc._id)}
-                    className="p-1 hover:text-red-600"
-                    disabled={isDeleting} // Disable delete button while deleting
-                    title="Delete Doctor"
-                  >
-                    {isDeleting ? (
-                      "Deleting..."
-                    ) : (
-                      <Trash2 className="w-5 h-5" />
-                    )}
-                  </button>
-                </td>
+                <th className="border p-2">Photo</th>
+                <th className="border p-2">Name</th>
+                <th className="border p-2">Email</th>
+                <th className="border p-2">Department</th>
+                <th className="border p-2">Phone</th>
+                <th className="border p-2">Clinics</th>
+                <th className="border p-2">Actions</th>
               </tr>
-            ))}
-          </tbody>
+            </thead>
+            <tbody>
+              {doctors.map((doc) => (
+                <tr
+                  key={doc._id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <td className="border p-2">
+                    {doc.imageUrl ? (
+                      <img
+                        src={doc.imageUrl}
+                        alt={doc.name}
+                        className="w-12 h-12 rounded-full object-cover border"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-500 text-xs">
+                        No Img
+                      </div>
+                    )}
+                  </td>
+                  <td className="border p-2">
+                    <button
+                      onClick={() => openViewModal(doc)}
+                      className="text-left hover:text-primary-600 hover:underline cursor-pointer font-medium"
+                    >
+                      {doc.name}
+                    </button>
+                  </td>
+                  <td className="border p-2">{doc.email}</td>
+                  <td className="border p-2">
+                    {doc.department?.name || doc.department || "Unknown"}
+                  </td>
+                  <td className="border p-2">{doc.phone}</td>
+                  <td className="border p-2">
+                    {doc.clinicDetails?.length > 0 ? (
+                      <div className="text-xs">
+                        {doc.clinicDetails.slice(0, 2).map((clinic, index) => (
+                          <div key={index} className="mb-1">
+                            {clinic.clinicName ||
+                              clinic.clinic?.name ||
+                              "Unknown Clinic"}
+                            {clinic.isPrimary && (
+                              <span className="text-blue-600 ml-1">
+                                (Primary)
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                        {doc.clinicDetails.length > 2 && (
+                          <span className="text-gray-500">
+                            +{doc.clinicDetails.length - 2} more
+                          </span>
+                        )}
+                      </div>
+                    ) : doc.clinics?.length > 0 ? (
+                      <div className="text-xs">
+                        {doc.clinics.slice(0, 2).map((clinic, index) => (
+                          <div key={index} className="mb-1">
+                            {typeof clinic === "object"
+                              ? clinic.name
+                              : "Clinic ID: " + clinic}
+                          </div>
+                        ))}
+                        {doc.clinics.length > 2 && (
+                          <span className="text-gray-500">
+                            +{doc.clinics.length - 2} more
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">No clinics</span>
+                    )}
+                  </td>
+                  <td className="border p-2 space-x-2">
+                    <button
+                      onClick={() => openViewModal(doc)}
+                      className="p-1 hover:text-blue-600"
+                      title="View Details"
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => openScheduleModal(doc)}
+                      className="p-1 hover:text-green-600"
+                      title="Manage Schedule"
+                    >
+                      <Calendar className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => openFaqModal(doc)}
+                      className="p-1 hover:text-purple-600"
+                      title="Manage FAQs"
+                    >
+                      <HelpCircle className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => openEditModal(doc)}
+                      className="p-1 hover:text-blue-600"
+                      title="Edit Doctor"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(doc._id)}
+                      className="p-1 hover:text-red-600"
+                      disabled={isDeleting} // Disable delete button while deleting
+                      title="Delete Doctor"
+                    >
+                      {isDeleting ? (
+                        "Deleting..."
+                      ) : (
+                        <Trash2 className="w-5 h-5" />
+                      )}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
       )}
 
-      {/* Load More Button */}
-      {!loading && doctors.length > 0 && hasMore && (
-        <div className="flex justify-center mt-4">
+      {!loading && doctors.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-4">
           <button
-            onClick={loadMoreDoctors}
-            disabled={loadingMore}
-            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            type="button"
+            onClick={() => goToDoctorPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loadingMore ? (
-              <>
-                <div className="spinner w-4 h-4"></div>
-                <span>Loading...</span>
-              </>
-            ) : (
-              <>
-                <span>Load More</span>
-                <span className="text-sm opacity-75">
-                  ({doctors.length} loaded)
-                </span>
-              </>
-            )}
+            Previous
+          </button>
+          <span className="px-3 py-2 text-sm text-gray-600">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => goToDoctorPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
           </button>
         </div>
       )}
@@ -818,10 +800,14 @@ export default function AdminDoctorsPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    const defaultLocation = form.pinLocation || `${form.city || 'Midnapore'}, ${form.state || 'West Bengal'}, India`;
+                    const defaultLocation =
+                      form.pinLocation ||
+                      `${form.city || "Midnapore"}, ${form.state || "West Bengal"}, India`;
                     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(defaultLocation)}`;
-                    window.open(mapUrl, '_blank', 'width=800,height=600');
-                    toast.success('Select a location on the map, then copy the URL and paste it here');
+                    window.open(mapUrl, "_blank", "width=800,height=600");
+                    toast.success(
+                      "Select a location on the map, then copy the URL and paste it here",
+                    );
                   }}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded whitespace-nowrap"
                 >
@@ -829,49 +815,61 @@ export default function AdminDoctorsPage() {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Examples: 
+                Examples:
                 <br />• Coordinates: 22.123456,88.123456
                 <br />• Address: Hospital Name, City, State
                 <br />• Google Maps URL: Right-click on map → Copy link
               </p>
               {form.pinLocation && (
                 <div className="mt-2">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Preview:</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    Preview:
+                  </p>
                   <div className="w-full h-48 rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
                     <iframe
                       src={(() => {
                         const location = form.pinLocation.trim();
-                        
+
                         // Extract coordinates if it's a lat,lng format
-                        const coordMatch = location.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+                        const coordMatch = location.match(
+                          /^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/,
+                        );
                         if (coordMatch) {
                           return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
                         }
-                        
+
                         // If it's an iframe embed code, extract the src
-                        if (location.includes('<iframe')) {
-                          const srcMatch = location.match(/src=["']([^"']+)["']/);
+                        if (location.includes("<iframe")) {
+                          const srcMatch =
+                            location.match(/src=["']([^"']+)["']/);
                           if (srcMatch) {
                             return srcMatch[1];
                           }
                         }
-                        
+
                         // If it's a Google Maps URL with coordinates in @
-                        if (location.includes('google.com/maps') && location.includes('@')) {
-                          const coordMatch = location.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+                        if (
+                          location.includes("google.com/maps") &&
+                          location.includes("@")
+                        ) {
+                          const coordMatch = location.match(
+                            /@(-?\d+\.?\d*),(-?\d+\.?\d*)/,
+                          );
                           if (coordMatch) {
                             return `https://www.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
                           }
                         }
-                        
+
                         // If it's a place URL
-                        if (location.includes('google.com/maps/place/')) {
-                          const placeMatch = location.match(/google\.com\/maps\/place\/([^/]+)/);
+                        if (location.includes("google.com/maps/place/")) {
+                          const placeMatch = location.match(
+                            /google\.com\/maps\/place\/([^/]+)/,
+                          );
                           if (placeMatch) {
                             return `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(placeMatch[1])}`;
                           }
                         }
-                        
+
                         // Default: treat as address or search query
                         return `https://www.google.com/maps?q=${encodeURIComponent(location)}&output=embed`;
                       })()}
@@ -885,7 +883,8 @@ export default function AdminDoctorsPage() {
                     ></iframe>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    💡 Tip: If preview doesn't load, try using coordinates format (lat,lng) like: 22.321756,87.321045
+                    💡 Tip: If preview doesn't load, try using coordinates
+                    format (lat,lng) like: 22.321756,87.321045
                   </p>
                 </div>
               )}
@@ -911,14 +910,17 @@ export default function AdminDoctorsPage() {
                                 // Add clinic to selection
                                 return {
                                   ...prev,
-                                  selectedClinics: [...prev.selectedClinics, clinic._id],
+                                  selectedClinics: [
+                                    ...prev.selectedClinics,
+                                    clinic._id,
+                                  ],
                                 };
                               } else {
                                 // Remove clinic from selection
                                 return {
                                   ...prev,
                                   selectedClinics: prev.selectedClinics.filter(
-                                    (id) => id !== clinic._id
+                                    (id) => id !== clinic._id,
                                   ),
                                 };
                               }
@@ -981,11 +983,15 @@ export default function AdminDoctorsPage() {
                 checked={form.isFeatured || false}
                 onChange={(e) => {
                   // Exclude current doctor from count if editing
-                  const featuredCount = doctors.filter(d => 
-                    d.isFeatured && (!editingDoctor || d._id !== editingDoctor._id)
+                  const featuredCount = doctors.filter(
+                    (d) =>
+                      d.isFeatured &&
+                      (!editingDoctor || d._id !== editingDoctor._id),
                   ).length;
                   if (e.target.checked && featuredCount >= 25) {
-                    toast.error("Maximum 25 doctors can be featured. Please unfeature another doctor first.");
+                    toast.error(
+                      "Maximum 25 doctors can be featured. Please unfeature another doctor first.",
+                    );
                     return;
                   }
                   setForm((prev) => ({
@@ -995,16 +1001,21 @@ export default function AdminDoctorsPage() {
                 }}
                 className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
               />
-              <label htmlFor="isFeatured" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer flex-1">
+              <label
+                htmlFor="isFeatured"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer flex-1"
+              >
                 <span className="font-semibold">Feature on Home Page</span>
                 <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Show this doctor in the "Featured Doctors" section (Max 25 doctors)
+                  Show this doctor in the "Featured Doctors" section (Max 25
+                  doctors)
                 </span>
               </label>
             </div>
-            {doctors.filter(d => d.isFeatured).length > 0 && (
+            {doctors.filter((d) => d.isFeatured).length > 0 && (
               <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-                Currently {doctors.filter(d => d.isFeatured).length} of 25 doctors are featured
+                Currently {doctors.filter((d) => d.isFeatured).length} of 25
+                doctors are featured
               </p>
             )}
             <button
@@ -1017,8 +1028,8 @@ export default function AdminDoctorsPage() {
                   ? "Updating..."
                   : "Adding..."
                 : editingDoctor
-                ? "Update Doctor"
-                : "Add Doctor"}
+                  ? "Update Doctor"
+                  : "Add Doctor"}
             </button>
           </form>
         </Modal>

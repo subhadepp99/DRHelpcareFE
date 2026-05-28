@@ -156,7 +156,7 @@ export default function HomePage() {
   const getDiscountPercentage = (originalPrice, discountedPrice) => {
     if (!originalPrice || !discountedPrice) return 0;
     return Math.round(
-      ((originalPrice - discountedPrice) / originalPrice) * 100
+      ((originalPrice - discountedPrice) / originalPrice) * 100,
     );
   };
 
@@ -378,7 +378,7 @@ export default function HomePage() {
                               <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
                                 {getDiscountPercentage(
                                   pkg.price,
-                                  pkg.discountedPrice
+                                  pkg.discountedPrice,
                                 )}
                                 % OFF
                               </span>
@@ -550,8 +550,6 @@ export default function HomePage() {
             onClose={() => setAppointmentModalOpen(false)}
           />
         )}
-
-        {/* Floating Call & WhatsApp Buttons removed as requested */}
 
         <div className="bg-gray-900 text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

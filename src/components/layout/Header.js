@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,10 +23,56 @@ import { getEntityImageUrl } from "@/utils/imageUtils";
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const navigationTimerRef = useRef(null);
+
+  useEffect(() => {
+    setIsNavigating(false);
+
+    if (navigationTimerRef.current) {
+      clearTimeout(navigationTimerRef.current);
+      navigationTimerRef.current = null;
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    return () => {
+      if (navigationTimerRef.current) {
+        clearTimeout(navigationTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleHeaderNavigation = (href, closeMenus = true) => {
+    if (closeMenus) {
+      setIsMenuOpen(false);
+      setIsUserMenuOpen(false);
+    }
+
+    const targetUrl = new URL(href, window.location.origin);
+    if (
+      targetUrl.pathname === window.location.pathname &&
+      targetUrl.search === window.location.search
+    ) {
+      return;
+    }
+
+    setIsNavigating(true);
+
+    if (navigationTimerRef.current) {
+      clearTimeout(navigationTimerRef.current);
+    }
+
+    navigationTimerRef.current = setTimeout(() => {
+      setIsNavigating(false);
+      navigationTimerRef.current = null;
+    }, 4000);
+  };
 
   const handleLogout = () => {
     logout();
@@ -49,7 +95,11 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3">
+          <Link
+            href="/"
+            className="flex items-center space-x-3"
+            onClick={() => handleHeaderNavigation("/")}
+          >
             <div className="relative w-10 h-10">
               <Image
                 src="/logo.png"
@@ -73,6 +123,7 @@ export default function Header() {
                 key={item.name}
                 href={item.href}
                 className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                onClick={() => handleHeaderNavigation(item.href)}
               >
                 {item.name}
               </Link>
@@ -132,7 +183,7 @@ export default function Header() {
                       <Link
                         href="/profile"
                         className="flex items-center space-x-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setIsUserMenuOpen(false)}
+                        onClick={() => handleHeaderNavigation("/profile")}
                       >
                         <User className="w-4 h-4" />
                         <span>Profile</span>
@@ -141,7 +192,7 @@ export default function Header() {
                         <Link
                           href="/admin"
                           className="flex items-center space-x-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          onClick={() => setIsUserMenuOpen(false)}
+                          onClick={() => handleHeaderNavigation("/admin")}
                         >
                           <Settings className="w-4 h-4" />
                           <span>Admin Panel</span>
@@ -164,10 +215,15 @@ export default function Header() {
                 <Link
                   href="/login"
                   className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium"
+                  onClick={() => handleHeaderNavigation("/login")}
                 >
                   Login
                 </Link>
-                <Link href="/register" className="btn-primary">
+                <Link
+                  href="/register"
+                  className="btn-primary"
+                  onClick={() => handleHeaderNavigation("/register")}
+                >
                   Sign Up
                 </Link>
               </div>
@@ -202,7 +258,7 @@ export default function Header() {
                     key={item.name}
                     href={item.href}
                     className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={() => handleHeaderNavigation(item.href)}
                   >
                     {item.name}
                   </Link>
@@ -213,14 +269,14 @@ export default function Header() {
                     <Link
                       href="/login"
                       className="text-gray-700 dark:text-gray-200 hover:text-primary-600 font-medium"
-                      onClick={() => setIsMenuOpen(false)}
+                      onClick={() => handleHeaderNavigation("/login")}
                     >
                       Login
                     </Link>
                     <Link
                       href="/register"
                       className="btn-primary px-4 py-1.5"
-                      onClick={() => setIsMenuOpen(false)}
+                      onClick={() => handleHeaderNavigation("/register")}
                     >
                       Sign Up
                     </Link>
@@ -230,7 +286,7 @@ export default function Header() {
                     <Link
                       href="/profile"
                       className="block text-gray-700 dark:text-gray-200 hover:text-primary-600 font-medium mb-2"
-                      onClick={() => setIsMenuOpen(false)}
+                      onClick={() => handleHeaderNavigation("/profile")}
                     >
                       Profile
                     </Link>
@@ -238,7 +294,7 @@ export default function Header() {
                       <Link
                         href="/admin"
                         className="block text-gray-700 dark:text-gray-200 hover:text-primary-600 font-medium mb-2"
-                        onClick={() => setIsMenuOpen(false)}
+                        onClick={() => handleHeaderNavigation("/admin")}
                       >
                         Admin Panel
                       </Link>
@@ -259,6 +315,22 @@ export default function Header() {
           )}
         </AnimatePresence>
       </div>
+      <AnimatePresence>
+        {isNavigating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-primary-100 dark:bg-gray-800"
+          >
+            <motion.div
+              className="h-full w-1/3 bg-primary-600 dark:bg-primary-400"
+              animate={{ x: ["-100%", "320%"] }}
+              transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

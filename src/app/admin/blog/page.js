@@ -23,7 +23,7 @@ export default function BlogAdminPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [backfillLoading, setBackfillLoading] = useState(false);
+  // const [backfillLoading, setBackfillLoading] = useState(false);
 
   useEffect(() => {
     fetchPosts();
@@ -67,36 +67,36 @@ export default function BlogAdminPage() {
     }
   };
 
-  const handleBackfillImages = async () => {
-    if (
-      !confirm(
-        "Backfill blog images into client/public/sources/blog and update the database links?",
-      )
-    ) {
-      return;
-    }
+  // const handleBackfillImages = async () => {
+  //   if (
+  //     !confirm(
+  //       "Backfill blog images into client/public/sources/blog and update the database links?",
+  //     )
+  //   ) {
+  //     return;
+  //   }
 
-    try {
-      setBackfillLoading(true);
-      const response = await post(
-        "/blogs/backfill-local-images",
-        {},
-        { timeout: 300000 },
-      );
-      const data = response.data || {};
-      toast.success(
-        data.message ||
-          `Backfill complete: ${data.converted || 0} converted, ${
-            data.skipped || 0
-          } skipped`,
-      );
-      fetchPosts();
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to backfill images");
-    } finally {
-      setBackfillLoading(false);
-    }
-  };
+  //   try {
+  //     setBackfillLoading(true);
+  //     const response = await post(
+  //       "/blogs/backfill-local-images",
+  //       {},
+  //       { timeout: 300000 },
+  //     );
+  //     const data = response.data || {};
+  //     toast.success(
+  //       data.message ||
+  //         `Backfill complete: ${data.converted || 0} converted, ${
+  //           data.skipped || 0
+  //         } skipped`,
+  //     );
+  //     fetchPosts();
+  //   } catch (error) {
+  //     toast.error(error.response?.data?.message || "Failed to backfill images");
+  //   } finally {
+  //     setBackfillLoading(false);
+  //   }
+  // };
 
   const filteredPosts = posts.filter((post) => {
     const matchesSearch =

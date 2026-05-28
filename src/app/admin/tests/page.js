@@ -19,7 +19,7 @@ import {
 import toast from "react-hot-toast";
 import StatesDropdown from "@/components/common/StatesDropdown";
 import { getEntityImageUrl } from "@/utils/imageUtils";
-import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
+// import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
 
 export default function TestsPage() {
   const { get, post, put, del } = useApi();
@@ -87,8 +87,7 @@ export default function TestsPage() {
       const pathologies =
         response.data?.data?.pathologies || response.data?.pathologies || [];
       setPathologies(pathologies);
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const handleSubmit = async (e) => {
@@ -105,33 +104,33 @@ export default function TestsPage() {
           if (typeof hc.available !== "undefined") {
             formDataToSend.append(
               "homeCollection[available]",
-              String(!!hc.available)
+              String(!!hc.available),
             );
           }
           if (typeof hc.fee !== "undefined") {
             formDataToSend.append(
               "homeCollection[fee]",
-              String(Number(hc.fee) || 0)
+              String(Number(hc.fee) || 0),
             );
           }
           if (Array.isArray(hc.areas)) {
             hc.areas
               .filter((a) => a && a.trim())
               .forEach((area) =>
-                formDataToSend.append("homeCollection[areas]", area.trim())
+                formDataToSend.append("homeCollection[areas]", area.trim()),
               );
           }
           if (hc.timing && (hc.timing.start || hc.timing.end)) {
             if (hc.timing.start !== undefined) {
               formDataToSend.append(
                 "homeCollection[timing][start]",
-                hc.timing.start || ""
+                hc.timing.start || "",
               );
             }
             if (hc.timing.end !== undefined) {
               formDataToSend.append(
                 "homeCollection[timing][end]",
-                hc.timing.end || ""
+                hc.timing.end || "",
               );
             }
           }
@@ -167,7 +166,7 @@ export default function TestsPage() {
       toast.error(
         selectedTest
           ? `Failed to update test: ${errorMessage}`
-          : `Failed to add test: ${errorMessage}`
+          : `Failed to add test: ${errorMessage}`,
       );
     } finally {
       setIsSubmitting(false);
@@ -301,7 +300,7 @@ export default function TestsPage() {
     (test) =>
       test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       test.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      test.sampleType.toLowerCase().includes(searchTerm.toLowerCase())
+      test.sampleType.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   if (loading) {
@@ -324,11 +323,11 @@ export default function TestsPage() {
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex flex-wrap items-center gap-2">
-          <BackfillImagesButton
+          {/* <BackfillImagesButton
             endpoint="/tests/backfill-local-images"
             target="test images"
             onComplete={fetchTests}
-          />
+          /> */}
           <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
@@ -1097,7 +1096,7 @@ export default function TestsPage() {
                             updateComponent(
                               index,
                               "referenceRange",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           className="input-field w-full"

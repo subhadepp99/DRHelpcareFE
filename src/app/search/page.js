@@ -191,8 +191,9 @@ export default function SearchPage() {
 
   const handleSearchChange = (value) => {
     setSearchQuery(value);
-    if (value.length >= 1) {
-      fetchSuggestions(value);
+    const trimmedValue = value.trim();
+    if (trimmedValue.length >= 1) {
+      fetchSuggestions(trimmedValue);
     } else {
       // Empty input: show default suggestions (departments etc.)
       fetchSuggestions("");
@@ -428,7 +429,7 @@ export default function SearchPage() {
     }
 
     // Auto-search when:
-    // 1. Query has 3+ characters, OR
+    // 1. Query has 2+ characters, OR
     // 2. A specific type is selected, OR  
     // 3. Location is provided (even without query)
     // 4. Query exists and search type is doctors (allow doctor name search without location)
@@ -454,11 +455,11 @@ export default function SearchPage() {
     }
     
     // Allow search if:
-    // - Query has 3+ chars, OR
+    // - Query has 2+ chars, OR
     // - Has location (supports location-only search), OR
     // - Query exists and searching for doctors (allow doctor name search without location)
     if (
-      searchQuery.trim().length >= 3 ||
+      searchQuery.trim().length >= 2 ||
       hasLocation ||
       (searchQuery.trim().length > 0 && searchType === "doctors")
     ) {

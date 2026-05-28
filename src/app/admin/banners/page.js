@@ -5,7 +5,7 @@ import { useApi } from "@/hooks/useApi";
 import { Plus, Trash2, Upload, GripVertical } from "lucide-react";
 import toast from "react-hot-toast";
 import { getImageUrl } from "@/utils/imageUtils";
-import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
+// import BackfillImagesButton from "@/components/admin/BackfillImagesButton";
 
 export default function AdminBannersPage() {
   const { get, post, del, put } = useApi();

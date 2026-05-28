@@ -8,8 +8,10 @@ import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "@/store/authStore";
 import { useEffect, useState } from "react";
 import FloatingContactButtons from "@/components/common/FloatingContactButtons";
+import FloatingChatButton from "@/components/common/FloatingChatButton";
 import { LocationProvider, useLocation } from "@/contexts/LocationContext";
 import LocationModal from "@/components/modals/LocationModal";
+import { usePathname } from "next/navigation";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -51,6 +53,16 @@ function LocationModalWrapper() {
       mandatory={isMandatory}
     />
   );
+}
+
+function NewHomepageChatWrapper() {
+  const pathname = usePathname();
+
+  if (pathname !== "/new_homepage" && pathname !== "/new_page") {
+    return null;
+  }
+
+  return <FloatingChatButton />;
 }
 
 export default function RootLayout({ children }) {
@@ -190,6 +202,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             <LocationProvider>
               {children}
               <FloatingContactButtons />
+              <NewHomepageChatWrapper />
               <LocationModalWrapper />
             </LocationProvider>
             <Toaster
